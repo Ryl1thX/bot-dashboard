@@ -4,34 +4,39 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bot SaaS Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:system-ui,sans-serif;background:#1a1a2e;color:#eee;padding:20px;max-width:600px;margin:0 auto}
-.card{background:#16213e;border-radius:8px;padding:16px;margin-bottom:12px}
-input,select,textarea{width:100%;padding:10px;margin:6px 0;border-radius:4px;border:none;background:#0f3460;color:#fff}
-button{width:100%;padding:10px;background:#e94560;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;margin-top:8px}
+body{font-family:system-ui,sans-serif;background:#0f0f1a;color:#e0e0e0;padding:16px;max-width:600px;margin:0 auto;line-height:1.5}
+.card{background:#1a1a2e;border-radius:8px;padding:16px;margin-bottom:12px;border:1px solid #2a2a4a}
+input,select,textarea{width:100%;padding:10px;margin:6px 0;border-radius:4px;border:1px solid #333;background:#0f0f1a;color:#fff;font-size:14px}
+button{width:100%;padding:12px;background:#e94560;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;margin-top:8px;font-size:14px}
 button:hover{opacity:.9}
+button:disabled{background:#555;cursor:not-allowed}
 .tabs{display:flex;gap:8px;margin-bottom:12px}
-.tab{flex:1;padding:10px;background:#0f3460;border-radius:4px;text-align:center;cursor:pointer}
-.tab.active{background:#e94560}
+.tab{flex:1;padding:10px;background:#0f0f1a;border-radius:4px;text-align:center;cursor:pointer;border:1px solid #333}
+.tab.active{background:#e94560;border-color:#e94560}
 .hidden{display:none!important}
-#debug{position:fixed;bottom:0;left:0;right:0;background:#000;color:#0f0;font-family:monospace;font-size:11px;padding:8px;max-height:120px;overflow-y:auto;z-index:9999;border-top:2px solid #e94560}
-.status{margin-top:6px;font-size:12px;min-height:18px}
-.status.ok{color:#4caf50}
-.status.err{color:#f44336}
-.status.info{color:#ff9800}
-.bot-item{background:#0f3460;padding:10px;border-radius:4px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
-.small-btn{padding:4px 10px;font-size:11px;background:#e94560;border:none;border-radius:4px;color:#fff;cursor:pointer}
+#debug{position:fixed;bottom:0;left:0;right:0;background:#000;color:#0f0;border-top:2px solid #e94560;font-family:monospace;font-size:11px;padding:8px;max-height:100px;overflow-y:auto;z-index:9999}
+.status{margin-top:8px;font-size:13px;min-height:20px;padding:4px;border-radius:4px}
+.status.ok{color:#4caf50;background:rgba(76,175,80,0.1)}
+.status.err{color:#f44336;background:rgba(244,67,54,0.1)}
+.status.info{color:#ff9800;background:rgba(255,152,0,0.1)}
+.bot-item{background:#0f0f1a;padding:12px;border-radius:4px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;border:1px solid #2a2a4a}
+.small-btn{padding:6px 12px;font-size:12px;background:#533483;border:none;border-radius:4px;color:#fff;cursor:pointer}
+.danger{background:#c06060!important}
+h1{font-size:24px;margin-bottom:16px;text-align:center}
+h2{font-size:14px;text-transform:uppercase;letter-spacing:1px;color:#aaa;margin:16px 0 8px;border-bottom:1px solid #e94560;padding-bottom:4px;display:inline-block}
+label{font-size:12px;color:#aaa;text-transform:uppercase;letter-spacing:0.5px}
+#cdn-status{position:fixed;top:0;left:0;right:0;background:#e94560;color:#fff;text-align:center;padding:8px;font-size:13px;z-index:10000;display:none}
 </style>
 </head>
 <body>
 
-<h1 style="margin-bottom:16px;text-align:center">🤖 Bot SaaS</h1>
+<div id="cdn-status">Loading Supabase library...</div>
+<div id="debug">[DEBUG] Page loaded.</div>
 
-<div id="debug">[DEBUG] Loading...</div>
+<h1>🤖 Bot SaaS</h1>
 
-<!-- AUTH -->
 <div id="authScreen">
   <div class="card">
     <div class="tabs">
@@ -52,14 +57,13 @@ button:hover{opacity:.9}
   </div>
 </div>
 
-<!-- APP -->
 <div id="appScreen" class="hidden">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
     <div>
-      <div style="font-size:12px;color:#aaa">Logged in as</div>
-      <div id="user-email" style="font-weight:600">--</div>
+      <div style="font-size:12px;color:#888">Logged in as</div>
+      <div id="user-email" style="font-weight:600;font-size:14px">--</div>
     </div>
-    <button id="btn-logout" style="width:auto;padding:6px 14px;font-size:12px">Logout</button>
+    <button id="btn-logout" style="width:auto;padding:8px 16px;font-size:12px">Logout</button>
   </div>
 
   <div class="tabs">
@@ -69,19 +73,21 @@ button:hover{opacity:.9}
   </div>
 
   <div id="sec-bots" class="card">
-    <div id="bots-list"><div style="color:#aaa;font-size:13px">Loading bots...</div></div>
+    <div id="bots-list"><div style="color:#888;font-size:14px">Loading bots...</div></div>
   </div>
 
   <div id="sec-add" class="card hidden">
-    <input type="text" id="add-name" placeholder="Bot Name">
-    <input type="password" id="add-token" placeholder="Discord Bot Token">
-    <div style="font-size:11px;color:#aaa;margin-bottom:6px">Token stored in Supabase (RLS-protected)</div>
+    <label>Bot Name</label>
+    <input type="text" id="add-name" placeholder="My Awesome Bot">
+    <label>Discord Bot Token</label>
+    <input type="password" id="add-token" placeholder="Paste your Bot Token here">
+    <div style="font-size:12px;color:#888;margin-bottom:8px">Token stored in Supabase (RLS-protected).</div>
     <button id="btn-add">CONNECT BOT</button>
     <div id="add-msg" class="status"></div>
   </div>
 
   <div id="sec-settings" class="card hidden">
-    <div style="color:#aaa;font-size:13px">Select a bot from My Bots to edit settings.</div>
+    <div style="color:#888;font-size:14px">Select a bot from My Bots to edit settings.</div>
   </div>
 </div>
 
@@ -93,32 +99,11 @@ function log(msg) {
   line.textContent = '> ' + msg;
   dbg.appendChild(line);
   dbg.scrollTop = dbg.scrollHeight;
+  console.log(msg);
 }
-log('Script loaded');
+log('Script running');
 
-// ─── SUPABASE ───
-const SUPABASE_URL = 'https://tdawmkgedbxbjkctylld.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo';
-
-log('Supabase URL: ' + SUPABASE_URL);
-
-let supabase = null;
-try {
-  if (!window.supabase) {
-    log('ERROR: Supabase CDN not loaded! Check internet.');
-  } else {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    log('Supabase client created');
-  }
-} catch (e) {
-  log('FATAL: ' + e.message);
-}
-
-let currentUser = null;
-let botsCache = [];
-let currentBotId = null;
-
-// ─── UI HELPERS ───
+// ─── UI HELPERS (work immediately, no deps) ───
 function show(id, visible) {
   document.getElementById(id).classList.toggle('hidden', !visible);
 }
@@ -126,6 +111,78 @@ function msg(id, text, type) {
   const el = document.getElementById(id);
   el.textContent = text;
   el.className = 'status ' + (type || '');
+}
+function switchTab(name) {
+  if (name === 'login') {
+    document.getElementById('t-login').classList.add('active');
+    document.getElementById('t-register').classList.remove('active');
+    show('form-login', true); show('form-register', false);
+  } else if (name === 'register') {
+    document.getElementById('t-login').classList.remove('active');
+    document.getElementById('t-register').classList.add('active');
+    show('form-login', false); show('form-register', true);
+  } else {
+    show('sec-bots', name === 'bots');
+    show('sec-add', name === 'add');
+    show('sec-settings', name === 'settings');
+    document.getElementById('t-bots').classList.toggle('active', name === 'bots');
+    document.getElementById('t-add').classList.toggle('active', name === 'add');
+    document.getElementById('t-settings').classList.toggle('active', name === 'settings');
+  }
+}
+
+// ─── ATTACH LISTENERS IMMEDIATELY (no Supabase needed) ───
+document.getElementById('t-login').addEventListener('click', function() { switchTab('login'); });
+document.getElementById('t-register').addEventListener('click', function() { switchTab('register'); });
+document.getElementById('t-bots').addEventListener('click', function() { switchTab('bots'); });
+document.getElementById('t-add').addEventListener('click', function() { switchTab('add'); });
+document.getElementById('t-settings').addEventListener('click', function() { switchTab('settings'); });
+log('Tab listeners attached');
+
+// ─── SUPABASE SETUP ───
+const SUPABASE_URL = 'https://tdawmkgedbxbjkctylld.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo';
+
+let supabase = null;
+let currentUser = null;
+let botsCache = [];
+let currentBotId = null;
+
+function initSupabase() {
+  log('initSupabase called');
+  if (!window.supabase) {
+    document.getElementById('cdn-status').style.display = 'block';
+    document.getElementById('cdn-status').textContent = 'ERROR: Supabase library failed to load. Try a different browser or network.';
+    document.getElementById('cdn-status').style.background = '#c06060';
+    log('FATAL: window.supabase missing');
+    return;
+  }
+  document.getElementById('cdn-status').style.display = 'none';
+  try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    log('Supabase client OK');
+  } catch (e) {
+    log('FATAL createClient: ' + e.message);
+    return;
+  }
+  // Attach auth listeners now that Supabase is ready
+  document.getElementById('btn-login').addEventListener('click', doLogin);
+  document.getElementById('btn-register').addEventListener('click', doRegister);
+  document.getElementById('btn-logout').addEventListener('click', doLogout);
+  document.getElementById('btn-add').addEventListener('click', addBot);
+  log('Auth listeners attached');
+  checkSession();
+}
+
+async function checkSession() {
+  log('Checking session...');
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    log('Session: user=' + (user ? user.email : 'none') + ' err=' + (error ? error.message : 'none'));
+    if (user) enterApp(user);
+  } catch (e) {
+    log('Session error: ' + e.message);
+  }
 }
 
 // ─── AUTH ───
@@ -137,7 +194,7 @@ async function doLogin() {
   msg('auth-msg', 'Logging in...', 'info');
   try {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    log('signIn result: error=' + (error ? error.message : 'none'));
+    log('Login result: err=' + (error ? error.message : 'none'));
     if (error) return msg('auth-msg', error.message, 'err');
     if (!data.user) return msg('auth-msg', 'No user returned', 'err');
     enterApp(data.user);
@@ -156,10 +213,9 @@ async function doRegister() {
   msg('auth-msg', 'Creating account...', 'info');
   try {
     const { data, error } = await supabase.auth.signUp({ email, password: pass });
-    log('signUp result: error=' + (error ? error.message : 'none') + ' user=' + (data.user ? 'yes' : 'no') + ' session=' + (data.session ? 'yes' : 'no'));
+    log('Register result: err=' + (error ? error.message : 'none') + ' hasSession=' + !!(data && data.session));
     if (error) return msg('auth-msg', error.message, 'err');
     if (data.session) {
-      msg('auth-msg', 'Logged in!', 'ok');
       enterApp(data.user);
     } else {
       msg('auth-msg', 'Account created! Check email or try logging in.', 'ok');
@@ -176,7 +232,7 @@ async function doLogout() {
 }
 
 function enterApp(user) {
-  log('Entering app as ' + user.email);
+  log('Entering app: ' + user.email);
   currentUser = user;
   document.getElementById('user-email').textContent = user.email;
   show('authScreen', false);
@@ -186,10 +242,10 @@ function enterApp(user) {
 
 // ─── BOTS ───
 async function loadBots() {
-  log('Loading bots for user ' + currentUser.id);
+  log('Loading bots...');
   try {
     const { data, error } = await supabase.from('user_bots').select('*').eq('user_id', currentUser.id).order('created_at', {ascending:false});
-    log('loadBots: error=' + (error ? error.message : 'none') + ' count=' + (data ? data.length : 0));
+    log('Bots loaded: count=' + (data ? data.length : 0) + ' err=' + (error ? error.message : 'none'));
     if (error) {
       document.getElementById('bots-list').innerHTML = '<div style="color:#f44336">Error: ' + error.message + '</div>';
       return;
@@ -197,19 +253,19 @@ async function loadBots() {
     botsCache = data || [];
     const list = document.getElementById('bots-list');
     if (!botsCache.length) {
-      list.innerHTML = '<div style="color:#aaa;font-size:13px">No bots yet. Click "+ Add Bot" to connect one.</div>';
+      list.innerHTML = '<div style="color:#888;font-size:14px">No bots yet. Click "+ Add Bot" to connect one.</div>';
       return;
     }
     list.innerHTML = botsCache.map(b => `
       <div class="bot-item">
         <div>
           <div style="font-weight:600">${b.bot_name || 'Unnamed'}</div>
-          <div style="font-size:11px;color:#aaa">${b.is_active ? '🟢' : '🔴'} ${(b.bot_id||'').slice(0,8)}...</div>
+          <div style="font-size:11px;color:#888">${b.is_active ? '🟢 Active' : '🔴 Paused'} · ${(b.bot_id||'').slice(0,8)}...</div>
         </div>
         <div style="display:flex;gap:6px">
           <button class="small-btn" onclick="toggleBot('${b.id}', ${!b.is_active})">${b.is_active ? 'Pause' : 'Resume'}</button>
-          <button class="small-btn" onclick="deleteBot('${b.id}')">Delete</button>
-          <button class="small-btn" onclick="openSettings('${b.id}')" style="background:#533483">Edit</button>
+          <button class="small-btn danger" onclick="deleteBot('${b.id}')">Delete</button>
+          <button class="small-btn" onclick="openSettings('${b.id}')">Edit</button>
         </div>
       </div>
     `).join('');
@@ -229,7 +285,7 @@ async function addBot() {
     const resp = await fetch('https://discord.com/api/v10/oauth2/applications/@me', {
       headers: { 'Authorization': 'Bot ' + token }
     });
-    log('Discord validation: HTTP ' + resp.status);
+    log('Discord response: HTTP ' + resp.status);
     if (!resp.ok) throw new Error('Invalid token (HTTP ' + resp.status + ')');
     const app = await resp.json();
     const botId = app.id;
@@ -262,7 +318,7 @@ async function toggleBot(id, active) {
 }
 
 async function deleteBot(id) {
-  if (!confirm('Delete?')) return;
+  if (!confirm('Delete this bot?')) return;
   await supabase.from('user_bots').delete().eq('id', id).eq('user_id', currentUser.id);
   loadBots();
 }
@@ -274,7 +330,7 @@ function openSettings(botId) {
   if (!bot) return;
   const s = bot.settings || {};
   document.getElementById('sec-settings').innerHTML = `
-    <div style="margin-bottom:10px;font-size:13px">Editing: <b>${bot.bot_name}</b></div>
+    <div style="margin-bottom:10px;font-size:14px">Editing: <b>${bot.bot_name}</b></div>
     <label>Personality</label>
     <textarea id="s-personality" rows="3">${s.personality || ''}</textarea>
     <label>Provider</label>
@@ -298,10 +354,9 @@ function openSettings(botId) {
     <label><input type="checkbox" id="s-search" ${s.auto_search!==false?'checked':''}> Auto Search</label><br>
     <label><input type="checkbox" id="s-memory" ${s.user_memory_enabled!==false?'checked':''}> User Memory</label><br>
     <label><input type="checkbox" id="s-openchat" ${s.open_chat_enabled?'checked':''}> Open Chat</label><br>
-    <button id="btn-save">SAVE SETTINGS</button>
+    <button onclick="saveSettings()">SAVE SETTINGS</button>
     <div id="save-msg" class="status"></div>
   `;
-  document.getElementById('btn-save').addEventListener('click', saveSettings);
 }
 
 async function saveSettings() {
@@ -324,60 +379,16 @@ async function saveSettings() {
     };
     const { error } = await supabase.from('user_bots').update({ settings: payload }).eq('id', currentBotId).eq('user_id', currentUser.id);
     if (error) return msg('save-msg', error.message, 'err');
-    msg('save-msg', 'Saved! Syncs to device in ~30s.', 'ok');
+    msg('save-msg', 'Saved! Syncs to your device in ~30s.', 'ok');
     loadBots();
   } catch (e) {
     msg('save-msg', e.message, 'err');
   }
 }
-
-// ─── TABS ───
-function switchTab(name) {
-  // auth tabs
-  if (name === 'login') {
-    document.getElementById('t-login').classList.add('active');
-    document.getElementById('t-register').classList.remove('active');
-    show('form-login', true);
-    show('form-register', false);
-  } else if (name === 'register') {
-    document.getElementById('t-login').classList.remove('active');
-    document.getElementById('t-register').classList.add('active');
-    show('form-login', false);
-    show('form-register', true);
-  } else {
-    // app sections
-    show('sec-bots', name === 'bots');
-    show('sec-add', name === 'add');
-    show('sec-settings', name === 'settings');
-    document.getElementById('t-bots').classList.toggle('active', name === 'bots');
-    document.getElementById('t-add').classList.toggle('active', name === 'add');
-    document.getElementById('t-settings').classList.toggle('active', name === 'settings');
-  }
-}
-
-// ─── EVENT LISTENERS ───
-document.getElementById('t-login').addEventListener('click', () => switchTab('login'));
-document.getElementById('t-register').addEventListener('click', () => switchTab('register'));
-document.getElementById('btn-login').addEventListener('click', doLogin);
-document.getElementById('btn-register').addEventListener('click', doRegister);
-document.getElementById('btn-logout').addEventListener('click', doLogout);
-document.getElementById('t-bots').addEventListener('click', () => switchTab('bots'));
-document.getElementById('t-add').addEventListener('click', () => switchTab('add'));
-document.getElementById('t-settings').addEventListener('click', () => switchTab('settings'));
-document.getElementById('btn-add').addEventListener('click', addBot);
-
-// ─── INIT ───
-(async () => {
-  log('INIT: checking session...');
-  try {
-    if (!supabase) return log('INIT: Supabase not available');
-    const { data: { user }, error } = await supabase.auth.getUser();
-    log('INIT: user=' + (user ? user.email : 'none') + ' error=' + (error ? error.message : 'none'));
-    if (user) enterApp(user);
-  } catch (e) {
-    log('INIT exception: ' + e.message);
-  }
-})();
 </script>
+
+<!-- Load Supabase AFTER our code, then init -->
+<script src="https://unpkg.com/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js" onload="initSupabase()"></script>
+
 </body>
 </html>
