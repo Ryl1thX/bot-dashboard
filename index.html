@@ -75,6 +75,11 @@ label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:va
   color:var(--ink-muted); background:rgba(0,0,0,0.02);
 }
 .nav-item.active { background:var(--accent-sage); color:#fff; }
+.debug {
+  position:fixed; bottom:0; left:0; right:0; background:#2a2a2a; color:#a5c4a5;
+  font-family:'JetBrains Mono',monospace; font-size:10px; padding:6px 12px;
+  z-index:9999; max-height:80px; overflow-y:auto;
+}
 @media (max-width:600px) {
   .grid-2, .grid-3 { grid-template-columns:1fr; }
 }
@@ -86,14 +91,14 @@ label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:va
 <div id="authScreen">
   <div class="container" style="max-width:360px;">
     <div class="card">
-      <div class="card-header">🔐 Authentication</div>
+      <div class="card-header">Authentication</div>
       <div class="card-body">
         <h1 style="font-size:22px;">Bot SaaS</h1>
         <div style="font-size:12px;color:var(--ink-muted);margin-bottom:16px;">Manage your Discord bots from anywhere.</div>
 
         <div class="nav" style="margin-bottom:12px;">
-          <div class="nav-item active" onclick="switchAuth('login')" id="tab-login">Login</div>
-          <div class="nav-item" onclick="switchAuth('register')" id="tab-register">Register</div>
+          <div class="nav-item active" id="tab-login">Login</div>
+          <div class="nav-item" id="tab-register">Register</div>
         </div>
 
         <div id="auth-login">
@@ -101,7 +106,7 @@ label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:va
           <input type="email" id="loginEmail" placeholder="you@example.com">
           <label>Password</label>
           <input type="password" id="loginPassword" placeholder="••••••••">
-          <div class="btn" onclick="doLogin()" style="width:100%;margin-top:4px;">LOGIN</div>
+          <div class="btn" id="btnLogin" style="width:100%;margin-top:4px;">LOGIN</div>
         </div>
 
         <div id="auth-register" class="hidden">
@@ -109,7 +114,7 @@ label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:va
           <input type="email" id="regEmail" placeholder="you@example.com">
           <label>Password</label>
           <input type="password" id="regPassword" placeholder="••••••••">
-          <div class="btn" onclick="doRegister()" style="width:100%;margin-top:4px;">CREATE ACCOUNT</div>
+          <div class="btn" id="btnRegister" style="width:100%;margin-top:4px;">CREATE ACCOUNT</div>
         </div>
 
         <div id="authStatus" class="status"></div>
@@ -128,46 +133,43 @@ label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:va
       </div>
       <div style="text-align:right;">
         <div class="user" id="userEmail">user@example.com</div>
-        <div style="font-size:10px;color:var(--accent-sage);cursor:pointer;" onclick="doLogout()">Logout</div>
+        <div style="font-size:10px;color:var(--accent-sage);cursor:pointer;" id="btnLogout">Logout</div>
       </div>
     </div>
 
     <div class="nav">
-      <div class="nav-item active" onclick="switchSection('bots')" id="nav-bots">My Bots</div>
-      <div class="nav-item" onclick="switchSection('add')" id="nav-add">+ Add Bot</div>
-      <div class="nav-item" onclick="switchSection('settings')" id="nav-settings">Settings</div>
+      <div class="nav-item active" id="nav-bots">My Bots</div>
+      <div class="nav-item" id="nav-add">+ Add Bot</div>
+      <div class="nav-item" id="nav-settings">Settings</div>
     </div>
 
-    <!-- BOTS LIST -->
     <div class="section active" id="sec-bots">
       <div class="card">
-        <div class="card-header">🤖 Connected Bots</div>
+        <div class="card-header">Connected Bots</div>
         <div class="card-body" id="botsList">
           <div style="font-size:12px;color:var(--ink-faint);">Loading...</div>
         </div>
       </div>
     </div>
 
-    <!-- ADD BOT -->
     <div class="section" id="sec-add">
       <div class="card">
-        <div class="card-header">➕ Add Discord Bot</div>
+        <div class="card-header">Add Discord Bot</div>
         <div class="card-body">
           <label>Bot Name</label>
           <input type="text" id="addBotName" placeholder="My Awesome Bot">
           <label>Discord Bot Token</label>
           <input type="password" id="addBotToken" placeholder="Paste your Bot Token here">
           <div style="font-size:10px;color:var(--ink-faint);margin-bottom:10px;">Your token is stored securely in your Supabase database (RLS-protected).</div>
-          <div class="btn" onclick="addBot()" style="width:100%;">CONNECT BOT</div>
+          <div class="btn" id="btnAddBot" style="width:100%;">CONNECT BOT</div>
           <div id="addBotStatus" class="status"></div>
         </div>
       </div>
     </div>
 
-    <!-- SETTINGS -->
     <div class="section" id="sec-settings">
       <div class="card">
-        <div class="card-header">⚙️ Bot Settings</div>
+        <div class="card-header">Bot Settings</div>
         <div class="card-body" id="settingsBody">
           <div style="font-size:12px;color:var(--ink-faint);">Select a bot from My Bots to edit settings.</div>
         </div>
@@ -176,15 +178,31 @@ label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:va
   </div>
 </div>
 
+<div class="debug" id="debugPanel"></div>
+
 <script>
-// ─── CONFIG ─── Replace these with your actual Supabase credentials ───
-const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
-const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+// ─── CONFIG ───
+const SUPABASE_URL = 'https://tdawmkgedbxbjkctylld.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo';
 
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
 let currentBotId = null;
 let botsCache = [];
+
+// ─── DEBUG ───
+const panel = document.getElementById('debugPanel');
+function dlog(type, msg) {
+  const line = document.createElement('div');
+  line.textContent = '[' + type + '] ' + msg;
+  line.style.color = type === 'ERR' ? '#e57373' : '#a5c4a5';
+  panel.appendChild(line);
+  panel.scrollTop = panel.scrollHeight;
+}
+const _log = console.log, _err = console.error;
+console.log = function(){ dlog('LOG', Array.from(arguments).map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' ')); _log.apply(console,arguments); };
+console.error = function(){ dlog('ERR', Array.from(arguments).map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' ')); _err.apply(console,arguments); };
+console.log('Dashboard loaded');
 
 // ─── AUTH ───
 async function doLogin() {
@@ -248,40 +266,56 @@ function enterApp(user) {
 
 // ─── BOTS ───
 async function loadBots() {
-  const { data, error } = await supabase.from('user_bots').select('*').eq('user_id', currentUser.id).order('created_at', {ascending:false});
-  if (error) return console.error(error);
-  botsCache = data || [];
-  const list = document.getElementById('botsList');
-  if (!botsCache.length) {
-    list.innerHTML = '<div style="font-size:12px;color:var(--ink-faint);">No bots yet. Click "+ Add Bot" to connect one.</div>';
-    return;
+  try {
+    const { data, error } = await supabase.from('user_bots').select('*').eq('user_id', currentUser.id).order('created_at', {ascending:false});
+    if (error) { console.error(error); return; }
+    botsCache = data || [];
+    const list = document.getElementById('botsList');
+    if (!botsCache.length) {
+      list.innerHTML = '<div style="font-size:12px;color:var(--ink-faint);">No bots yet. Click "+ Add Bot" to connect one.</div>';
+      return;
+    }
+    list.innerHTML = botsCache.map(b => `
+      <div class="bot-row" data-bid="${b.id}">
+        <div>
+          <div class="name">${b.bot_name || 'Unnamed Bot'}</div>
+          <div class="meta">${b.is_active ? '🟢 Active' : '🔴 Inactive'} · ID: ${(b.bot_id || '').slice(0,8)}...</div>
+        </div>
+        <div style="display:flex;gap:6px;">
+          <div class="btn btn-secondary" style="padding:4px 10px;font-size:10px;" data-action="toggle" data-id="${b.id}" data-active="${b.is_active ? 0 : 1}">${b.is_active ? 'Pause' : 'Resume'}</div>
+          <div class="btn btn-danger" style="padding:4px 10px;font-size:10px;" data-action="delete" data-id="${b.id}">Delete</div>
+        </div>
+      </div>
+    `).join('');
+    // Attach click handlers for bot rows
+    list.querySelectorAll('.bot-row').forEach(row => {
+      row.addEventListener('click', function(e) {
+        if (e.target.closest('[data-action]')) return;
+        openSettings(this.dataset.bid);
+      });
+    });
+    list.querySelectorAll('[data-action="toggle"]').forEach(btn => {
+      btn.addEventListener('click', function(e) { e.stopPropagation(); toggleBot(this.dataset.id, this.dataset.active === '1'); });
+    });
+    list.querySelectorAll('[data-action="delete"]').forEach(btn => {
+      btn.addEventListener('click', function(e) { e.stopPropagation(); deleteBot(this.dataset.id); });
+    });
+  } catch (e) {
+    console.error('loadBots error:', e);
   }
-  list.innerHTML = botsCache.map(b => `
-    <div class="bot-row" onclick="openSettings('${b.id}')">
-      <div>
-        <div class="name">${b.bot_name || 'Unnamed Bot'}</div>
-        <div class="meta">${b.is_active ? '🟢 Active' : '🔴 Inactive'} · ID: ${(b.bot_id || '').slice(0,8)}...</div>
-      </div>
-      <div style="display:flex;gap:6px;">
-        <div class="btn btn-secondary" style="padding:4px 10px;font-size:10px;" onclick="event.stopPropagation();toggleBot('${b.id}', ${!b.is_active})">${b.is_active ? 'Pause' : 'Resume'}</div>
-        <div class="btn btn-danger" style="padding:4px 10px;font-size:10px;" onclick="event.stopPropagation();deleteBot('${b.id}')">Delete</div>
-      </div>
-    </div>
-  `).join('');
 }
 
 async function addBot() {
-  const name = document.getElementById('addBotName').value.trim();
-  const token = document.getElementById('addBotToken').value.trim();
-  if (!token) return setStatus('addBotStatus', 'Token required', 'err');
-  setStatus('addBotStatus', 'Validating token...', 'info');
-
-  // Validate token with Discord
   try {
+    const name = document.getElementById('addBotName').value.trim();
+    const token = document.getElementById('addBotToken').value.trim();
+    if (!token) return setStatus('addBotStatus', 'Token required', 'err');
+    setStatus('addBotStatus', 'Validating token...', 'info');
+
     const resp = await fetch('https://discord.com/api/v10/oauth2/applications/@me', {
-      headers: { 'Authorization': `Bot ${token}` }
+      headers: { 'Authorization': 'Bot ' + token }
     });
-    if (!resp.ok) throw new Error('Invalid token');
+    if (!resp.ok) throw new Error('Invalid Discord token (HTTP ' + resp.status + ')');
     const app = await resp.json();
     const botId = app.id;
     const botName = (app.bot && app.bot.username) || name || 'Bot';
@@ -297,27 +331,32 @@ async function addBot() {
     });
     if (error) throw error;
 
-    setStatus('addBotStatus', `Connected ${botName}!`, 'ok');
+    setStatus('addBotStatus', 'Connected ' + botName + '!', 'ok');
     document.getElementById('addBotToken').value = '';
     document.getElementById('addBotName').value = '';
     setTimeout(() => { switchSection('bots'); loadBots(); }, 800);
   } catch (e) {
+    console.error('addBot error:', e);
     setStatus('addBotStatus', e.message, 'err');
   }
 }
 
 async function toggleBot(id, active) {
-  await supabase.from('user_bots').update({ is_active: active }).eq('id', id).eq('user_id', currentUser.id);
-  loadBots();
+  try {
+    await supabase.from('user_bots').update({ is_active: active }).eq('id', id).eq('user_id', currentUser.id);
+    loadBots();
+  } catch (e) { console.error(e); }
 }
 
 async function deleteBot(id) {
   if (!confirm('Delete this bot? It will go offline.')) return;
-  await supabase.from('user_bots').delete().eq('id', id).eq('user_id', currentUser.id);
-  loadBots();
-  if (currentBotId === id) {
-    document.getElementById('settingsBody').innerHTML = '<div style="font-size:12px;color:var(--ink-faint);">Select a bot from My Bots to edit settings.</div>';
-  }
+  try {
+    await supabase.from('user_bots').delete().eq('id', id).eq('user_id', currentUser.id);
+    loadBots();
+    if (currentBotId === id) {
+      document.getElementById('settingsBody').innerHTML = '<div style="font-size:12px;color:var(--ink-faint);">Select a bot from My Bots to edit settings.</div>';
+    }
+  } catch (e) { console.error(e); }
 }
 
 // ─── SETTINGS ───
@@ -329,10 +368,8 @@ function openSettings(botId) {
   const s = bot.settings || {};
   document.getElementById('settingsBody').innerHTML = `
     <div style="margin-bottom:10px;font-size:12px;color:var(--ink-muted);">Editing: <b>${bot.bot_name}</b></div>
-
     <h2>Personality</h2>
     <textarea id="s-personality" placeholder="How should your bot behave?">${s.personality || ''}</textarea>
-
     <h2>AI Provider</h2>
     <select id="s-provider">
       <option value="auto" ${(s.provider||'auto')==='auto'?'selected':''}>Auto</option>
@@ -341,7 +378,6 @@ function openSettings(botId) {
       <option value="openrouter" ${s.provider==='openrouter'?'selected':''}>OpenRouter</option>
       <option value="huggingface" ${s.provider==='huggingface'?'selected':''}>Hugging Face</option>
     </select>
-
     <h2>Models</h2>
     <div class="grid-2">
       <div><label>Gemini</label><input type="text" id="s-gemini" value="${s.gemini_model||'gemini-2.0-flash'}"></div>
@@ -349,47 +385,49 @@ function openSettings(botId) {
     </div>
     <label>OpenRouter Model</label>
     <input type="text" id="s-or" value="${s.model||'openrouter/free'}">
-
     <h2>Generation</h2>
     <div class="grid-3">
       <div><label>Max Tokens</label><input type="number" id="s-tokens" value="${s.max_tokens||800}"></div>
       <div><label>Temp</label><input type="number" id="s-temp" step="0.1" value="${s.temperature||0.7}"></div>
       <div><label>Cooldown</label><input type="number" id="s-cd" value="${s.cooldown_seconds||10}"></div>
     </div>
-
     <h2>Features</h2>
     <div class="toggle"><input type="checkbox" id="s-vision" ${s.vision_enabled?'checked':''}><label>Vision</label></div>
     <div class="toggle"><input type="checkbox" id="s-tts" ${s.tts_enabled?'checked':''}><label>TTS</label></div>
     <div class="toggle"><input type="checkbox" id="s-search" ${s.auto_search!==false?'checked':''}><label>Auto Search</label></div>
     <div class="toggle"><input type="checkbox" id="s-memory" ${s.user_memory_enabled!==false?'checked':''}><label>User Memory</label></div>
     <div class="toggle"><input type="checkbox" id="s-openchat" ${s.open_chat_enabled?'checked':''}><label>Open Chat</label></div>
-
-    <div class="btn" onclick="saveSettings()" style="width:100%;margin-top:8px;">SAVE SETTINGS</div>
+    <div class="btn" id="btnSaveSettings" style="width:100%;margin-top:8px;">SAVE SETTINGS</div>
     <div id="saveStatus" class="status"></div>
   `;
 }
 
 async function saveSettings() {
   if (!currentBotId) return;
-  const payload = {
-    personality: document.getElementById('s-personality').value,
-    provider: document.getElementById('s-provider').value,
-    gemini_model: document.getElementById('s-gemini').value,
-    groq_model: document.getElementById('s-groq').value,
-    model: document.getElementById('s-or').value,
-    max_tokens: parseInt(document.getElementById('s-tokens').value),
-    temperature: parseFloat(document.getElementById('s-temp').value),
-    cooldown_seconds: parseInt(document.getElementById('s-cd').value),
-    vision_enabled: document.getElementById('s-vision').checked,
-    tts_enabled: document.getElementById('s-tts').checked,
-    auto_search: document.getElementById('s-search').checked,
-    user_memory_enabled: document.getElementById('s-memory').checked,
-    open_chat_enabled: document.getElementById('s-openchat').checked,
-  };
-  const { error } = await supabase.from('user_bots').update({ settings: payload }).eq('id', currentBotId).eq('user_id', currentUser.id);
-  if (error) return setStatus('saveStatus', error.message, 'err');
-  setStatus('saveStatus', 'Saved! Changes sync to your device within 30s.', 'ok');
-  loadBots();
+  try {
+    const payload = {
+      personality: document.getElementById('s-personality').value,
+      provider: document.getElementById('s-provider').value,
+      gemini_model: document.getElementById('s-gemini').value,
+      groq_model: document.getElementById('s-groq').value,
+      model: document.getElementById('s-or').value,
+      max_tokens: parseInt(document.getElementById('s-tokens').value),
+      temperature: parseFloat(document.getElementById('s-temp').value),
+      cooldown_seconds: parseInt(document.getElementById('s-cd').value),
+      vision_enabled: document.getElementById('s-vision').checked,
+      tts_enabled: document.getElementById('s-tts').checked,
+      auto_search: document.getElementById('s-search').checked,
+      user_memory_enabled: document.getElementById('s-memory').checked,
+      open_chat_enabled: document.getElementById('s-openchat').checked,
+    };
+    const { error } = await supabase.from('user_bots').update({ settings: payload }).eq('id', currentBotId).eq('user_id', currentUser.id);
+    if (error) return setStatus('saveStatus', error.message, 'err');
+    setStatus('saveStatus', 'Saved! Changes sync to your device within 30s.', 'ok');
+    loadBots();
+  } catch (e) {
+    console.error('saveSettings error:', e);
+    setStatus('saveStatus', e.message, 'err');
+  }
 }
 
 // ─── UI HELPERS ───
@@ -407,9 +445,25 @@ function setStatus(id, msg, type) {
   el.className = 'status ' + (type || '');
 }
 
+// ─── EVENT LISTENERS (no inline onclick) ───
+document.getElementById('tab-login').addEventListener('click', () => switchAuth('login'));
+document.getElementById('tab-register').addEventListener('click', () => switchAuth('register'));
+document.getElementById('btnLogin').addEventListener('click', doLogin);
+document.getElementById('btnRegister').addEventListener('click', doRegister);
+document.getElementById('btnLogout').addEventListener('click', doLogout);
+document.getElementById('nav-bots').addEventListener('click', () => switchSection('bots'));
+document.getElementById('nav-add').addEventListener('click', () => switchSection('add'));
+document.getElementById('nav-settings').addEventListener('click', () => switchSection('settings'));
+document.getElementById('btnAddBot').addEventListener('click', addBot);
+
+// Delegate save settings since it's dynamically created
+document.getElementById('settingsBody').addEventListener('click', function(e) {
+  if (e.target.id === 'btnSaveSettings') saveSettings();
+});
+
 // ─── INIT ───
 supabase.auth.onAuthStateChange((event, session) => {
-  if (session?.user) enterApp(session.user);
+  if (session && session.user) enterApp(session.user);
 });
 
 (async () => {
@@ -420,24 +474,6 @@ supabase.auth.onAuthStateChange((event, session) => {
   } catch (e) {
     console.error('INIT ERROR:', e);
   }
-})();
-</script>
-<div id="debugPanel" style="position:fixed;bottom:0;left:0;right:0;background:#2a2a2a;color:#a5c4a5;font-family:monospace;font-size:10px;padding:6px 12px;z-index:9999;max-height:80px;overflow-y:auto;"></div>
-<script>
-(function(){
-  const panel = document.getElementById('debugPanel');
-  const origLog = console.log; const origErr = console.error;
-  function push(type, args) {
-    const msg = Array.from(args).map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-    const line = document.createElement('div');
-    line.textContent = '[' + type + '] ' + msg;
-    line.style.color = type === 'ERR' ? '#e57373' : '#a5c4a5';
-    panel.appendChild(line);
-    panel.scrollTop = panel.scrollHeight;
-  }
-  console.log = function(){ push('LOG', arguments); origLog.apply(console, arguments); };
-  console.error = function(){ push('ERR', arguments); origErr.apply(console, arguments); };
-  console.log('Dashboard loaded. Supabase URL:', SUPABASE_URL);
 })();
 </script>
 </body>
