@@ -1,245 +1,172 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Bot SaaS — Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bot SaaS Dashboard</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-:root {
-  --bg:#e8e8e4; --paper:rgba(252,252,248,0.9); --paper-solid:#fafaf6;
-  --ink:#2a2a2a; --ink-muted:#6b6b6b; --ink-faint:#9a9a9a;
-  --accent-sage:#8a9a8a; --accent-steel:#7a8a9a; --accent-clay:#b8a898;
-  --shadow-soft:rgba(0,0,0,0.06); --shadow-medium:rgba(0,0,0,0.10);
-  --transition-smooth:cubic-bezier(0.25,0.46,0.45,0.94);
-}
-body { width:100vw; min-height:100vh; background:var(--bg); font-family:'Inter',system-ui,sans-serif; overflow-x:hidden; }
-.container { max-width:720px; margin:0 auto; padding:24px 16px; }
-.card {
-  background:var(--paper-solid); border-radius:6px;
-  box-shadow:0 1px 2px var(--shadow-soft),0 4px 12px var(--shadow-medium);
-  border:1px solid rgba(0,0,0,0.05); margin-bottom:16px; overflow:hidden;
-}
-.card-header {
-  height:42px; background:#f5f5f0; display:flex; align-items:center;
-  padding:0 16px; border-bottom:1px solid rgba(0,0,0,0.06);
-  font-size:11px; font-weight:600; color:var(--ink-muted);
-  text-transform:uppercase; letter-spacing:1.2px;
-}
-.card-body { padding:16px; }
-h1 { font-family:'Playfair Display',serif; font-size:28px; color:var(--ink); margin-bottom:4px; }
-h2 { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin:16px 0 8px; border-bottom:1.5px solid var(--accent-sage); padding-bottom:4px; display:inline-block; }
-input, textarea, select {
-  width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08);
-  border-radius:4px; color:var(--ink); padding:8px 10px; font-size:12px;
-  font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:10px;
-}
-input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
-textarea { min-height:60px; resize:vertical; }
-label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint); }
-.btn {
-  display:inline-block; padding:8px 16px; background:var(--accent-sage); color:#fff;
-  border-radius:4px; font-size:11px; font-weight:600; cursor:pointer;
-  letter-spacing:0.5px; border:none; text-align:center;
-}
-.btn:hover { opacity:0.9; }
-.btn-danger { background:#c06060; }
-.btn-secondary { background:var(--accent-steel); }
-.status { font-size:11px; min-height:16px; margin-top:4px; }
-.status.ok { color:#4a9a4a; }
-.status.err { color:#c06060; }
-.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-.bot-row {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 12px; background:rgba(0,0,0,0.02); border-radius:5px;
-  margin-bottom:8px; border:1px solid transparent; cursor:pointer;
-}
-.bot-row:hover { border-color:rgba(138,154,138,0.2); background:rgba(138,154,138,0.04); }
-.bot-row .name { font-size:12px; font-weight:500; color:var(--ink); }
-.bot-row .meta { font-size:10px; color:var(--ink-faint); }
-.toggle { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
-.toggle input { width:auto; margin:0; }
-.hidden { display:none !important; }
-#authScreen { display:flex; align-items:center; justify-content:center; min-height:100vh; }
-#appScreen { display:none; }
-.topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
-.topbar .user { font-size:11px; color:var(--ink-muted); }
-.section { display:none; }
-.section.active { display:block; }
-.nav { display:flex; gap:8px; margin-bottom:16px; }
-.nav-item {
-  padding:6px 12px; border-radius:4px; font-size:11px; cursor:pointer;
-  color:var(--ink-muted); background:rgba(0,0,0,0.02);
-}
-.nav-item.active { background:var(--accent-sage); color:#fff; }
-.debug {
-  position:fixed; bottom:0; left:0; right:0; background:#2a2a2a; color:#a5c4a5;
-  font-family:'JetBrains Mono',monospace; font-size:10px; padding:6px 12px;
-  z-index:9999; max-height:80px; overflow-y:auto;
-}
-@media (max-width:600px) {
-  .grid-2, .grid-3 { grid-template-columns:1fr; }
-}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#1a1a2e;color:#eee;padding:20px;max-width:600px;margin:0 auto}
+.card{background:#16213e;border-radius:8px;padding:16px;margin-bottom:12px}
+input,select,textarea{width:100%;padding:10px;margin:6px 0;border-radius:4px;border:none;background:#0f3460;color:#fff}
+button{width:100%;padding:10px;background:#e94560;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;margin-top:8px}
+button:hover{opacity:.9}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tab{flex:1;padding:10px;background:#0f3460;border-radius:4px;text-align:center;cursor:pointer}
+.tab.active{background:#e94560}
+.hidden{display:none!important}
+#debug{position:fixed;bottom:0;left:0;right:0;background:#000;color:#0f0;font-family:monospace;font-size:11px;padding:8px;max-height:120px;overflow-y:auto;z-index:9999;border-top:2px solid #e94560}
+.status{margin-top:6px;font-size:12px;min-height:18px}
+.status.ok{color:#4caf50}
+.status.err{color:#f44336}
+.status.info{color:#ff9800}
+.bot-item{background:#0f3460;padding:10px;border-radius:4px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.small-btn{padding:4px 10px;font-size:11px;background:#e94560;border:none;border-radius:4px;color:#fff;cursor:pointer}
 </style>
 </head>
 <body>
 
-<!-- AUTH SCREEN -->
+<h1 style="margin-bottom:16px;text-align:center">🤖 Bot SaaS</h1>
+
+<div id="debug">[DEBUG] Loading...</div>
+
+<!-- AUTH -->
 <div id="authScreen">
-  <div class="container" style="max-width:360px;">
-    <div class="card">
-      <div class="card-header">Authentication</div>
-      <div class="card-body">
-        <h1 style="font-size:22px;">Bot SaaS</h1>
-        <div style="font-size:12px;color:var(--ink-muted);margin-bottom:16px;">Manage your Discord bots from anywhere.</div>
-
-        <div class="nav" style="margin-bottom:12px;">
-          <div class="nav-item active" id="tab-login">Login</div>
-          <div class="nav-item" id="tab-register">Register</div>
-        </div>
-
-        <div id="auth-login">
-          <label>Email</label>
-          <input type="email" id="loginEmail" placeholder="you@example.com">
-          <label>Password</label>
-          <input type="password" id="loginPassword" placeholder="••••••••">
-          <div class="btn" id="btnLogin" style="width:100%;margin-top:4px;">LOGIN</div>
-        </div>
-
-        <div id="auth-register" class="hidden">
-          <label>Email</label>
-          <input type="email" id="regEmail" placeholder="you@example.com">
-          <label>Password</label>
-          <input type="password" id="regPassword" placeholder="••••••••">
-          <div class="btn" id="btnRegister" style="width:100%;margin-top:4px;">CREATE ACCOUNT</div>
-        </div>
-
-        <div id="authStatus" class="status"></div>
-      </div>
+  <div class="card">
+    <div class="tabs">
+      <div class="tab active" id="t-login">Login</div>
+      <div class="tab" id="t-register">Register</div>
     </div>
+    <div id="form-login">
+      <input type="email" id="in-email" placeholder="Email">
+      <input type="password" id="in-pass" placeholder="Password">
+      <button id="btn-login">LOGIN</button>
+    </div>
+    <div id="form-register" class="hidden">
+      <input type="email" id="reg-email" placeholder="Email">
+      <input type="password" id="reg-pass" placeholder="Password (6+ chars)">
+      <button id="btn-register">CREATE ACCOUNT</button>
+    </div>
+    <div id="auth-msg" class="status"></div>
   </div>
 </div>
 
-<!-- APP SCREEN -->
-<div id="appScreen">
-  <div class="container">
-    <div class="topbar">
-      <div>
-        <h1 style="font-size:22px;">Dashboard</h1>
-        <div style="font-size:11px;color:var(--ink-faint);">Manage your bots & AI settings</div>
-      </div>
-      <div style="text-align:right;">
-        <div class="user" id="userEmail">user@example.com</div>
-        <div style="font-size:10px;color:var(--accent-sage);cursor:pointer;" id="btnLogout">Logout</div>
-      </div>
+<!-- APP -->
+<div id="appScreen" class="hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div>
+      <div style="font-size:12px;color:#aaa">Logged in as</div>
+      <div id="user-email" style="font-weight:600">--</div>
     </div>
+    <button id="btn-logout" style="width:auto;padding:6px 14px;font-size:12px">Logout</button>
+  </div>
 
-    <div class="nav">
-      <div class="nav-item active" id="nav-bots">My Bots</div>
-      <div class="nav-item" id="nav-add">+ Add Bot</div>
-      <div class="nav-item" id="nav-settings">Settings</div>
-    </div>
+  <div class="tabs">
+    <div class="tab active" id="t-bots">My Bots</div>
+    <div class="tab" id="t-add">+ Add Bot</div>
+    <div class="tab" id="t-settings">Settings</div>
+  </div>
 
-    <div class="section active" id="sec-bots">
-      <div class="card">
-        <div class="card-header">Connected Bots</div>
-        <div class="card-body" id="botsList">
-          <div style="font-size:12px;color:var(--ink-faint);">Loading...</div>
-        </div>
-      </div>
-    </div>
+  <div id="sec-bots" class="card">
+    <div id="bots-list"><div style="color:#aaa;font-size:13px">Loading bots...</div></div>
+  </div>
 
-    <div class="section" id="sec-add">
-      <div class="card">
-        <div class="card-header">Add Discord Bot</div>
-        <div class="card-body">
-          <label>Bot Name</label>
-          <input type="text" id="addBotName" placeholder="My Awesome Bot">
-          <label>Discord Bot Token</label>
-          <input type="password" id="addBotToken" placeholder="Paste your Bot Token here">
-          <div style="font-size:10px;color:var(--ink-faint);margin-bottom:10px;">Your token is stored securely in your Supabase database (RLS-protected).</div>
-          <div class="btn" id="btnAddBot" style="width:100%;">CONNECT BOT</div>
-          <div id="addBotStatus" class="status"></div>
-        </div>
-      </div>
-    </div>
+  <div id="sec-add" class="card hidden">
+    <input type="text" id="add-name" placeholder="Bot Name">
+    <input type="password" id="add-token" placeholder="Discord Bot Token">
+    <div style="font-size:11px;color:#aaa;margin-bottom:6px">Token stored in Supabase (RLS-protected)</div>
+    <button id="btn-add">CONNECT BOT</button>
+    <div id="add-msg" class="status"></div>
+  </div>
 
-    <div class="section" id="sec-settings">
-      <div class="card">
-        <div class="card-header">Bot Settings</div>
-        <div class="card-body" id="settingsBody">
-          <div style="font-size:12px;color:var(--ink-faint);">Select a bot from My Bots to edit settings.</div>
-        </div>
-      </div>
-    </div>
+  <div id="sec-settings" class="card hidden">
+    <div style="color:#aaa;font-size:13px">Select a bot from My Bots to edit settings.</div>
   </div>
 </div>
-
-<div class="debug" id="debugPanel"></div>
 
 <script>
-// ─── CONFIG ───
+// ─── DEBUG ───
+const dbg = document.getElementById('debug');
+function log(msg) {
+  const line = document.createElement('div');
+  line.textContent = '> ' + msg;
+  dbg.appendChild(line);
+  dbg.scrollTop = dbg.scrollHeight;
+}
+log('Script loaded');
+
+// ─── SUPABASE ───
 const SUPABASE_URL = 'https://tdawmkgedbxbjkctylld.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let currentUser = null;
-let currentBotId = null;
-let botsCache = [];
+log('Supabase URL: ' + SUPABASE_URL);
 
-// ─── DEBUG ───
-const panel = document.getElementById('debugPanel');
-function dlog(type, msg) {
-  const line = document.createElement('div');
-  line.textContent = '[' + type + '] ' + msg;
-  line.style.color = type === 'ERR' ? '#e57373' : '#a5c4a5';
-  panel.appendChild(line);
-  panel.scrollTop = panel.scrollHeight;
+let supabase = null;
+try {
+  if (!window.supabase) {
+    log('ERROR: Supabase CDN not loaded! Check internet.');
+  } else {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    log('Supabase client created');
+  }
+} catch (e) {
+  log('FATAL: ' + e.message);
 }
-const _log = console.log, _err = console.error;
-console.log = function(){ dlog('LOG', Array.from(arguments).map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' ')); _log.apply(console,arguments); };
-console.error = function(){ dlog('ERR', Array.from(arguments).map(a=>typeof a==='object'?JSON.stringify(a):String(a)).join(' ')); _err.apply(console,arguments); };
-console.log('Dashboard loaded');
+
+let currentUser = null;
+let botsCache = [];
+let currentBotId = null;
+
+// ─── UI HELPERS ───
+function show(id, visible) {
+  document.getElementById(id).classList.toggle('hidden', !visible);
+}
+function msg(id, text, type) {
+  const el = document.getElementById(id);
+  el.textContent = text;
+  el.className = 'status ' + (type || '');
+}
 
 // ─── AUTH ───
 async function doLogin() {
+  log('Login clicked');
+  const email = document.getElementById('in-email').value.trim();
+  const pass = document.getElementById('in-pass').value;
+  if (!email || !pass) return msg('auth-msg', 'Enter email and password', 'err');
+  msg('auth-msg', 'Logging in...', 'info');
   try {
-    const email = document.getElementById('loginEmail').value.trim();
-    const pw = document.getElementById('loginPassword').value;
-    if (!email || !pw) return setStatus('authStatus', 'Enter email and password', 'err');
-    setStatus('authStatus', 'Logging in...', 'info');
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
-    if (error) return setStatus('authStatus', error.message, 'err');
-    if (!data || !data.user) return setStatus('authStatus', 'No user returned', 'err');
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    log('signIn result: error=' + (error ? error.message : 'none'));
+    if (error) return msg('auth-msg', error.message, 'err');
+    if (!data.user) return msg('auth-msg', 'No user returned', 'err');
     enterApp(data.user);
   } catch (e) {
-    console.error('LOGIN ERROR:', e);
-    setStatus('authStatus', 'Error: ' + e.message, 'err');
+    log('Login exception: ' + e.message);
+    msg('auth-msg', 'Error: ' + e.message, 'err');
   }
 }
 
 async function doRegister() {
+  log('Register clicked');
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  if (!email || !pass) return msg('auth-msg', 'Enter email and password', 'err');
+  if (pass.length < 6) return msg('auth-msg', 'Password must be 6+ chars', 'err');
+  msg('auth-msg', 'Creating account...', 'info');
   try {
-    const email = document.getElementById('regEmail').value.trim();
-    const pw = document.getElementById('regPassword').value;
-    if (!email || !pw) return setStatus('authStatus', 'Enter email and password', 'err');
-    if (pw.length < 6) return setStatus('authStatus', 'Password must be 6+ chars', 'err');
-    setStatus('authStatus', 'Creating account...', 'info');
-    const { data, error } = await supabase.auth.signUp({ email, password: pw });
-    if (error) return setStatus('authStatus', error.message, 'err');
-    if (data && data.user && data.session) {
-      setStatus('authStatus', 'Account created! Logging in...', 'ok');
-      setTimeout(() => enterApp(data.user), 500);
+    const { data, error } = await supabase.auth.signUp({ email, password: pass });
+    log('signUp result: error=' + (error ? error.message : 'none') + ' user=' + (data.user ? 'yes' : 'no') + ' session=' + (data.session ? 'yes' : 'no'));
+    if (error) return msg('auth-msg', error.message, 'err');
+    if (data.session) {
+      msg('auth-msg', 'Logged in!', 'ok');
+      enterApp(data.user);
     } else {
-      setStatus('authStatus', 'Account created! Check email to confirm, then login.', 'ok');
-      setTimeout(() => switchAuth('login'), 2000);
+      msg('auth-msg', 'Account created! Check email or try logging in.', 'ok');
     }
   } catch (e) {
-    console.error('REGISTER ERROR:', e);
-    setStatus('authStatus', 'Error: ' + e.message, 'err');
+    log('Register exception: ' + e.message);
+    msg('auth-msg', 'Error: ' + e.message, 'err');
   }
 }
 
@@ -248,79 +175,68 @@ async function doLogout() {
   location.reload();
 }
 
-function switchAuth(mode) {
-  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
-  document.getElementById('tab-register').classList.toggle('active', mode === 'register');
-  document.getElementById('auth-login').classList.toggle('hidden', mode !== 'login');
-  document.getElementById('auth-register').classList.toggle('hidden', mode !== 'register');
-  setStatus('authStatus', '', '');
-}
-
 function enterApp(user) {
+  log('Entering app as ' + user.email);
   currentUser = user;
-  document.getElementById('userEmail').textContent = user.email;
-  document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('user-email').textContent = user.email;
+  show('authScreen', false);
+  show('appScreen', true);
   loadBots();
 }
 
 // ─── BOTS ───
 async function loadBots() {
+  log('Loading bots for user ' + currentUser.id);
   try {
     const { data, error } = await supabase.from('user_bots').select('*').eq('user_id', currentUser.id).order('created_at', {ascending:false});
-    if (error) { console.error(error); return; }
+    log('loadBots: error=' + (error ? error.message : 'none') + ' count=' + (data ? data.length : 0));
+    if (error) {
+      document.getElementById('bots-list').innerHTML = '<div style="color:#f44336">Error: ' + error.message + '</div>';
+      return;
+    }
     botsCache = data || [];
-    const list = document.getElementById('botsList');
+    const list = document.getElementById('bots-list');
     if (!botsCache.length) {
-      list.innerHTML = '<div style="font-size:12px;color:var(--ink-faint);">No bots yet. Click "+ Add Bot" to connect one.</div>';
+      list.innerHTML = '<div style="color:#aaa;font-size:13px">No bots yet. Click "+ Add Bot" to connect one.</div>';
       return;
     }
     list.innerHTML = botsCache.map(b => `
-      <div class="bot-row" data-bid="${b.id}">
+      <div class="bot-item">
         <div>
-          <div class="name">${b.bot_name || 'Unnamed Bot'}</div>
-          <div class="meta">${b.is_active ? '🟢 Active' : '🔴 Inactive'} · ID: ${(b.bot_id || '').slice(0,8)}...</div>
+          <div style="font-weight:600">${b.bot_name || 'Unnamed'}</div>
+          <div style="font-size:11px;color:#aaa">${b.is_active ? '🟢' : '🔴'} ${(b.bot_id||'').slice(0,8)}...</div>
         </div>
-        <div style="display:flex;gap:6px;">
-          <div class="btn btn-secondary" style="padding:4px 10px;font-size:10px;" data-action="toggle" data-id="${b.id}" data-active="${b.is_active ? 0 : 1}">${b.is_active ? 'Pause' : 'Resume'}</div>
-          <div class="btn btn-danger" style="padding:4px 10px;font-size:10px;" data-action="delete" data-id="${b.id}">Delete</div>
+        <div style="display:flex;gap:6px">
+          <button class="small-btn" onclick="toggleBot('${b.id}', ${!b.is_active})">${b.is_active ? 'Pause' : 'Resume'}</button>
+          <button class="small-btn" onclick="deleteBot('${b.id}')">Delete</button>
+          <button class="small-btn" onclick="openSettings('${b.id}')" style="background:#533483">Edit</button>
         </div>
       </div>
     `).join('');
-    // Attach click handlers for bot rows
-    list.querySelectorAll('.bot-row').forEach(row => {
-      row.addEventListener('click', function(e) {
-        if (e.target.closest('[data-action]')) return;
-        openSettings(this.dataset.bid);
-      });
-    });
-    list.querySelectorAll('[data-action="toggle"]').forEach(btn => {
-      btn.addEventListener('click', function(e) { e.stopPropagation(); toggleBot(this.dataset.id, this.dataset.active === '1'); });
-    });
-    list.querySelectorAll('[data-action="delete"]').forEach(btn => {
-      btn.addEventListener('click', function(e) { e.stopPropagation(); deleteBot(this.dataset.id); });
-    });
   } catch (e) {
-    console.error('loadBots error:', e);
+    log('loadBots exception: ' + e.message);
+    document.getElementById('bots-list').innerHTML = '<div style="color:#f44336">Exception: ' + e.message + '</div>';
   }
 }
 
 async function addBot() {
+  log('Add bot clicked');
+  const name = document.getElementById('add-name').value.trim();
+  const token = document.getElementById('add-token').value.trim();
+  if (!token) return msg('add-msg', 'Token required', 'err');
+  msg('add-msg', 'Validating with Discord...', 'info');
   try {
-    const name = document.getElementById('addBotName').value.trim();
-    const token = document.getElementById('addBotToken').value.trim();
-    if (!token) return setStatus('addBotStatus', 'Token required', 'err');
-    setStatus('addBotStatus', 'Validating token...', 'info');
-
     const resp = await fetch('https://discord.com/api/v10/oauth2/applications/@me', {
       headers: { 'Authorization': 'Bot ' + token }
     });
-    if (!resp.ok) throw new Error('Invalid Discord token (HTTP ' + resp.status + ')');
+    log('Discord validation: HTTP ' + resp.status);
+    if (!resp.ok) throw new Error('Invalid token (HTTP ' + resp.status + ')');
     const app = await resp.json();
     const botId = app.id;
     const botName = (app.bot && app.bot.username) || name || 'Bot';
+    log('Discord app: ' + botName + ' id=' + botId);
 
-    setStatus('addBotStatus', 'Saving to Supabase...', 'info');
+    msg('add-msg', 'Saving to Supabase...', 'info');
     const { error } = await supabase.from('user_bots').insert({
       user_id: currentUser.id,
       bot_id: botId,
@@ -330,47 +246,38 @@ async function addBot() {
       settings: {}
     });
     if (error) throw error;
-
-    setStatus('addBotStatus', 'Connected ' + botName + '!', 'ok');
-    document.getElementById('addBotToken').value = '';
-    document.getElementById('addBotName').value = '';
-    setTimeout(() => { switchSection('bots'); loadBots(); }, 800);
+    msg('add-msg', 'Connected ' + botName + '!', 'ok');
+    document.getElementById('add-token').value = '';
+    document.getElementById('add-name').value = '';
+    setTimeout(() => { switchTab('bots'); loadBots(); }, 600);
   } catch (e) {
-    console.error('addBot error:', e);
-    setStatus('addBotStatus', e.message, 'err');
+    log('addBot exception: ' + e.message);
+    msg('add-msg', e.message, 'err');
   }
 }
 
 async function toggleBot(id, active) {
-  try {
-    await supabase.from('user_bots').update({ is_active: active }).eq('id', id).eq('user_id', currentUser.id);
-    loadBots();
-  } catch (e) { console.error(e); }
+  await supabase.from('user_bots').update({ is_active: active }).eq('id', id).eq('user_id', currentUser.id);
+  loadBots();
 }
 
 async function deleteBot(id) {
-  if (!confirm('Delete this bot? It will go offline.')) return;
-  try {
-    await supabase.from('user_bots').delete().eq('id', id).eq('user_id', currentUser.id);
-    loadBots();
-    if (currentBotId === id) {
-      document.getElementById('settingsBody').innerHTML = '<div style="font-size:12px;color:var(--ink-faint);">Select a bot from My Bots to edit settings.</div>';
-    }
-  } catch (e) { console.error(e); }
+  if (!confirm('Delete?')) return;
+  await supabase.from('user_bots').delete().eq('id', id).eq('user_id', currentUser.id);
+  loadBots();
 }
 
-// ─── SETTINGS ───
 function openSettings(botId) {
   currentBotId = botId;
-  switchSection('settings');
+  switchTab('settings');
   const bot = botsCache.find(b => b.id === botId);
   if (!bot) return;
   const s = bot.settings || {};
-  document.getElementById('settingsBody').innerHTML = `
-    <div style="margin-bottom:10px;font-size:12px;color:var(--ink-muted);">Editing: <b>${bot.bot_name}</b></div>
-    <h2>Personality</h2>
-    <textarea id="s-personality" placeholder="How should your bot behave?">${s.personality || ''}</textarea>
-    <h2>AI Provider</h2>
+  document.getElementById('sec-settings').innerHTML = `
+    <div style="margin-bottom:10px;font-size:13px">Editing: <b>${bot.bot_name}</b></div>
+    <label>Personality</label>
+    <textarea id="s-personality" rows="3">${s.personality || ''}</textarea>
+    <label>Provider</label>
     <select id="s-provider">
       <option value="auto" ${(s.provider||'auto')==='auto'?'selected':''}>Auto</option>
       <option value="gemini" ${s.provider==='gemini'?'selected':''}>Gemini</option>
@@ -378,28 +285,23 @@ function openSettings(botId) {
       <option value="openrouter" ${s.provider==='openrouter'?'selected':''}>OpenRouter</option>
       <option value="huggingface" ${s.provider==='huggingface'?'selected':''}>Hugging Face</option>
     </select>
-    <h2>Models</h2>
-    <div class="grid-2">
-      <div><label>Gemini</label><input type="text" id="s-gemini" value="${s.gemini_model||'gemini-2.0-flash'}"></div>
-      <div><label>Groq</label><input type="text" id="s-groq" value="${s.groq_model||'llama-3.3-70b-versatile'}"></div>
-    </div>
-    <label>OpenRouter Model</label>
-    <input type="text" id="s-or" value="${s.model||'openrouter/free'}">
-    <h2>Generation</h2>
-    <div class="grid-3">
+    <label>Gemini Model</label><input type="text" id="s-gemini" value="${s.gemini_model||'gemini-2.0-flash'}">
+    <label>Groq Model</label><input type="text" id="s-groq" value="${s.groq_model||'llama-3.3-70b-versatile'}">
+    <label>OpenRouter Model</label><input type="text" id="s-or" value="${s.model||'openrouter/free'}">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
       <div><label>Max Tokens</label><input type="number" id="s-tokens" value="${s.max_tokens||800}"></div>
       <div><label>Temp</label><input type="number" id="s-temp" step="0.1" value="${s.temperature||0.7}"></div>
       <div><label>Cooldown</label><input type="number" id="s-cd" value="${s.cooldown_seconds||10}"></div>
     </div>
-    <h2>Features</h2>
-    <div class="toggle"><input type="checkbox" id="s-vision" ${s.vision_enabled?'checked':''}><label>Vision</label></div>
-    <div class="toggle"><input type="checkbox" id="s-tts" ${s.tts_enabled?'checked':''}><label>TTS</label></div>
-    <div class="toggle"><input type="checkbox" id="s-search" ${s.auto_search!==false?'checked':''}><label>Auto Search</label></div>
-    <div class="toggle"><input type="checkbox" id="s-memory" ${s.user_memory_enabled!==false?'checked':''}><label>User Memory</label></div>
-    <div class="toggle"><input type="checkbox" id="s-openchat" ${s.open_chat_enabled?'checked':''}><label>Open Chat</label></div>
-    <div class="btn" id="btnSaveSettings" style="width:100%;margin-top:8px;">SAVE SETTINGS</div>
-    <div id="saveStatus" class="status"></div>
+    <label><input type="checkbox" id="s-vision" ${s.vision_enabled?'checked':''}> Vision</label><br>
+    <label><input type="checkbox" id="s-tts" ${s.tts_enabled?'checked':''}> TTS</label><br>
+    <label><input type="checkbox" id="s-search" ${s.auto_search!==false?'checked':''}> Auto Search</label><br>
+    <label><input type="checkbox" id="s-memory" ${s.user_memory_enabled!==false?'checked':''}> User Memory</label><br>
+    <label><input type="checkbox" id="s-openchat" ${s.open_chat_enabled?'checked':''}> Open Chat</label><br>
+    <button id="btn-save">SAVE SETTINGS</button>
+    <div id="save-msg" class="status"></div>
   `;
+  document.getElementById('btn-save').addEventListener('click', saveSettings);
 }
 
 async function saveSettings() {
@@ -421,58 +323,59 @@ async function saveSettings() {
       open_chat_enabled: document.getElementById('s-openchat').checked,
     };
     const { error } = await supabase.from('user_bots').update({ settings: payload }).eq('id', currentBotId).eq('user_id', currentUser.id);
-    if (error) return setStatus('saveStatus', error.message, 'err');
-    setStatus('saveStatus', 'Saved! Changes sync to your device within 30s.', 'ok');
+    if (error) return msg('save-msg', error.message, 'err');
+    msg('save-msg', 'Saved! Syncs to device in ~30s.', 'ok');
     loadBots();
   } catch (e) {
-    console.error('saveSettings error:', e);
-    setStatus('saveStatus', e.message, 'err');
+    msg('save-msg', e.message, 'err');
   }
 }
 
-// ─── UI HELPERS ───
-function switchSection(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('sec-' + id).classList.add('active');
-  document.getElementById('nav-' + id).classList.add('active');
+// ─── TABS ───
+function switchTab(name) {
+  // auth tabs
+  if (name === 'login') {
+    document.getElementById('t-login').classList.add('active');
+    document.getElementById('t-register').classList.remove('active');
+    show('form-login', true);
+    show('form-register', false);
+  } else if (name === 'register') {
+    document.getElementById('t-login').classList.remove('active');
+    document.getElementById('t-register').classList.add('active');
+    show('form-login', false);
+    show('form-register', true);
+  } else {
+    // app sections
+    show('sec-bots', name === 'bots');
+    show('sec-add', name === 'add');
+    show('sec-settings', name === 'settings');
+    document.getElementById('t-bots').classList.toggle('active', name === 'bots');
+    document.getElementById('t-add').classList.toggle('active', name === 'add');
+    document.getElementById('t-settings').classList.toggle('active', name === 'settings');
+  }
 }
 
-function setStatus(id, msg, type) {
-  const el = typeof id === 'string' ? document.getElementById(id) : id;
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'status ' + (type || '');
-}
-
-// ─── EVENT LISTENERS (no inline onclick) ───
-document.getElementById('tab-login').addEventListener('click', () => switchAuth('login'));
-document.getElementById('tab-register').addEventListener('click', () => switchAuth('register'));
-document.getElementById('btnLogin').addEventListener('click', doLogin);
-document.getElementById('btnRegister').addEventListener('click', doRegister);
-document.getElementById('btnLogout').addEventListener('click', doLogout);
-document.getElementById('nav-bots').addEventListener('click', () => switchSection('bots'));
-document.getElementById('nav-add').addEventListener('click', () => switchSection('add'));
-document.getElementById('nav-settings').addEventListener('click', () => switchSection('settings'));
-document.getElementById('btnAddBot').addEventListener('click', addBot);
-
-// Delegate save settings since it's dynamically created
-document.getElementById('settingsBody').addEventListener('click', function(e) {
-  if (e.target.id === 'btnSaveSettings') saveSettings();
-});
+// ─── EVENT LISTENERS ───
+document.getElementById('t-login').addEventListener('click', () => switchTab('login'));
+document.getElementById('t-register').addEventListener('click', () => switchTab('register'));
+document.getElementById('btn-login').addEventListener('click', doLogin);
+document.getElementById('btn-register').addEventListener('click', doRegister);
+document.getElementById('btn-logout').addEventListener('click', doLogout);
+document.getElementById('t-bots').addEventListener('click', () => switchTab('bots'));
+document.getElementById('t-add').addEventListener('click', () => switchTab('add'));
+document.getElementById('t-settings').addEventListener('click', () => switchTab('settings'));
+document.getElementById('btn-add').addEventListener('click', addBot);
 
 // ─── INIT ───
-supabase.auth.onAuthStateChange((event, session) => {
-  if (session && session.user) enterApp(session.user);
-});
-
 (async () => {
+  log('INIT: checking session...');
   try {
+    if (!supabase) return log('INIT: Supabase not available');
     const { data: { user }, error } = await supabase.auth.getUser();
-    if (error) console.log('No existing session');
+    log('INIT: user=' + (user ? user.email : 'none') + ' error=' + (error ? error.message : 'none'));
     if (user) enterApp(user);
   } catch (e) {
-    console.error('INIT ERROR:', e);
+    log('INIT exception: ' + e.message);
   }
 })();
 </script>
