@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bot SaaS — Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#e8e8e4; --paper:rgba(252,252,248,0.9); --paper-solid:#fafaf6;
+  --ink:#2a2a2a; --ink-muted:#6b6b6b; --ink-faint:#9a9a9a;
+  --accent-sage:#8a9a8a; --accent-steel:#7a8a9a; --accent-clay:#b8a898;
+  --shadow-soft:rgba(0,0,0,0.06); --shadow-medium:rgba(0,0,0,0.10);
+  --transition-smooth:cubic-bezier(0.25,0.46,0.45,0.94);
+}
+body { width:100vw; min-height:100vh; background:var(--bg); font-family:'Inter',system-ui,sans-serif; overflow-x:hidden; }
+.container { max-width:720px; margin:0 auto; padding:24px 16px; }
+.card {
+  background:var(--paper-solid); border-radius:6px;
+  box-shadow:0 1px 2px var(--shadow-soft),0 4px 12px var(--shadow-medium);
+  border:1px solid rgba(0,0,0,0.05); margin-bottom:16px; overflow:hidden;
+}
+.card-header {
+  height:42px; background:#f5f5f0; display:flex; align-items:center;
+  padding:0 16px; border-bottom:1px solid rgba(0,0,0,0.06);
+  font-size:11px; font-weight:600; color:var(--ink-muted);
+  text-transform:uppercase; letter-spacing:1.2px;
+}
+.card-body { padding:16px; }
+h1 { font-family:'Playfair Display',serif; font-size:28px; color:var(--ink); margin-bottom:4px; }
+h2 { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin:16px 0 8px; border-bottom:1.5px solid var(--accent-sage); padding-bottom:4px; display:inline-block; }
+input, textarea, select {
+  width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08);
+  border-radius:4px; color:var(--ink); padding:8px 10px; font-size:12px;
+  font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:10px;
+}
+input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
+textarea { min-height:60px; resize:vertical; }
+label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint); }
+.btn {
+  display:inline-block; padding:8px 16px; background:var(--accent-sage); color:#fff;
+  border-radius:4px; font-size:11px; font-weight:600; cursor:pointer;
+  letter-spacing:0.5px; border:none; text-align:center;
+}
+.btn:hover { opacity:0.9; }
+.btn-danger { background:#c06060; }
+.btn-secondary { background:var(--accent-steel); }
+.status { font-size:11px; min-height:16px; margin-top:4px; }
+.status.ok { color:#4a9a4a; }
+.status.err { color:#c06060; }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.bot-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px; background:rgba(0,0,0,0.02); border-radius:5px;
+  margin-bottom:8px; border:1px solid transparent; cursor:pointer;
+}
+.bot-row:hover { border-color:rgba(138,154,138,0.2); background:rgba(138,154,138,0.04); }
+.bot-row .name { font-size:12px; font-weight:500; color:var(--ink); }
+.bot-row .meta { font-size:10px; color:var(--ink-faint); }
+.toggle { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+.toggle input { width:auto; margin:0; }
+.hidden { display:none !important; }
+#authScreen { display:flex; align-items:center; justify-content:center; min-height:100vh; }
+#appScreen { display:none; }
+.topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.topbar .user { font-size:11px; color:var(--ink-muted); }
+.section { display:none; }
+.section.active { display:block; }
+.nav { display:flex; gap:8px; margin-bottom:16px; }
+.nav-item {
+  padding:6px 12px; border-radius:4px; font-size:11px; cursor:pointer;
+  color:var(--ink-muted); background:rgba(0,0,0,0.02);
+}
+.nav-item.active { background:var(--accent-sage); color:#fff; }
+@media (max-width:600px) {
+  .grid-2, .grid-3 { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH SCREEN -->
+<div id="authScreen">
+  <div class="container" style="max-width:360px;">
+    <div class="card">
+      <div class="card-header">🔐 Authentication</div>
+      <div class="card-body">
+        <h1 style="font-size:22px;">Bot SaaS</h1>
+        <div style="font-size:12px;color:var(--ink-muted);margin-bottom:16px;">Manage your Discord bots from anywhere.</div>
+
+        <div class="nav" style="margin-bottom:12px;">
+          <div class="nav-item active" onclick="switchAuth('login')" id="tab-login">Login</div>
+          <div class="nav-item" onclick="switchAuth('register')" id="tab-register">Register</div>
+        </div>
+
+        <div id="auth-login">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="you@example.com">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••">
+          <div class="btn" onclick="doLogin()" style="width:100%;margin-top:4px;">LOGIN</div>
+        </div>
+
+        <div id="auth-register" class="hidden">
+          <label>Email</label>
+          <input type="email" id="regEmail" placeholder="you@example.com">
+          <label>Password</label>
+          <input type="password" id="regPassword" placeholder="••••••••">
+          <div class="btn" onclick="doRegister()" style="width:100%;margin-top:4px;">CREATE ACCOUNT</div>
+        </div>
+
+        <div id="authStatus" class="status"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="appScreen">
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <h1 style="font-size:22px;">Dashboard</h1>
+        <div style="font-size:11px;color:var(--ink-faint);">Manage your bots & AI settings</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="user" id="userEmail">user@example.com</div>
+        <div style="font-size:10px;color:var(--accent-sage);cursor:pointer;" onclick="doLogout()">Logout</div>
+      </div>
+    </div>
+
+    <div class="nav">
+      <div class="nav-item active" onclick="switchSection('bots')" id="nav-bots">My Bots</div>
+      <div class="nav-item" onclick="switchSection('add')" id="nav-add">+ Add Bot</div>
+      <div class="nav-item" onclick="switchSection('settings')" id="nav-settings">Settings</div>
+    </div>
+
+    <!-- BOTS LIST -->
+    <div class="section active" id="sec-bots">
+      <div class="card">
+        <div class="card-header">🤖 Connected Bots</div>
+        <div class="card-body" id="botsList">
+          <div style="font-size:12px;color:var(--ink-faint);">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD BOT -->
+    <div class="section" id="sec-add">
+      <div class="card">
+        <div class="card-header">➕ Add Discord Bot</div>
+        <div class="card-body">
+          <label>Bot Name</label>
+          <input type="text" id="addBotName" placeholder="My Awesome Bot">
+          <label>Discord Bot Token</label>
+          <input type="password" id="addBotToken" placeholder="Paste your Bot Token here">
+          <div style="font-size:10px;color:var(--ink-faint);margin-bottom:10px;">Your token is stored securely in your Supabase database (RLS-protected).</div>
+          <div class="btn" onclick="addBot()" style="width:100%;">CONNECT BOT</div>
+          <div id="addBotStatus" class="status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section" id="sec-settings">
+      <div class="card">
+        <div class="card-header">⚙️ Bot Settings</div>
+        <div class="card-body" id="settingsBody">
+          <div style="font-size:12px;color:var(--ink-faint);">Select a bot from My Bots to edit settings.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ─── Replace these with your actual Supabase credentials ───
+const SUPABASE_URL = ' https://tdawmkgedbxbjkctylld.supabase.co';
+const SUPABASE_ANON_KEY = '';
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUser = null;
+let currentBotId = null;
+let botsCache = [];
+
+// ─── AUTH ───
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  setStatus('authStatus', 'Logging in...', 'info');
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
+  if (error) return setStatus('authStatus', error.message, 'err');
+  enterApp(data.user);
+}
+
+async function doRegister() {
+  const email = document.getElementById('regEmail').value.trim();
+  const pw = document.getElementById('regPassword').value;
+  if (pw.length < 6) return setStatus('authStatus', 'Password must be 6+ chars', 'err');
+  setStatus('authStatus', 'Creating account...', 'info');
+  const { data, error } = await supabase.auth.signUp({ email, password: pw });
+  if (error) return setStatus('authStatus', error.message, 'err');
+  setStatus('authStatus', 'Account created! Check your email to confirm.', 'ok');
+  setTimeout(() => switchAuth('login'), 1500);
+}
+
+async function doLogout() {
+  await supabase.auth.signOut();
+  location.reload();
+}
+
+function switchAuth(mode) {
+  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+  document.getElementById('tab-register').classList.toggle('active', mode === 'register');
+  document.getElementById('auth-login').classList.toggle('hidden', mode !== 'login');
+  document.getElementById('auth-register').classList.toggle('hidden', mode !== 'register');
+  setStatus('authStatus', '', '');
+}
+
+function enterApp(user) {
+  currentUser = user;
+  document.getElementById('userEmail').textContent = user.email;
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  loadBots();
+}
+
+// ─── BOTS ───
+async function loadBots() {
+  const { data, error } = await supabase.from('user_bots').select('*').eq('user_id', currentUser.id).order('created_at', {ascending:false});
+  if (error) return console.error(error);
+  botsCache = data || [];
+  const list = document.getElementById('botsList');
+  if (!botsCache.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--ink-faint);">No bots yet. Click "+ Add Bot" to connect one.</div>';
+    return;
+  }
+  list.innerHTML = botsCache.map(b => `
+    <div class="bot-row" onclick="openSettings('${b.id}')">
+      <div>
+        <div class="name">${b.bot_name || 'Unnamed Bot'}</div>
+        <div class="meta">${b.is_active ? '🟢 Active' : '🔴 Inactive'} · ID: ${(b.bot_id || '').slice(0,8)}...</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <div class="btn btn-secondary" style="padding:4px 10px;font-size:10px;" onclick="event.stopPropagation();toggleBot('${b.id}', ${!b.is_active})">${b.is_active ? 'Pause' : 'Resume'}</div>
+        <div class="btn btn-danger" style="padding:4px 10px;font-size:10px;" onclick="event.stopPropagation();deleteBot('${b.id}')">Delete</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function addBot() {
+  const name = document.getElementById('addBotName').value.trim();
+  const token = document.getElementById('addBotToken').value.trim();
+  if (!token) return setStatus('addBotStatus', 'Token required', 'err');
+  setStatus('addBotStatus', 'Validating token...', 'info');
+
+  // Validate token with Discord
+  try {
+    const resp = await fetch('https://discord.com/api/v10/oauth2/applications/@me', {
+      headers: { 'Authorization': `Bot ${token}` }
+    });
+    if (!resp.ok) throw new Error('Invalid token');
+    const app = await resp.json();
+    const botId = app.id;
+    const botName = app.bot?.username || name || 'Bot';
+
+    setStatus('addBotStatus', 'Saving to Supabase...', 'info');
+    const { error } = await supabase.from('user_bots').insert({
+      user_id: currentUser.id,
+      bot_id: botId,
+      bot_name: botName,
+      discord_token: token,
+      is_active: true,
+      settings: {}
+    });
+    if (error) throw error;
+
+    setStatus('addBotStatus', `Connected ${botName}!`, 'ok');
+    document.getElementById('addBotToken').value = '';
+    document.getElementById('addBotName').value = '';
+    setTimeout(() => { switchSection('bots'); loadBots(); }, 800);
+  } catch (e) {
+    setStatus('addBotStatus', e.message, 'err');
+  }
+}
+
+async function toggleBot(id, active) {
+  await supabase.from('user_bots').update({ is_active: active }).eq('id', id).eq('user_id', currentUser.id);
+  loadBots();
+}
+
+async function deleteBot(id) {
+  if (!confirm('Delete this bot? It will go offline.')) return;
+  await supabase.from('user_bots').delete().eq('id', id).eq('user_id', currentUser.id);
+  loadBots();
+  if (currentBotId === id) {
+    document.getElementById('settingsBody').innerHTML = '<div style="font-size:12px;color:var(--ink-faint);">Select a bot from My Bots to edit settings.</div>';
+  }
+}
+
+// ─── SETTINGS ───
+function openSettings(botId) {
+  currentBotId = botId;
+  switchSection('settings');
+  const bot = botsCache.find(b => b.id === botId);
+  if (!bot) return;
+  const s = bot.settings || {};
+  document.getElementById('settingsBody').innerHTML = `
+    <div style="margin-bottom:10px;font-size:12px;color:var(--ink-muted);">Editing: <b>${bot.bot_name}</b></div>
+
+    <h2>Personality</h2>
+    <textarea id="s-personality" placeholder="How should your bot behave?">${s.personality || ''}</textarea>
+
+    <h2>AI Provider</h2>
+    <select id="s-provider">
+      <option value="auto" ${(s.provider||'auto')==='auto'?'selected':''}>Auto</option>
+      <option value="gemini" ${s.provider==='gemini'?'selected':''}>Gemini</option>
+      <option value="groq" ${s.provider==='groq'?'selected':''}>Groq</option>
+      <option value="openrouter" ${s.provider==='openrouter'?'selected':''}>OpenRouter</option>
+      <option value="huggingface" ${s.provider==='huggingface'?'selected':''}>Hugging Face</option>
+    </select>
+
+    <h2>Models</h2>
+    <div class="grid-2">
+      <div><label>Gemini</label><input type="text" id="s-gemini" value="${s.gemini_model||'gemini-2.0-flash'}"></div>
+      <div><label>Groq</label><input type="text" id="s-groq" value="${s.groq_model||'llama-3.3-70b-versatile'}"></div>
+    </div>
+    <label>OpenRouter Model</label>
+    <input type="text" id="s-or" value="${s.model||'openrouter/free'}">
+
+    <h2>Generation</h2>
+    <div class="grid-3">
+      <div><label>Max Tokens</label><input type="number" id="s-tokens" value="${s.max_tokens||800}"></div>
+      <div><label>Temp</label><input type="number" id="s-temp" step="0.1" value="${s.temperature||0.7}"></div>
+      <div><label>Cooldown</label><input type="number" id="s-cd" value="${s.cooldown_seconds||10}"></div>
+    </div>
+
+    <h2>Features</h2>
+    <div class="toggle"><input type="checkbox" id="s-vision" ${s.vision_enabled?'checked':''}><label>Vision</label></div>
+    <div class="toggle"><input type="checkbox" id="s-tts" ${s.tts_enabled?'checked':''}><label>TTS</label></div>
+    <div class="toggle"><input type="checkbox" id="s-search" ${s.auto_search!==false?'checked':''}><label>Auto Search</label></div>
+    <div class="toggle"><input type="checkbox" id="s-memory" ${s.user_memory_enabled!==false?'checked':''}><label>User Memory</label></div>
+    <div class="toggle"><input type="checkbox" id="s-openchat" ${s.open_chat_enabled?'checked':''}><label>Open Chat</label></div>
+
+    <div class="btn" onclick="saveSettings()" style="width:100%;margin-top:8px;">SAVE SETTINGS</div>
+    <div id="saveStatus" class="status"></div>
+  `;
+}
+
+async function saveSettings() {
+  if (!currentBotId) return;
+  const payload = {
+    personality: document.getElementById('s-personality').value,
+    provider: document.getElementById('s-provider').value,
+    gemini_model: document.getElementById('s-gemini').value,
+    groq_model: document.getElementById('s-groq').value,
+    model: document.getElementById('s-or').value,
+    max_tokens: parseInt(document.getElementById('s-tokens').value),
+    temperature: parseFloat(document.getElementById('s-temp').value),
+    cooldown_seconds: parseInt(document.getElementById('s-cd').value),
+    vision_enabled: document.getElementById('s-vision').checked,
+    tts_enabled: document.getElementById('s-tts').checked,
+    auto_search: document.getElementById('s-search').checked,
+    user_memory_enabled: document.getElementById('s-memory').checked,
+    open_chat_enabled: document.getElementById('s-openchat').checked,
+  };
+  const { error } = await supabase.from('user_bots').update({ settings: payload }).eq('id', currentBotId).eq('user_id', currentUser.id);
+  if (error) return setStatus('saveStatus', error.message, 'err');
+  setStatus('saveStatus', 'Saved! Changes sync to your device within 30s.', 'ok');
+  loadBots();
+}
+
+// ─── UI HELPERS ───
+function switchSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
+}
+
+function setStatus(id, msg, type) {
+  const el = typeof id === 'string' ? document.getElementById(id) : id;
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'status ' + (type || '');
+}
+
+// ─── INIT ───
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session?.user) enterApp(session.user);
+});
+
+(async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) enterApp(user);
+})();
+</script>
+</body>
+</html>
