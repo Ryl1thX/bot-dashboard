@@ -178,9 +178,9 @@ label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:va
 
 <script>
 // ─── CONFIG ─── Replace these with your actual Supabase credentials ───
-const SUPABASE_URL = ' https://tdawmkgedbxbjkctylld.supabase.co';
-const SUPABASE_ANON_KEY = '';
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
+
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
 let currentBotId = null;
@@ -188,23 +188,41 @@ let botsCache = [];
 
 // ─── AUTH ───
 async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const pw = document.getElementById('loginPassword').value;
-  setStatus('authStatus', 'Logging in...', 'info');
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
-  if (error) return setStatus('authStatus', error.message, 'err');
-  enterApp(data.user);
+  try {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pw = document.getElementById('loginPassword').value;
+    if (!email || !pw) return setStatus('authStatus', 'Enter email and password', 'err');
+    setStatus('authStatus', 'Logging in...', 'info');
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
+    if (error) return setStatus('authStatus', error.message, 'err');
+    if (!data || !data.user) return setStatus('authStatus', 'No user returned', 'err');
+    enterApp(data.user);
+  } catch (e) {
+    console.error('LOGIN ERROR:', e);
+    setStatus('authStatus', 'Error: ' + e.message, 'err');
+  }
 }
 
 async function doRegister() {
-  const email = document.getElementById('regEmail').value.trim();
-  const pw = document.getElementById('regPassword').value;
-  if (pw.length < 6) return setStatus('authStatus', 'Password must be 6+ chars', 'err');
-  setStatus('authStatus', 'Creating account...', 'info');
-  const { data, error } = await supabase.auth.signUp({ email, password: pw });
-  if (error) return setStatus('authStatus', error.message, 'err');
-  setStatus('authStatus', 'Account created! Check your email to confirm.', 'ok');
-  setTimeout(() => switchAuth('login'), 1500);
+  try {
+    const email = document.getElementById('regEmail').value.trim();
+    const pw = document.getElementById('regPassword').value;
+    if (!email || !pw) return setStatus('authStatus', 'Enter email and password', 'err');
+    if (pw.length < 6) return setStatus('authStatus', 'Password must be 6+ chars', 'err');
+    setStatus('authStatus', 'Creating account...', 'info');
+    const { data, error } = await supabase.auth.signUp({ email, password: pw });
+    if (error) return setStatus('authStatus', error.message, 'err');
+    if (data && data.user && data.session) {
+      setStatus('authStatus', 'Account created! Logging in...', 'ok');
+      setTimeout(() => enterApp(data.user), 500);
+    } else {
+      setStatus('authStatus', 'Account created! Check email to confirm, then login.', 'ok');
+      setTimeout(() => switchAuth('login'), 2000);
+    }
+  } catch (e) {
+    console.error('REGISTER ERROR:', e);
+    setStatus('authStatus', 'Error: ' + e.message, 'err');
+  }
 }
 
 async function doLogout() {
@@ -266,7 +284,7 @@ async function addBot() {
     if (!resp.ok) throw new Error('Invalid token');
     const app = await resp.json();
     const botId = app.id;
-    const botName = app.bot?.username || name || 'Bot';
+    const botName = (app.bot && app.bot.username) || name || 'Bot';
 
     setStatus('addBotStatus', 'Saving to Supabase...', 'info');
     const { error } = await supabase.from('user_bots').insert({
@@ -395,8 +413,31 @@ supabase.auth.onAuthStateChange((event, session) => {
 });
 
 (async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) enterApp(user);
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) console.log('No existing session');
+    if (user) enterApp(user);
+  } catch (e) {
+    console.error('INIT ERROR:', e);
+  }
+})();
+</script>
+<div id="debugPanel" style="position:fixed;bottom:0;left:0;right:0;background:#2a2a2a;color:#a5c4a5;font-family:monospace;font-size:10px;padding:6px 12px;z-index:9999;max-height:80px;overflow-y:auto;"></div>
+<script>
+(function(){
+  const panel = document.getElementById('debugPanel');
+  const origLog = console.log; const origErr = console.error;
+  function push(type, args) {
+    const msg = Array.from(args).map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+    const line = document.createElement('div');
+    line.textContent = '[' + type + '] ' + msg;
+    line.style.color = type === 'ERR' ? '#e57373' : '#a5c4a5';
+    panel.appendChild(line);
+    panel.scrollTop = panel.scrollHeight;
+  }
+  console.log = function(){ push('LOG', arguments); origLog.apply(console, arguments); };
+  console.error = function(){ push('ERR', arguments); origErr.apply(console, arguments); };
+  console.log('Dashboard loaded. Supabase URL:', SUPABASE_URL);
 })();
 </script>
 </body>
