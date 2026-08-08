@@ -25,7 +25,6 @@ button:disabled{background:#555;cursor:not-allowed}
 .small-btn{padding:6px 12px;font-size:12px;background:#533483;border:none;border-radius:4px;color:#fff;cursor:pointer}
 .danger{background:#c06060!important}
 h1{font-size:24px;margin-bottom:16px;text-align:center}
-h2{font-size:14px;text-transform:uppercase;letter-spacing:1px;color:#aaa;margin:16px 0 8px;border-bottom:1px solid #e94560;padding-bottom:4px;display:inline-block}
 label{font-size:12px;color:#aaa;text-transform:uppercase;letter-spacing:0.5px}
 #cdn-status{position:fixed;top:0;left:0;right:0;background:#e94560;color:#fff;text-align:center;padding:8px;font-size:13px;z-index:10000;display:none}
 </style>
@@ -65,17 +64,14 @@ label{font-size:12px;color:#aaa;text-transform:uppercase;letter-spacing:0.5px}
     </div>
     <button id="btn-logout" style="width:auto;padding:8px 16px;font-size:12px">Logout</button>
   </div>
-
   <div class="tabs">
     <div class="tab active" id="t-bots">My Bots</div>
     <div class="tab" id="t-add">+ Add Bot</div>
     <div class="tab" id="t-settings">Settings</div>
   </div>
-
   <div id="sec-bots" class="card">
-    <div id="bots-list"><div style="color:#888;font-size:14px">Loading bots...</div></div>
+    <div id="bots-list"><div style="color:#888;font-size:14px">Login to see your bots.</div></div>
   </div>
-
   <div id="sec-add" class="card hidden">
     <label>Bot Name</label>
     <input type="text" id="add-name" placeholder="My Awesome Bot">
@@ -85,7 +81,6 @@ label{font-size:12px;color:#aaa;text-transform:uppercase;letter-spacing:0.5px}
     <button id="btn-add">CONNECT BOT</button>
     <div id="add-msg" class="status"></div>
   </div>
-
   <div id="sec-settings" class="card hidden">
     <div style="color:#888;font-size:14px">Select a bot from My Bots to edit settings.</div>
   </div>
@@ -101,12 +96,19 @@ function log(msg) {
   dbg.scrollTop = dbg.scrollHeight;
   console.log(msg);
 }
-log('Script running');
+log('Script start');
 
-// ─── UI HELPERS (work immediately, no deps) ───
-function show(id, visible) {
-  document.getElementById(id).classList.toggle('hidden', !visible);
-}
+// ─── CONFIG ───
+const SUPABASE_URL = 'https://tdawmkgedbxbjkctylld.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo';
+
+let supabase = null;
+let currentUser = null;
+let botsCache = [];
+let currentBotId = null;
+
+// ─── UI HELPERS ───
+function show(id, visible) { document.getElementById(id).classList.toggle('hidden', !visible); }
 function msg(id, text, type) {
   const el = document.getElementById(id);
   el.textContent = text;
@@ -131,63 +133,10 @@ function switchTab(name) {
   }
 }
 
-// ─── ATTACH LISTENERS IMMEDIATELY (no Supabase needed) ───
-document.getElementById('t-login').addEventListener('click', function() { switchTab('login'); });
-document.getElementById('t-register').addEventListener('click', function() { switchTab('register'); });
-document.getElementById('t-bots').addEventListener('click', function() { switchTab('bots'); });
-document.getElementById('t-add').addEventListener('click', function() { switchTab('add'); });
-document.getElementById('t-settings').addEventListener('click', function() { switchTab('settings'); });
-log('Tab listeners attached');
-
-// ─── SUPABASE SETUP ───
-const SUPABASE_URL = 'https://tdawmkgedbxbjkctylld.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo';
-
-let supabase = null;
-let currentUser = null;
-let botsCache = [];
-let currentBotId = null;
-
-function initSupabase() {
-  log('initSupabase called');
-  if (!window.supabase) {
-    document.getElementById('cdn-status').style.display = 'block';
-    document.getElementById('cdn-status').textContent = 'ERROR: Supabase library failed to load. Try a different browser or network.';
-    document.getElementById('cdn-status').style.background = '#c06060';
-    log('FATAL: window.supabase missing');
-    return;
-  }
-  document.getElementById('cdn-status').style.display = 'none';
-  try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    log('Supabase client OK');
-  } catch (e) {
-    log('FATAL createClient: ' + e.message);
-    return;
-  }
-  // Attach auth listeners now that Supabase is ready
-  document.getElementById('btn-login').addEventListener('click', doLogin);
-  document.getElementById('btn-register').addEventListener('click', doRegister);
-  document.getElementById('btn-logout').addEventListener('click', doLogout);
-  document.getElementById('btn-add').addEventListener('click', addBot);
-  log('Auth listeners attached');
-  checkSession();
-}
-
-async function checkSession() {
-  log('Checking session...');
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    log('Session: user=' + (user ? user.email : 'none') + ' err=' + (error ? error.message : 'none'));
-    if (user) enterApp(user);
-  } catch (e) {
-    log('Session error: ' + e.message);
-  }
-}
-
-// ─── AUTH ───
+// ─── AUTH HANDLERS ───
 async function doLogin() {
   log('Login clicked');
+  if (!supabase) return msg('auth-msg', 'Supabase library still loading. Wait a few seconds and try again.', 'info');
   const email = document.getElementById('in-email').value.trim();
   const pass = document.getElementById('in-pass').value;
   if (!email || !pass) return msg('auth-msg', 'Enter email and password', 'err');
@@ -206,6 +155,7 @@ async function doLogin() {
 
 async function doRegister() {
   log('Register clicked');
+  if (!supabase) return msg('auth-msg', 'Supabase library still loading. Wait a few seconds and try again.', 'info');
   const email = document.getElementById('reg-email').value.trim();
   const pass = document.getElementById('reg-pass').value;
   if (!email || !pass) return msg('auth-msg', 'Enter email and password', 'err');
@@ -227,7 +177,7 @@ async function doRegister() {
 }
 
 async function doLogout() {
-  await supabase.auth.signOut();
+  if (supabase) await supabase.auth.signOut();
   location.reload();
 }
 
@@ -242,6 +192,7 @@ function enterApp(user) {
 
 // ─── BOTS ───
 async function loadBots() {
+  if (!supabase || !currentUser) return;
   log('Loading bots...');
   try {
     const { data, error } = await supabase.from('user_bots').select('*').eq('user_id', currentUser.id).order('created_at', {ascending:false});
@@ -277,6 +228,8 @@ async function loadBots() {
 
 async function addBot() {
   log('Add bot clicked');
+  if (!supabase) return msg('add-msg', 'Supabase library still loading...', 'info');
+  if (!currentUser) return msg('add-msg', 'Not logged in', 'err');
   const name = document.getElementById('add-name').value.trim();
   const token = document.getElementById('add-token').value.trim();
   if (!token) return msg('add-msg', 'Token required', 'err');
@@ -291,7 +244,6 @@ async function addBot() {
     const botId = app.id;
     const botName = (app.bot && app.bot.username) || name || 'Bot';
     log('Discord app: ' + botName + ' id=' + botId);
-
     msg('add-msg', 'Saving to Supabase...', 'info');
     const { error } = await supabase.from('user_bots').insert({
       user_id: currentUser.id,
@@ -313,11 +265,13 @@ async function addBot() {
 }
 
 async function toggleBot(id, active) {
+  if (!supabase) return;
   await supabase.from('user_bots').update({ is_active: active }).eq('id', id).eq('user_id', currentUser.id);
   loadBots();
 }
 
 async function deleteBot(id) {
+  if (!supabase) return;
   if (!confirm('Delete this bot?')) return;
   await supabase.from('user_bots').delete().eq('id', id).eq('user_id', currentUser.id);
   loadBots();
@@ -360,7 +314,7 @@ function openSettings(botId) {
 }
 
 async function saveSettings() {
-  if (!currentBotId) return;
+  if (!supabase || !currentBotId) return;
   try {
     const payload = {
       personality: document.getElementById('s-personality').value,
@@ -385,10 +339,53 @@ async function saveSettings() {
     msg('save-msg', e.message, 'err');
   }
 }
+
+// ─── ATTACH ALL LISTENERS IMMEDIATELY ───
+document.getElementById('t-login').addEventListener('click', () => switchTab('login'));
+document.getElementById('t-register').addEventListener('click', () => switchTab('register'));
+document.getElementById('btn-login').addEventListener('click', doLogin);
+document.getElementById('btn-register').addEventListener('click', doRegister);
+document.getElementById('btn-logout').addEventListener('click', doLogout);
+document.getElementById('t-bots').addEventListener('click', () => switchTab('bots'));
+document.getElementById('t-add').addEventListener('click', () => switchTab('add'));
+document.getElementById('t-settings').addEventListener('click', () => switchTab('settings'));
+document.getElementById('btn-add').addEventListener('click', addBot);
+log('All listeners attached');
+
+// ─── SUPABASE INIT ───
+function initSupabase() {
+  log('initSupabase called');
+  if (!window.supabase) {
+    document.getElementById('cdn-status').style.display = 'block';
+    document.getElementById('cdn-status').textContent = 'ERROR: Supabase library failed to load.';
+    document.getElementById('cdn-status').style.background = '#c06060';
+    log('FATAL: window.supabase missing');
+    return;
+  }
+  document.getElementById('cdn-status').style.display = 'none';
+  try {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    log('Supabase client OK');
+  } catch (e) {
+    log('FATAL createClient: ' + e.message);
+    return;
+  }
+  checkSession();
+}
+
+async function checkSession() {
+  log('Checking session...');
+  try {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    log('Session: user=' + (user ? user.email : 'none') + ' err=' + (error ? error.message : 'none'));
+    if (user) enterApp(user);
+  } catch (e) {
+    log('Session error: ' + e.message);
+  }
+}
 </script>
 
-<!-- Load Supabase AFTER our code, then init -->
-<script src="https://unpkg.com/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js" onload="initSupabase()"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js" onload="initSupabase()" onerror="initSupabase()"></script>
 
 </body>
 </html>
