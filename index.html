@@ -156,7 +156,7 @@ label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:va
           <input type="text" id="addBotName" placeholder="My Awesome Bot">
           <label>Discord Bot Token</label>
           <input type="password" id="addBotToken" placeholder="Paste your Bot Token here">
-          <div style="font-size:10px;color:var(--ink-faint);margin-bottom:10px;">Your token is stored securely in your Supabase database (RLS-protected).</div>
+          <div style="font-size:10px;color:var(--ink-faint);margin-bottom:10px;">Your token is stored securely in your Supabase database (RLS-protected). The backend will validate it.</div>
           <div class="btn" onclick="addBot()" style="width:100%;">CONNECT BOT</div>
           <div id="addBotStatus" class="status"></div>
         </div>
@@ -177,8 +177,7 @@ label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:va
 
 <script>
 // ═══════════════════════════════════════════════════════════════
-// INLINE SUPABASE LITE — No CDN. No external scripts.
-// Talks directly to Supabase REST/Auth APIs using fetch().
+// INLINE SUPABASE LITE — No CDN. Talks directly to Supabase REST API.
 // ═══════════════════════════════════════════════════════════════
 (function() {
   class SupabaseLite {
@@ -307,8 +306,6 @@ label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:va
     catch(onR) { return this._run().catch(onR); }
   }
 
-  // Wire auth into the lite client
-  SupabaseLite.prototype.auth = null; // placeholder
   const _origCreate = SupabaseLite;
   window.supabase = {
     createClient(url, key) {
@@ -398,29 +395,20 @@ async function addBot() {
   const name = document.getElementById('addBotName').value.trim();
   const token = document.getElementById('addBotToken').value.trim();
   if (!token) return setStatus('addBotStatus', 'Token required', 'err');
-  setStatus('addBotStatus', 'Validating token...', 'info');
+  if (token.length < 50) return setStatus('addBotStatus', 'That does not look like a valid Discord bot token', 'err');
 
+  setStatus('addBotStatus', 'Saving to Supabase...', 'info');
   try {
-    const resp = await fetch('https://discord.com/api/v10/oauth2/applications/@me', {
-      headers: { 'Authorization': `Bot ${token}` }
-    });
-    if (!resp.ok) throw new Error('Invalid token');
-    const app = await resp.json();
-    const botId = app.id;
-    const botName = app.bot?.username || name || 'Bot';
-
-    setStatus('addBotStatus', 'Saving to Supabase...', 'info');
     const { error } = await supabase.from('user_bots').insert({
       user_id: currentUser.id,
-      bot_id: botId,
-      bot_name: botName,
+      bot_name: name || 'Bot',
       discord_token: token,
       is_active: true,
       settings: {}
     });
     if (error) throw error;
 
-    setStatus('addBotStatus', `Connected ${botName}!`, 'ok');
+    setStatus('addBotStatus', 'Bot connected! The backend will validate the token.', 'ok');
     document.getElementById('addBotToken').value = '';
     document.getElementById('addBotName').value = '';
     setTimeout(() => { switchSection('bots'); loadBots(); }, 800);
