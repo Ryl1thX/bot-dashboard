@@ -1,250 +1,415 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bot SaaS Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bot SaaS — Dashboard</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:system-ui,sans-serif;background:#0f0f1a;color:#e0e0e0;padding:16px;max-width:600px;margin:0 auto;line-height:1.5}
-.card{background:#1a1a2e;border-radius:8px;padding:16px;margin-bottom:12px;border:1px solid #2a2a4a}
-input,select,textarea{width:100%;padding:10px;margin:6px 0;border-radius:4px;border:1px solid #333;background:#0f0f1a;color:#fff;font-size:14px}
-button{width:100%;padding:12px;background:#e94560;color:#fff;border:none;border-radius:4px;cursor:pointer;font-weight:600;margin-top:8px;font-size:14px}
-button:hover{opacity:.9}
-button:disabled{background:#555;cursor:not-allowed}
-.tabs{display:flex;gap:8px;margin-bottom:12px}
-.tab{flex:1;padding:10px;background:#0f0f1a;border-radius:4px;text-align:center;cursor:pointer;border:1px solid #333}
-.tab.active{background:#e94560;border-color:#e94560}
-.hidden{display:none!important}
-#debug{position:fixed;bottom:0;left:0;right:0;background:#000;color:#0f0;border-top:2px solid #e94560;font-family:monospace;font-size:11px;padding:8px;max-height:100px;overflow-y:auto;z-index:9999}
-.status{margin-top:8px;font-size:13px;min-height:20px;padding:4px;border-radius:4px}
-.status.ok{color:#4caf50;background:rgba(76,175,80,0.1)}
-.status.err{color:#f44336;background:rgba(244,67,54,0.1)}
-.status.info{color:#ff9800;background:rgba(255,152,0,0.1)}
-.bot-item{background:#0f0f1a;padding:12px;border-radius:4px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;border:1px solid #2a2a4a}
-.small-btn{padding:6px 12px;font-size:12px;background:#533483;border:none;border-radius:4px;color:#fff;cursor:pointer}
-.danger{background:#c06060!important}
-h1{font-size:24px;margin-bottom:16px;text-align:center}
-label{font-size:12px;color:#aaa;text-transform:uppercase;letter-spacing:0.5px}
-#cdn-status{position:fixed;top:0;left:0;right:0;background:#e94560;color:#fff;text-align:center;padding:8px;font-size:13px;z-index:10000;display:none}
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#e8e8e4; --paper:rgba(252,252,248,0.9); --paper-solid:#fafaf6;
+  --ink:#2a2a2a; --ink-muted:#6b6b6b; --ink-faint:#9a9a9a;
+  --accent-sage:#8a9a8a; --accent-steel:#7a8a9a; --accent-clay:#b8a898;
+  --shadow-soft:rgba(0,0,0,0.06); --shadow-medium:rgba(0,0,0,0.10);
+  --transition-smooth:cubic-bezier(0.25,0.46,0.45,0.94);
+}
+body { width:100vw; min-height:100vh; background:var(--bg); font-family:'Inter',system-ui,sans-serif; overflow-x:hidden; }
+.container { max-width:720px; margin:0 auto; padding:24px 16px; }
+.card {
+  background:var(--paper-solid); border-radius:6px;
+  box-shadow:0 1px 2px var(--shadow-soft),0 4px 12px var(--shadow-medium);
+  border:1px solid rgba(0,0,0,0.05); margin-bottom:16px; overflow:hidden;
+}
+.card-header {
+  height:42px; background:#f5f5f0; display:flex; align-items:center;
+  padding:0 16px; border-bottom:1px solid rgba(0,0,0,0.06);
+  font-size:11px; font-weight:600; color:var(--ink-muted);
+  text-transform:uppercase; letter-spacing:1.2px;
+}
+.card-body { padding:16px; }
+h1 { font-family:'Playfair Display',serif; font-size:28px; color:var(--ink); margin-bottom:4px; }
+h2 { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin:16px 0 8px; border-bottom:1.5px solid var(--accent-sage); padding-bottom:4px; display:inline-block; }
+input, textarea, select {
+  width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08);
+  border-radius:4px; color:var(--ink); padding:8px 10px; font-size:12px;
+  font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:10px;
+}
+input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
+textarea { min-height:60px; resize:vertical; }
+label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint); }
+.btn {
+  display:inline-block; padding:8px 16px; background:var(--accent-sage); color:#fff;
+  border-radius:4px; font-size:11px; font-weight:600; cursor:pointer;
+  letter-spacing:0.5px; border:none; text-align:center;
+}
+.btn:hover { opacity:0.9; }
+.btn-danger { background:#c06060; }
+.btn-secondary { background:var(--accent-steel); }
+.status { font-size:11px; min-height:16px; margin-top:4px; }
+.status.ok { color:#4a9a4a; }
+.status.err { color:#c06060; }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+.bot-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px; background:rgba(0,0,0,0.02); border-radius:5px;
+  margin-bottom:8px; border:1px solid transparent; cursor:pointer;
+}
+.bot-row:hover { border-color:rgba(138,154,138,0.2); background:rgba(138,154,138,0.04); }
+.bot-row .name { font-size:12px; font-weight:500; color:var(--ink); }
+.bot-row .meta { font-size:10px; color:var(--ink-faint); }
+.toggle { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
+.toggle input { width:auto; margin:0; }
+.hidden { display:none !important; }
+#authScreen { display:flex; align-items:center; justify-content:center; min-height:100vh; }
+#appScreen { display:none; }
+.topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+.topbar .user { font-size:11px; color:var(--ink-muted); }
+.section { display:none; }
+.section.active { display:block; }
+.nav { display:flex; gap:8px; margin-bottom:16px; }
+.nav-item {
+  padding:6px 12px; border-radius:4px; font-size:11px; cursor:pointer;
+  color:var(--ink-muted); background:rgba(0,0,0,0.02);
+}
+.nav-item.active { background:var(--accent-sage); color:#fff; }
+@media (max-width:600px) {
+  .grid-2, .grid-3 { grid-template-columns:1fr; }
+}
 </style>
 </head>
 <body>
 
-<div id="cdn-status">Loading Supabase library...</div>
-<div id="debug">[DEBUG] Page loaded.</div>
-
-<h1>🤖 Bot SaaS</h1>
-
+<!-- AUTH SCREEN -->
 <div id="authScreen">
-  <div class="card">
-    <div class="tabs">
-      <div class="tab active" id="t-login">Login</div>
-      <div class="tab" id="t-register">Register</div>
+  <div class="container" style="max-width:360px;">
+    <div class="card">
+      <div class="card-header">🔐 Authentication</div>
+      <div class="card-body">
+        <h1 style="font-size:22px;">Bot SaaS</h1>
+        <div style="font-size:12px;color:var(--ink-muted);margin-bottom:16px;">Manage your Discord bots from anywhere.</div>
+
+        <div class="nav" style="margin-bottom:12px;">
+          <div class="nav-item active" onclick="switchAuth('login')" id="tab-login">Login</div>
+          <div class="nav-item" onclick="switchAuth('register')" id="tab-register">Register</div>
+        </div>
+
+        <div id="auth-login">
+          <label>Email</label>
+          <input type="email" id="loginEmail" placeholder="you@example.com">
+          <label>Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••">
+          <div class="btn" onclick="doLogin()" style="width:100%;margin-top:4px;">LOGIN</div>
+        </div>
+
+        <div id="auth-register" class="hidden">
+          <label>Email</label>
+          <input type="email" id="regEmail" placeholder="you@example.com">
+          <label>Password</label>
+          <input type="password" id="regPassword" placeholder="••••••••">
+          <div class="btn" onclick="doRegister()" style="width:100%;margin-top:4px;">CREATE ACCOUNT</div>
+        </div>
+
+        <div id="authStatus" class="status"></div>
+      </div>
     </div>
-    <div id="form-login">
-      <input type="email" id="in-email" placeholder="Email">
-      <input type="password" id="in-pass" placeholder="Password">
-      <button id="btn-login">LOGIN</button>
-    </div>
-    <div id="form-register" class="hidden">
-      <input type="email" id="reg-email" placeholder="Email">
-      <input type="password" id="reg-pass" placeholder="Password (6+ chars)">
-      <button id="btn-register">CREATE ACCOUNT</button>
-    </div>
-    <div id="auth-msg" class="status"></div>
   </div>
 </div>
 
-<div id="appScreen" class="hidden">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-    <div>
-      <div style="font-size:12px;color:#888">Logged in as</div>
-      <div id="user-email" style="font-weight:600;font-size:14px">--</div>
+<!-- APP SCREEN -->
+<div id="appScreen">
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <h1 style="font-size:22px;">Dashboard</h1>
+        <div style="font-size:11px;color:var(--ink-faint);">Manage your bots & AI settings</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="user" id="userEmail">user@example.com</div>
+        <div style="font-size:10px;color:var(--accent-sage);cursor:pointer;" onclick="doLogout()">Logout</div>
+      </div>
     </div>
-    <button id="btn-logout" style="width:auto;padding:8px 16px;font-size:12px">Logout</button>
-  </div>
-  <div class="tabs">
-    <div class="tab active" id="t-bots">My Bots</div>
-    <div class="tab" id="t-add">+ Add Bot</div>
-    <div class="tab" id="t-settings">Settings</div>
-  </div>
-  <div id="sec-bots" class="card">
-    <div id="bots-list"><div style="color:#888;font-size:14px">Login to see your bots.</div></div>
-  </div>
-  <div id="sec-add" class="card hidden">
-    <label>Bot Name</label>
-    <input type="text" id="add-name" placeholder="My Awesome Bot">
-    <label>Discord Bot Token</label>
-    <input type="password" id="add-token" placeholder="Paste your Bot Token here">
-    <div style="font-size:12px;color:#888;margin-bottom:8px">Token stored in Supabase (RLS-protected).</div>
-    <button id="btn-add">CONNECT BOT</button>
-    <div id="add-msg" class="status"></div>
-  </div>
-  <div id="sec-settings" class="card hidden">
-    <div style="color:#888;font-size:14px">Select a bot from My Bots to edit settings.</div>
+
+    <div class="nav">
+      <div class="nav-item active" onclick="switchSection('bots')" id="nav-bots">My Bots</div>
+      <div class="nav-item" onclick="switchSection('add')" id="nav-add">+ Add Bot</div>
+      <div class="nav-item" onclick="switchSection('settings')" id="nav-settings">Settings</div>
+    </div>
+
+    <!-- BOTS LIST -->
+    <div class="section active" id="sec-bots">
+      <div class="card">
+        <div class="card-header">🤖 Connected Bots</div>
+        <div class="card-body" id="botsList">
+          <div style="font-size:12px;color:var(--ink-faint);">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADD BOT -->
+    <div class="section" id="sec-add">
+      <div class="card">
+        <div class="card-header">➕ Add Discord Bot</div>
+        <div class="card-body">
+          <label>Bot Name</label>
+          <input type="text" id="addBotName" placeholder="My Awesome Bot">
+          <label>Discord Bot Token</label>
+          <input type="password" id="addBotToken" placeholder="Paste your Bot Token here">
+          <div style="font-size:10px;color:var(--ink-faint);margin-bottom:10px;">Your token is stored securely in your Supabase database (RLS-protected).</div>
+          <div class="btn" onclick="addBot()" style="width:100%;">CONNECT BOT</div>
+          <div id="addBotStatus" class="status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="section" id="sec-settings">
+      <div class="card">
+        <div class="card-header">⚙️ Bot Settings</div>
+        <div class="card-body" id="settingsBody">
+          <div style="font-size:12px;color:var(--ink-faint);">Select a bot from My Bots to edit settings.</div>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
 <script>
-// ─── DEBUG ───
-const dbg = document.getElementById('debug');
-function log(msg) {
-  const line = document.createElement('div');
-  line.textContent = '> ' + msg;
-  dbg.appendChild(line);
-  dbg.scrollTop = dbg.scrollHeight;
-  console.log(msg);
-}
-log('Script start');
+// ═══════════════════════════════════════════════════════════════
+// INLINE SUPABASE LITE — No CDN. No external scripts.
+// Talks directly to Supabase REST/Auth APIs using fetch().
+// ═══════════════════════════════════════════════════════════════
+(function() {
+  class SupabaseLite {
+    constructor(url, key) {
+      this.url = url.replace(/\/$/, '');
+      this.key = key;
+      this._listeners = [];
+      this._token = localStorage.getItem('sb_token') || null;
+      this._user = null;
+    }
+    _headers() {
+      return {
+        'apikey': this.key,
+        'Authorization': 'Bearer ' + (this._token || this.key),
+        'Content-Type': 'application/json'
+      };
+    }
+    async _request(method, path, body) {
+      const res = await fetch(this.url + path, {
+        method, headers: this._headers(),
+        body: body ? JSON.stringify(body) : undefined
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data.msg || data.message || data.error_description || JSON.stringify(data);
+        throw new Error(msg);
+      }
+      return {data, error: null};
+    }
+    from(table) { return new QueryBuilder(this, table); }
+    _notify(event, session) { this._listeners.forEach(cb => cb(event, session)); }
+  }
+
+  class AuthLite {
+    constructor(client) { this.client = client; }
+    async signInWithPassword({email, password}) {
+      try {
+        const {data} = await this.client._request('POST', '/auth/v1/token?grant_type=password', {email, password});
+        this.client._token = data.access_token;
+        localStorage.setItem('sb_token', data.access_token);
+        localStorage.setItem('sb_refresh', data.refresh_token);
+        this.client._user = data.user;
+        this.client._notify('SIGNED_IN', {user: data.user});
+        return {data: {user: data.user, session: data}, error: null};
+      } catch(e) {
+        return {data: null, error: {message: e.message}};
+      }
+    }
+    async signUp({email, password}) {
+      try {
+        const {data} = await this.client._request('POST', '/auth/v1/signup', {email, password});
+        return {data: {user: data.user}, error: null};
+      } catch(e) {
+        return {data: null, error: {message: e.message}};
+      }
+    }
+    async signOut() {
+      if (this.client._token) {
+        try { await this.client._request('POST', '/auth/v1/logout', {}); } catch(e){}
+      }
+      this.client._token = null; this.client._user = null;
+      localStorage.removeItem('sb_token'); localStorage.removeItem('sb_refresh');
+      this.client._notify('SIGNED_OUT', {});
+      return {error: null};
+    }
+    onAuthStateChange(cb) {
+      this.client._listeners.push(cb);
+      return {data: {subscription: {unsubscribe: () => {
+        const i = this.client._listeners.indexOf(cb);
+        if (i > -1) this.client._listeners.splice(i, 1);
+      }}}};
+    }
+    async getUser() {
+      if (!this.client._token) return {data: {user: null}, error: null};
+      try {
+        const {data} = await this.client._request('GET', '/auth/v1/user', null);
+        this.client._user = data;
+        return {data: {user: data}, error: null};
+      } catch(e) {
+        return {data: {user: null}, error: {message: e.message}};
+      }
+    }
+  }
+
+  class QueryBuilder {
+    constructor(client, table) {
+      this.client = client; this.table = table;
+      this._select = '*'; this._eq = []; this._order = null;
+      this._method = 'GET'; this._body = null;
+    }
+    select(cols) { this._select = cols; return this; }
+    eq(col, val) { this._eq.push({col, val}); return this; }
+    order(col, opts) {
+      this._order = {col, ascending: opts ? opts.ascending !== false : true};
+      return this;
+    }
+    insert(data) { this._method = 'POST'; this._body = data; return this; }
+    update(data) { this._method = 'PATCH'; this._body = data; return this; }
+    delete() { this._method = 'DELETE'; this._body = null; return this; }
+
+    _buildURL() {
+      let url = '/rest/v1/' + this.table;
+      const p = [];
+      if (this._method === 'GET') p.push('select=' + encodeURIComponent(this._select));
+      this._eq.forEach(q => p.push(q.col + '=eq.' + encodeURIComponent(q.val)));
+      if (this._order) p.push('order=' + this._order.col + '.' + (this._order.ascending ? 'asc' : 'desc'));
+      if (p.length) url += '?' + p.join('&');
+      return url;
+    }
+
+    async _run() {
+      const headers = {...this.client._headers()};
+      if (this._method === 'POST') headers['Prefer'] = 'return=representation';
+      const res = await fetch(this.client.url + this._buildURL(), {
+        method: this._method, headers,
+        body: this._body ? JSON.stringify(this._body) : undefined
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return {data: null, error: {message: err.message || err.msg || ('HTTP ' + res.status)}};
+      }
+      const data = this._method === 'DELETE' ? null : await res.json();
+      return {data, error: null};
+    }
+    then(onF, onR) { return this._run().then(onF, onR); }
+    catch(onR) { return this._run().catch(onR); }
+  }
+
+  // Wire auth into the lite client
+  SupabaseLite.prototype.auth = null; // placeholder
+  const _origCreate = SupabaseLite;
+  window.supabase = {
+    createClient(url, key) {
+      const c = new _origCreate(url, key);
+      c.auth = new AuthLite(c);
+      return c;
+    }
+  };
+})();
+// ═══════════════════════════════════════════════════════════════
 
 // ─── CONFIG ───
 const SUPABASE_URL = 'https://tdawmkgedbxbjkctylld.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo';
-
-let supabase = null;
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let currentUser = null;
-let botsCache = [];
 let currentBotId = null;
+let botsCache = [];
 
-// ─── UI HELPERS ───
-function show(id, visible) { document.getElementById(id).classList.toggle('hidden', !visible); }
-function msg(id, text, type) {
-  const el = document.getElementById(id);
-  el.textContent = text;
-  el.className = 'status ' + (type || '');
-}
-function switchTab(name) {
-  if (name === 'login') {
-    document.getElementById('t-login').classList.add('active');
-    document.getElementById('t-register').classList.remove('active');
-    show('form-login', true); show('form-register', false);
-  } else if (name === 'register') {
-    document.getElementById('t-login').classList.remove('active');
-    document.getElementById('t-register').classList.add('active');
-    show('form-login', false); show('form-register', true);
-  } else {
-    show('sec-bots', name === 'bots');
-    show('sec-add', name === 'add');
-    show('sec-settings', name === 'settings');
-    document.getElementById('t-bots').classList.toggle('active', name === 'bots');
-    document.getElementById('t-add').classList.toggle('active', name === 'add');
-    document.getElementById('t-settings').classList.toggle('active', name === 'settings');
-  }
-}
-
-// ─── AUTH HANDLERS ───
+// ─── AUTH ───
 async function doLogin() {
-  log('Login clicked');
-  if (!supabase) return msg('auth-msg', 'Supabase library still loading. Wait a few seconds and try again.', 'info');
-  const email = document.getElementById('in-email').value.trim();
-  const pass = document.getElementById('in-pass').value;
-  if (!email || !pass) return msg('auth-msg', 'Enter email and password', 'err');
-  msg('auth-msg', 'Logging in...', 'info');
-  try {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    log('Login result: err=' + (error ? error.message : 'none'));
-    if (error) return msg('auth-msg', error.message, 'err');
-    if (!data.user) return msg('auth-msg', 'No user returned', 'err');
-    enterApp(data.user);
-  } catch (e) {
-    log('Login exception: ' + e.message);
-    msg('auth-msg', 'Error: ' + e.message, 'err');
-  }
+  const email = document.getElementById('loginEmail').value.trim();
+  const pw = document.getElementById('loginPassword').value;
+  setStatus('authStatus', 'Logging in...', 'info');
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
+  if (error) return setStatus('authStatus', error.message, 'err');
+  enterApp(data.user);
 }
 
 async function doRegister() {
-  log('Register clicked');
-  if (!supabase) return msg('auth-msg', 'Supabase library still loading. Wait a few seconds and try again.', 'info');
-  const email = document.getElementById('reg-email').value.trim();
-  const pass = document.getElementById('reg-pass').value;
-  if (!email || !pass) return msg('auth-msg', 'Enter email and password', 'err');
-  if (pass.length < 6) return msg('auth-msg', 'Password must be 6+ chars', 'err');
-  msg('auth-msg', 'Creating account...', 'info');
-  try {
-    const { data, error } = await supabase.auth.signUp({ email, password: pass });
-    log('Register result: err=' + (error ? error.message : 'none') + ' hasSession=' + !!(data && data.session));
-    if (error) return msg('auth-msg', error.message, 'err');
-    if (data.session) {
-      enterApp(data.user);
-    } else {
-      msg('auth-msg', 'Account created! Check email or try logging in.', 'ok');
-    }
-  } catch (e) {
-    log('Register exception: ' + e.message);
-    msg('auth-msg', 'Error: ' + e.message, 'err');
-  }
+  const email = document.getElementById('regEmail').value.trim();
+  const pw = document.getElementById('regPassword').value;
+  if (pw.length < 6) return setStatus('authStatus', 'Password must be 6+ chars', 'err');
+  setStatus('authStatus', 'Creating account...', 'info');
+  const { data, error } = await supabase.auth.signUp({ email, password: pw });
+  if (error) return setStatus('authStatus', error.message, 'err');
+  setStatus('authStatus', 'Account created! Check your email to confirm.', 'ok');
+  setTimeout(() => switchAuth('login'), 1500);
 }
 
 async function doLogout() {
-  if (supabase) await supabase.auth.signOut();
+  await supabase.auth.signOut();
   location.reload();
 }
 
+function switchAuth(mode) {
+  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+  document.getElementById('tab-register').classList.toggle('active', mode === 'register');
+  document.getElementById('auth-login').classList.toggle('hidden', mode !== 'login');
+  document.getElementById('auth-register').classList.toggle('hidden', mode !== 'register');
+  setStatus('authStatus', '', '');
+}
+
 function enterApp(user) {
-  log('Entering app: ' + user.email);
   currentUser = user;
-  document.getElementById('user-email').textContent = user.email;
-  show('authScreen', false);
-  show('appScreen', true);
+  document.getElementById('userEmail').textContent = user.email;
+  document.getElementById('authScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
   loadBots();
 }
 
 // ─── BOTS ───
 async function loadBots() {
-  if (!supabase || !currentUser) return;
-  log('Loading bots...');
-  try {
-    const { data, error } = await supabase.from('user_bots').select('*').eq('user_id', currentUser.id).order('created_at', {ascending:false});
-    log('Bots loaded: count=' + (data ? data.length : 0) + ' err=' + (error ? error.message : 'none'));
-    if (error) {
-      document.getElementById('bots-list').innerHTML = '<div style="color:#f44336">Error: ' + error.message + '</div>';
-      return;
-    }
-    botsCache = data || [];
-    const list = document.getElementById('bots-list');
-    if (!botsCache.length) {
-      list.innerHTML = '<div style="color:#888;font-size:14px">No bots yet. Click "+ Add Bot" to connect one.</div>';
-      return;
-    }
-    list.innerHTML = botsCache.map(b => `
-      <div class="bot-item">
-        <div>
-          <div style="font-weight:600">${b.bot_name || 'Unnamed'}</div>
-          <div style="font-size:11px;color:#888">${b.is_active ? '🟢 Active' : '🔴 Paused'} · ${(b.bot_id||'').slice(0,8)}...</div>
-        </div>
-        <div style="display:flex;gap:6px">
-          <button class="small-btn" onclick="toggleBot('${b.id}', ${!b.is_active})">${b.is_active ? 'Pause' : 'Resume'}</button>
-          <button class="small-btn danger" onclick="deleteBot('${b.id}')">Delete</button>
-          <button class="small-btn" onclick="openSettings('${b.id}')">Edit</button>
-        </div>
-      </div>
-    `).join('');
-  } catch (e) {
-    log('loadBots exception: ' + e.message);
-    document.getElementById('bots-list').innerHTML = '<div style="color:#f44336">Exception: ' + e.message + '</div>';
+  const { data, error } = await supabase.from('user_bots').select('*').eq('user_id', currentUser.id).order('created_at', {ascending:false});
+  if (error) return console.error(error);
+  botsCache = data || [];
+  const list = document.getElementById('botsList');
+  if (!botsCache.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--ink-faint);">No bots yet. Click "+ Add Bot" to connect one.</div>';
+    return;
   }
+  list.innerHTML = botsCache.map(b => `
+    <div class="bot-row" onclick="openSettings('${b.id}')">
+      <div>
+        <div class="name">${b.bot_name || 'Unnamed Bot'}</div>
+        <div class="meta">${b.is_active ? '🟢 Active' : '🔴 Inactive'} · ID: ${(b.bot_id || '').slice(0,8)}...</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <div class="btn btn-secondary" style="padding:4px 10px;font-size:10px;" onclick="event.stopPropagation();toggleBot('${b.id}', ${!b.is_active})">${b.is_active ? 'Pause' : 'Resume'}</div>
+        <div class="btn btn-danger" style="padding:4px 10px;font-size:10px;" onclick="event.stopPropagation();deleteBot('${b.id}')">Delete</div>
+      </div>
+    </div>
+  `).join('');
 }
 
 async function addBot() {
-  log('Add bot clicked');
-  if (!supabase) return msg('add-msg', 'Supabase library still loading...', 'info');
-  if (!currentUser) return msg('add-msg', 'Not logged in', 'err');
-  const name = document.getElementById('add-name').value.trim();
-  const token = document.getElementById('add-token').value.trim();
-  if (!token) return msg('add-msg', 'Token required', 'err');
-  msg('add-msg', 'Validating with Discord...', 'info');
+  const name = document.getElementById('addBotName').value.trim();
+  const token = document.getElementById('addBotToken').value.trim();
+  if (!token) return setStatus('addBotStatus', 'Token required', 'err');
+  setStatus('addBotStatus', 'Validating token...', 'info');
+
   try {
     const resp = await fetch('https://discord.com/api/v10/oauth2/applications/@me', {
-      headers: { 'Authorization': 'Bot ' + token }
+      headers: { 'Authorization': `Bot ${token}` }
     });
-    log('Discord response: HTTP ' + resp.status);
-    if (!resp.ok) throw new Error('Invalid token (HTTP ' + resp.status + ')');
+    if (!resp.ok) throw new Error('Invalid token');
     const app = await resp.json();
     const botId = app.id;
-    const botName = (app.bot && app.bot.username) || name || 'Bot';
-    log('Discord app: ' + botName + ' id=' + botId);
-    msg('add-msg', 'Saving to Supabase...', 'info');
+    const botName = app.bot?.username || name || 'Bot';
+
+    setStatus('addBotStatus', 'Saving to Supabase...', 'info');
     const { error } = await supabase.from('user_bots').insert({
       user_id: currentUser.id,
       bot_id: botId,
@@ -254,40 +419,44 @@ async function addBot() {
       settings: {}
     });
     if (error) throw error;
-    msg('add-msg', 'Connected ' + botName + '!', 'ok');
-    document.getElementById('add-token').value = '';
-    document.getElementById('add-name').value = '';
-    setTimeout(() => { switchTab('bots'); loadBots(); }, 600);
+
+    setStatus('addBotStatus', `Connected ${botName}!`, 'ok');
+    document.getElementById('addBotToken').value = '';
+    document.getElementById('addBotName').value = '';
+    setTimeout(() => { switchSection('bots'); loadBots(); }, 800);
   } catch (e) {
-    log('addBot exception: ' + e.message);
-    msg('add-msg', e.message, 'err');
+    setStatus('addBotStatus', e.message, 'err');
   }
 }
 
 async function toggleBot(id, active) {
-  if (!supabase) return;
   await supabase.from('user_bots').update({ is_active: active }).eq('id', id).eq('user_id', currentUser.id);
   loadBots();
 }
 
 async function deleteBot(id) {
-  if (!supabase) return;
-  if (!confirm('Delete this bot?')) return;
+  if (!confirm('Delete this bot? It will go offline.')) return;
   await supabase.from('user_bots').delete().eq('id', id).eq('user_id', currentUser.id);
   loadBots();
+  if (currentBotId === id) {
+    document.getElementById('settingsBody').innerHTML = '<div style="font-size:12px;color:var(--ink-faint);">Select a bot from My Bots to edit settings.</div>';
+  }
 }
 
+// ─── SETTINGS ───
 function openSettings(botId) {
   currentBotId = botId;
-  switchTab('settings');
+  switchSection('settings');
   const bot = botsCache.find(b => b.id === botId);
   if (!bot) return;
   const s = bot.settings || {};
-  document.getElementById('sec-settings').innerHTML = `
-    <div style="margin-bottom:10px;font-size:14px">Editing: <b>${bot.bot_name}</b></div>
-    <label>Personality</label>
-    <textarea id="s-personality" rows="3">${s.personality || ''}</textarea>
-    <label>Provider</label>
+  document.getElementById('settingsBody').innerHTML = `
+    <div style="margin-bottom:10px;font-size:12px;color:var(--ink-muted);">Editing: <b>${bot.bot_name}</b></div>
+
+    <h2>Personality</h2>
+    <textarea id="s-personality" placeholder="How should your bot behave?">${s.personality || ''}</textarea>
+
+    <h2>AI Provider</h2>
     <select id="s-provider">
       <option value="auto" ${(s.provider||'auto')==='auto'?'selected':''}>Auto</option>
       <option value="gemini" ${s.provider==='gemini'?'selected':''}>Gemini</option>
@@ -295,97 +464,81 @@ function openSettings(botId) {
       <option value="openrouter" ${s.provider==='openrouter'?'selected':''}>OpenRouter</option>
       <option value="huggingface" ${s.provider==='huggingface'?'selected':''}>Hugging Face</option>
     </select>
-    <label>Gemini Model</label><input type="text" id="s-gemini" value="${s.gemini_model||'gemini-2.0-flash'}">
-    <label>Groq Model</label><input type="text" id="s-groq" value="${s.groq_model||'llama-3.3-70b-versatile'}">
-    <label>OpenRouter Model</label><input type="text" id="s-or" value="${s.model||'openrouter/free'}">
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+
+    <h2>Models</h2>
+    <div class="grid-2">
+      <div><label>Gemini</label><input type="text" id="s-gemini" value="${s.gemini_model||'gemini-2.0-flash'}"></div>
+      <div><label>Groq</label><input type="text" id="s-groq" value="${s.groq_model||'llama-3.3-70b-versatile'}"></div>
+    </div>
+    <label>OpenRouter Model</label>
+    <input type="text" id="s-or" value="${s.model||'openrouter/free'}">
+
+    <h2>Generation</h2>
+    <div class="grid-3">
       <div><label>Max Tokens</label><input type="number" id="s-tokens" value="${s.max_tokens||800}"></div>
       <div><label>Temp</label><input type="number" id="s-temp" step="0.1" value="${s.temperature||0.7}"></div>
       <div><label>Cooldown</label><input type="number" id="s-cd" value="${s.cooldown_seconds||10}"></div>
     </div>
-    <label><input type="checkbox" id="s-vision" ${s.vision_enabled?'checked':''}> Vision</label><br>
-    <label><input type="checkbox" id="s-tts" ${s.tts_enabled?'checked':''}> TTS</label><br>
-    <label><input type="checkbox" id="s-search" ${s.auto_search!==false?'checked':''}> Auto Search</label><br>
-    <label><input type="checkbox" id="s-memory" ${s.user_memory_enabled!==false?'checked':''}> User Memory</label><br>
-    <label><input type="checkbox" id="s-openchat" ${s.open_chat_enabled?'checked':''}> Open Chat</label><br>
-    <button onclick="saveSettings()">SAVE SETTINGS</button>
-    <div id="save-msg" class="status"></div>
+
+    <h2>Features</h2>
+    <div class="toggle"><input type="checkbox" id="s-vision" ${s.vision_enabled?'checked':''}><label>Vision</label></div>
+    <div class="toggle"><input type="checkbox" id="s-tts" ${s.tts_enabled?'checked':''}><label>TTS</label></div>
+    <div class="toggle"><input type="checkbox" id="s-search" ${s.auto_search!==false?'checked':''}><label>Auto Search</label></div>
+    <div class="toggle"><input type="checkbox" id="s-memory" ${s.user_memory_enabled!==false?'checked':''}><label>User Memory</label></div>
+    <div class="toggle"><input type="checkbox" id="s-openchat" ${s.open_chat_enabled?'checked':''}><label>Open Chat</label></div>
+
+    <div class="btn" onclick="saveSettings()" style="width:100%;margin-top:8px;">SAVE SETTINGS</div>
+    <div id="saveStatus" class="status"></div>
   `;
 }
 
 async function saveSettings() {
-  if (!supabase || !currentBotId) return;
-  try {
-    const payload = {
-      personality: document.getElementById('s-personality').value,
-      provider: document.getElementById('s-provider').value,
-      gemini_model: document.getElementById('s-gemini').value,
-      groq_model: document.getElementById('s-groq').value,
-      model: document.getElementById('s-or').value,
-      max_tokens: parseInt(document.getElementById('s-tokens').value),
-      temperature: parseFloat(document.getElementById('s-temp').value),
-      cooldown_seconds: parseInt(document.getElementById('s-cd').value),
-      vision_enabled: document.getElementById('s-vision').checked,
-      tts_enabled: document.getElementById('s-tts').checked,
-      auto_search: document.getElementById('s-search').checked,
-      user_memory_enabled: document.getElementById('s-memory').checked,
-      open_chat_enabled: document.getElementById('s-openchat').checked,
-    };
-    const { error } = await supabase.from('user_bots').update({ settings: payload }).eq('id', currentBotId).eq('user_id', currentUser.id);
-    if (error) return msg('save-msg', error.message, 'err');
-    msg('save-msg', 'Saved! Syncs to your device in ~30s.', 'ok');
-    loadBots();
-  } catch (e) {
-    msg('save-msg', e.message, 'err');
-  }
+  if (!currentBotId) return;
+  const payload = {
+    personality: document.getElementById('s-personality').value,
+    provider: document.getElementById('s-provider').value,
+    gemini_model: document.getElementById('s-gemini').value,
+    groq_model: document.getElementById('s-groq').value,
+    model: document.getElementById('s-or').value,
+    max_tokens: parseInt(document.getElementById('s-tokens').value),
+    temperature: parseFloat(document.getElementById('s-temp').value),
+    cooldown_seconds: parseInt(document.getElementById('s-cd').value),
+    vision_enabled: document.getElementById('s-vision').checked,
+    tts_enabled: document.getElementById('s-tts').checked,
+    auto_search: document.getElementById('s-search').checked,
+    user_memory_enabled: document.getElementById('s-memory').checked,
+    open_chat_enabled: document.getElementById('s-openchat').checked,
+  };
+  const { error } = await supabase.from('user_bots').update({ settings: payload }).eq('id', currentBotId).eq('user_id', currentUser.id);
+  if (error) return setStatus('saveStatus', error.message, 'err');
+  setStatus('saveStatus', 'Saved! Changes sync to your device within 30s.', 'ok');
+  loadBots();
 }
 
-// ─── ATTACH ALL LISTENERS IMMEDIATELY ───
-document.getElementById('t-login').addEventListener('click', () => switchTab('login'));
-document.getElementById('t-register').addEventListener('click', () => switchTab('register'));
-document.getElementById('btn-login').addEventListener('click', doLogin);
-document.getElementById('btn-register').addEventListener('click', doRegister);
-document.getElementById('btn-logout').addEventListener('click', doLogout);
-document.getElementById('t-bots').addEventListener('click', () => switchTab('bots'));
-document.getElementById('t-add').addEventListener('click', () => switchTab('add'));
-document.getElementById('t-settings').addEventListener('click', () => switchTab('settings'));
-document.getElementById('btn-add').addEventListener('click', addBot);
-log('All listeners attached');
-
-// ─── SUPABASE INIT ───
-function initSupabase() {
-  log('initSupabase called');
-  if (!window.supabase) {
-    document.getElementById('cdn-status').style.display = 'block';
-    document.getElementById('cdn-status').textContent = 'ERROR: Supabase library failed to load.';
-    document.getElementById('cdn-status').style.background = '#c06060';
-    log('FATAL: window.supabase missing');
-    return;
-  }
-  document.getElementById('cdn-status').style.display = 'none';
-  try {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    log('Supabase client OK');
-  } catch (e) {
-    log('FATAL createClient: ' + e.message);
-    return;
-  }
-  checkSession();
+// ─── UI HELPERS ───
+function switchSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  document.getElementById('nav-' + id).classList.add('active');
 }
 
-async function checkSession() {
-  log('Checking session...');
-  try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    log('Session: user=' + (user ? user.email : 'none') + ' err=' + (error ? error.message : 'none'));
-    if (user) enterApp(user);
-  } catch (e) {
-    log('Session error: ' + e.message);
-  }
+function setStatus(id, msg, type) {
+  const el = typeof id === 'string' ? document.getElementById(id) : id;
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'status ' + (type || '');
 }
+
+// ─── INIT ───
+supabase.auth.onAuthStateChange((event, session) => {
+  if (session?.user) enterApp(session.user);
+});
+
+(async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) enterApp(user);
+})();
 </script>
-
-<script src="https://unpkg.com/@supabase/supabase-js@2.47.10/dist/umd/supabase.min.js" onload="initSupabase()" onerror="initSupabase()"></script>
-
 </body>
 </html>
