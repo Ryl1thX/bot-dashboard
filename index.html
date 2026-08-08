@@ -557,16 +557,15 @@ async function addBot() {
   setStatus("addBotStatus", "Saving...", "info");
   try {
     let botName = "Bot " + clientId.slice(-4);
-    let avatar = null;
     try {
       const dres = await fetch("https://discord.com/api/v10/users/@me", { headers:{"Authorization":"Bot "+token} });
-      if(dres.ok) { const d = await dres.json(); botName = d.username || botName; avatar = d.avatar; }
+      if(dres.ok) { const d = await dres.json(); botName = d.username || botName; }
     } catch(e){}
 
     const existing = await sbQuery("user_bots", { match:{user_id: currentSession.user.id, bot_id: clientId} });
     if(existing && existing.length > 0) {
       await sbQuery("user_bots", { method:"PATCH", match:{id: existing[0].id}, body:{
-        discord_token: token, bot_name: botName, avatar: avatar, updated_at: new Date().toISOString(), is_active: true
+        discord_token: token, bot_name: botName, is_active: true
       }});
       showToast("Token updated for existing bot");
     } else {
@@ -575,7 +574,6 @@ async function addBot() {
         discord_token: token,
         bot_id: clientId,
         bot_name: botName,
-        avatar: avatar,
         is_active: true,
         settings: getDefaultSettings()
       }});
