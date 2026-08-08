@@ -3,490 +3,637 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Bot SaaS — Dashboard</title>
+<title>Bot SaaS — Drafting Desk</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 :root {
-  --bg:#e8e8e4; --paper:rgba(252,252,248,0.9); --paper-solid:#fafaf6;
-  --ink:#2a2a2a; --ink-muted:#6b6b6b; --ink-faint:#9a9a9a;
-  --accent-sage:#8a9a8a; --accent-steel:#7a8a9a; --accent-clay:#b8a898;
-  --shadow-soft:rgba(0,0,0,0.06); --shadow-medium:rgba(0,0,0,0.10);
-  --transition-smooth:cubic-bezier(0.25,0.46,0.45,0.94);
+  --bg:#e8e8e4; --bg-warm:#e2e2dc; --paper:rgba(252,252,248,0.78);
+  --paper-solid:#fafaf6; --ink:#2a2a2a; --ink-muted:#6b6b6b; --ink-faint:#9a9a9a;
+  --accent-sage:#8a9a8a; --accent-steel:#7a8a9a; --accent-clay:#b8a898; --accent-gold:#c4a882;
+  --grid:rgba(100,130,100,0.08); --shadow-soft:rgba(0,0,0,0.06); --shadow-medium:rgba(0,0,0,0.10); --shadow-deep:rgba(0,0,0,0.18);
+  --transition-smooth:cubic-bezier(0.25,0.46,0.45,0.94); --transition-bounce:cubic-bezier(0.34,1.56,0.64,1); --transition-dramatic:cubic-bezier(0.16,1,0.3,1);
 }
-body { width:100vw; min-height:100vh; background:var(--bg); font-family:'Inter',system-ui,sans-serif; overflow-x:hidden; }
-.container { max-width:720px; margin:0 auto; padding:24px 16px; }
-.card {
-  background:var(--paper-solid); border-radius:6px;
-  box-shadow:0 1px 2px var(--shadow-soft),0 4px 12px var(--shadow-medium);
-  border:1px solid rgba(0,0,0,0.05); margin-bottom:16px; overflow:hidden;
-}
-.card-header {
-  height:42px; background:#f5f5f0; display:flex; align-items:center;
-  padding:0 16px; border-bottom:1px solid rgba(0,0,0,0.06);
-  font-size:11px; font-weight:600; color:var(--ink-muted);
-  text-transform:uppercase; letter-spacing:1.2px;
-}
-.card-body { padding:16px; }
-h1 { font-family:'Playfair Display',serif; font-size:28px; color:var(--ink); margin-bottom:4px; }
-h2 { font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin:16px 0 8px; border-bottom:1.5px solid var(--accent-sage); padding-bottom:4px; display:inline-block; }
+body { width:100vw; height:100vh; overflow:hidden; background:var(--bg); font-family:'Inter',system-ui,-apple-system,sans-serif; position:relative; touch-action:none; }
+.desk-surface { position:fixed; inset:0; pointer-events:none; z-index:1; opacity:0.4;
+  background-image: linear-gradient(90deg,var(--grid) 1px,transparent 1px), linear-gradient(0deg,var(--grid) 1px,transparent 1px); background-size:40px 40px; }
+.desk-vignette { position:fixed; inset:0; pointer-events:none; background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.04) 100%); z-index:2; }
+.backdrop { position:fixed; inset:0; background:rgba(230,230,224,0.5); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity 0.6s ease; z-index:90; }
+.backdrop.active { opacity:1; pointer-events:all; }
+#authOverlay { position:fixed; inset:0; z-index:1000; background:var(--bg); display:flex; align-items:center; justify-content:center; }
+.auth-card { background:var(--paper-solid); padding:32px; border-radius:6px; box-shadow:0 16px 48px rgba(0,0,0,0.08); width:min(90vw,360px); border:1px solid rgba(0,0,0,0.06); }
+.auth-card h1 { font-family:Georgia,serif; font-size:24px; color:var(--ink); margin-bottom:4px; }
+.auth-card .sub { font-size:12px; color:var(--ink-muted); margin-bottom:20px; }
+.auth-tabs { display:flex; gap:8px; margin-bottom:16px; }
+.auth-tab { padding:6px 12px; border-radius:4px; font-size:11px; cursor:pointer; color:var(--ink-muted); background:rgba(0,0,0,0.02); transition:all .2s; }
+.auth-tab.active { background:var(--accent-sage); color:#fff; }
+.auth-panel { display:none; }
+.auth-panel.active { display:block; }
+label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint); display:block; margin-top:10px; }
 input, textarea, select {
-  width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08);
-  border-radius:4px; color:var(--ink); padding:8px 10px; font-size:12px;
-  font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:10px;
+  width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px;
+  color:var(--ink); padding:8px 10px; font-size:12px; font-family:inherit; outline:none; margin-top:4px; margin-bottom:6px;
 }
 input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
-textarea { min-height:60px; resize:vertical; }
-label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint); }
 .btn {
-  display:inline-block; padding:8px 16px; background:var(--accent-sage); color:#fff;
-  border-radius:4px; font-size:11px; font-weight:600; cursor:pointer;
-  letter-spacing:0.5px; border:none; text-align:center;
+  display:inline-block; padding:8px 16px; background:var(--accent-sage); color:#fff; border-radius:4px;
+  font-size:11px; font-weight:600; cursor:pointer; letter-spacing:0.5px; border:none; text-align:center; transition:opacity .2s;
 }
 .btn:hover { opacity:0.9; }
+.btn-block { width:100%; margin-top:8px; }
 .btn-danger { background:#c06060; }
 .btn-secondary { background:var(--accent-steel); }
 .status { font-size:11px; min-height:16px; margin-top:4px; }
-.status.ok { color:#4a9a4a; }
-.status.err { color:#c06060; }
-.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
-.bot-row {
-  display:flex; align-items:center; justify-content:space-between;
-  padding:10px 12px; background:rgba(0,0,0,0.02); border-radius:5px;
-  margin-bottom:8px; border:1px solid transparent; cursor:pointer;
-}
-.bot-row:hover { border-color:rgba(138,154,138,0.2); background:rgba(138,154,138,0.04); }
-.bot-row .name { font-size:12px; font-weight:500; color:var(--ink); }
-.bot-row .meta { font-size:10px; color:var(--ink-faint); }
-.toggle { display:flex; align-items:center; gap:6px; margin-bottom:8px; }
-.toggle input { width:auto; margin:0; }
+.status.ok { color:#4a9a4a; } .status.err { color:#c06060; } .status.info { color:var(--accent-steel); }
 .hidden { display:none !important; }
-#authScreen { display:flex; align-items:center; justify-content:center; min-height:100vh; }
-#appScreen { display:none; }
-.topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
-.topbar .user { font-size:11px; color:var(--ink-muted); }
-.section { display:none; }
-.section.active { display:block; }
-.nav { display:flex; gap:8px; margin-bottom:16px; }
-.nav-item {
-  padding:6px 12px; border-radius:4px; font-size:11px; cursor:pointer;
-  color:var(--ink-muted); background:rgba(0,0,0,0.02);
+.editor-desk {
+  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+  width:min(82vw,960px); height:min(72vh,640px); background:var(--paper-solid);
+  border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.04),0 4px 12px rgba(0,0,0,0.06),0 16px 48px rgba(0,0,0,0.08);
+  z-index:10; display:flex; flex-direction:column; overflow:hidden; transition:transform 0.7s var(--transition-dramatic),box-shadow 0.7s var(--transition-dramatic);
+  border:1px solid rgba(0,0,0,0.06);
 }
-.nav-item.active { background:var(--accent-sage); color:#fff; }
-@media (max-width:600px) {
-  .grid-2, .grid-3 { grid-template-columns:1fr; }
+.editor-desk.pushed { transform:translate(-50%,-50%) scale(0.94); filter:brightness(0.97); box-shadow:0 1px 2px rgba(0,0,0,0.03),0 2px 6px rgba(0,0,0,0.04); }
+.editor-header { height:44px; background:#f5f5f0; display:flex; align-items:center; padding:0 18px; gap:10px; border-bottom:1px solid rgba(0,0,0,0.06); }
+.editor-dot { width:10px; height:10px; border-radius:50%; }
+.dot-red { background:#d4a5a5; } .dot-yellow { background:#d4c4a5; } .dot-green { background:#a5c4a5; }
+.editor-title { margin-left:10px; color:var(--ink-muted); font-size:12px; font-weight:500; letter-spacing:0.3px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+.editor-body { flex:1; display:flex; overflow:hidden; }
+.editor-sidebar { width:48px; background:#f0f0ea; display:flex; flex-direction:column; align-items:center; padding-top:14px; gap:6px; border-right:1px solid rgba(0,0,0,0.05); }
+.sidebar-icon { width:32px; height:32px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-size:14px; cursor:pointer; transition:all 0.35s var(--transition-smooth); position:relative; }
+.sidebar-icon:hover, .sidebar-icon.active { background:rgba(138,154,138,0.15); color:var(--accent-sage); transform:scale(1.08); }
+.sidebar-icon.active::before { content:''; position:absolute; left:-8px; top:50%; transform:translateY(-50%); width:3px; height:16px; background:var(--accent-sage); border-radius:0 2px 2px 0; }
+.editor-code { flex:1; padding:22px 24px; font-size:13px; line-height:1.7; color:var(--ink); overflow-y:auto; background:#fdfdf9; }
+.paper { position:fixed; background:var(--paper); backdrop-filter:blur(12px) saturate(1.2); -webkit-backdrop-filter:blur(12px) saturate(1.2);
+  border-radius:5px; box-shadow:0 1px 3px var(--shadow-soft),0 4px 16px var(--shadow-medium),inset 0 1px 0 rgba(255,255,255,0.6);
+  cursor:pointer; z-index:20; transition:all 0.55s var(--transition-smooth); overflow:hidden; user-select:none; border:1px solid rgba(0,0,0,0.05);
+}
+.paper::after { content:''; position:absolute; inset:0; background-image:linear-gradient(90deg,rgba(100,130,100,0.04) 1px,transparent 1px),linear-gradient(0deg,rgba(100,130,100,0.04) 1px,transparent 1px); background-size:20px 20px; pointer-events:none; opacity:0.6; }
+.paper-header { height:38px; background:linear-gradient(180deg,rgba(245,245,240,0.9) 0%,rgba(235,235,228,0.8) 100%); border-bottom:1px solid rgba(0,0,0,0.06);
+  display:flex; align-items:center; padding:0 16px; font-size:11px; font-weight:600; color:var(--ink-muted); text-transform:uppercase; letter-spacing:1.5px; position:relative; z-index:2; }
+.paper-body { padding:18px; opacity:0; transition:opacity 0.4s ease 0.15s; position:relative; z-index:2; height:calc(100% - 38px); overflow-y:auto; overflow-x:hidden; }
+.paper.open { cursor:default; }
+.paper.open .paper-body { opacity:1; }
+.paper-close { position:absolute; top:10px; right:12px; width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:center; font-size:11px; cursor:pointer; opacity:0; transition:all 0.3s ease; color:var(--ink-muted); z-index:10; }
+.paper.open .paper-close { opacity:1; } .paper-close:hover { background:rgba(200,100,100,0.15); color:#a06060; }
+.paper-top { top:0; left:50%; transform:translateX(-50%) translateY(-72%) rotateX(6deg); width:300px; height:340px; transform-origin:top center; }
+.paper-top:hover { transform:translateX(-50%) translateY(-50%) rotateX(3deg); box-shadow:0 8px 32px var(--shadow-medium); }
+.paper-top.pulled { transform:translateX(-50%) translateY(-20%) rotateX(0deg) scale(0.97); box-shadow:0 12px 40px var(--shadow-deep); }
+.paper-top.open { transform:translateX(-50%) translateY(24px) rotateX(-6deg) scale(1); box-shadow:0 32px 64px var(--shadow-deep),0 8px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
+.paper-bottom { bottom:0; left:50%; transform:translateX(-50%) translateY(88%) rotateX(-6deg); width:340px; height:280px; transform-origin:bottom center; }
+.paper-bottom:hover { transform:translateX(-50%) translateY(65%) rotateX(-3deg); box-shadow:0 -8px 32px var(--shadow-medium); }
+.paper-bottom.pulled { transform:translateX(-50%) translateY(35%) rotateX(0deg) scale(0.97); box-shadow:0 -12px 40px var(--shadow-deep); }
+.paper-bottom.open { transform:translateX(-50%) translateY(-24px) rotateX(6deg) scale(1); box-shadow:0 -32px 64px var(--shadow-deep),0 -8px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
+.paper-left { left:0; top:50%; transform:translateY(-50%) translateX(-90%) rotateY(-6deg); width:280px; height:400px; transform-origin:left center; }
+.paper-left:hover { transform:translateY(-50%) translateX(-68%) rotateY(-3deg); box-shadow:8px 4px 32px var(--shadow-medium); }
+.paper-left.pulled { transform:translateY(-50%) translateX(-38%) rotateY(0deg) scale(0.97); box-shadow:12px 4px 40px var(--shadow-deep); }
+.paper-left.open { transform:translateY(-50%) translateX(24px) rotateY(6deg) scale(1); box-shadow:32px 10px 64px var(--shadow-deep),10px 4px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
+.paper-right { right:0; top:50%; transform:translateY(-50%) translateX(90%) rotateY(6deg); width:300px; height:420px; transform-origin:right center; }
+.paper-right:hover { transform:translateY(-50%) translateX(68%) rotateY(3deg); box-shadow:-8px 4px 32px var(--shadow-medium); }
+.paper-right.pulled { transform:translateY(-50%) translateX(38%) rotateY(0deg) scale(0.97); box-shadow:-12px 4px 40px var(--shadow-deep); }
+.paper-right.open { transform:translateY(-50%) translateX(-24px) rotateY(-6deg) scale(1); box-shadow:-32px 10px 64px var(--shadow-deep),-10px 4px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
+.paper-tl { top:0; left:0; transform:translate(-72%,-72%) rotate(-10deg); width:240px; height:240px; transform-origin:top left; }
+.paper-tl:hover { transform:translate(-52%,-52%) rotate(-5deg); box-shadow:8px 8px 32px var(--shadow-medium); }
+.paper-tl.pulled { transform:translate(-32%,-32%) rotate(-3deg) scale(0.97); box-shadow:12px 12px 40px var(--shadow-deep); }
+.paper-tl.open { transform:translate(24px,24px) rotate(2deg) scale(1); box-shadow:24px 24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
+.paper-tr { top:0; right:0; transform:translate(72%,-72%) rotate(10deg); width:220px; height:260px; transform-origin:top right; }
+.paper-tr:hover { transform:translate(52%,-52%) rotate(5deg); box-shadow:-8px 8px 32px var(--shadow-medium); }
+.paper-tr.pulled { transform:translate(32%,-32%) rotate(3deg) scale(0.97); box-shadow:-12px 12px 40px var(--shadow-deep); }
+.paper-tr.open { transform:translate(-24px,24px) rotate(-2deg) scale(1); box-shadow:-24px 24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
+.paper-bl { bottom:0; left:0; transform:translate(-72%,72%) rotate(10deg); width:260px; height:220px; transform-origin:bottom left; }
+.paper-bl:hover { transform:translate(-52%,52%) rotate(5deg); box-shadow:8px -8px 32px var(--shadow-medium); }
+.paper-bl.pulled { transform:translate(-32%,32%) rotate(3deg) scale(0.97); box-shadow:12px -12px 40px var(--shadow-deep); }
+.paper-bl.open { transform:translate(24px,-24px) rotate(-2deg) scale(1); box-shadow:24px -24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
+.paper-br { bottom:0; right:0; transform:translate(72%,72%) rotate(-10deg); width:240px; height:240px; transform-origin:bottom right; }
+.paper-br:hover { transform:translate(52%,52%) rotate(-5deg); box-shadow:-8px -8px 32px var(--shadow-medium); }
+.paper-br.pulled { transform:translate(32%,32%) rotate(-3deg) scale(0.97); box-shadow:-12px -12px 40px var(--shadow-deep); }
+.paper-br.open { transform:translate(-24px,-24px) rotate(2deg) scale(1); box-shadow:-24px -24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
+.paper-clip { position:absolute; width:36px; height:10px; border:2px solid #b8b0a0; border-radius:0 0 6px 6px; border-top:none; top:8px; z-index:5; opacity:0.5; }
+.paper-tl .paper-clip { right:28px; transform:rotate(-12deg); } .paper-tr .paper-clip { left:28px; transform:rotate(12deg); }
+.paper-bl .paper-clip { right:28px; transform:rotate(12deg); } .paper-br .paper-clip { left:28px; transform:rotate(-12deg); }
+.paper-top .paper-clip { right:36px; transform:rotate(-8deg); } .paper-bottom .paper-clip { left:36px; transform:rotate(8deg); }
+.paper-left .paper-clip { top:28px; right:8px; transform:rotate(90deg); } .paper-right .paper-clip { top:28px; left:8px; transform:rotate(-90deg); }
+.paper-content { padding:14px; font-size:12.5px; color:var(--ink-muted); line-height:1.55; }
+.paper-content h3 { font-size:11px; margin-bottom:14px; color:var(--ink); border-bottom:1.5px solid var(--accent-sage); padding-bottom:6px; display:inline-block; text-transform:uppercase; letter-spacing:1.2px; font-weight:600; }
+.paper-item { padding:8px 12px; margin:5px 0; background:rgba(0,0,0,0.02); border-radius:5px; cursor:pointer; transition:all 0.3s var(--transition-smooth); display:flex; align-items:center; gap:10px; border:1px solid transparent; }
+.paper-item:hover { background:rgba(138,154,138,0.08); border-color:rgba(138,154,138,0.2); transform:translateX(3px); }
+.paper-item .icon { width:22px; height:22px; border-radius:5px; background:rgba(138,154,138,0.12); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--accent-sage); }
+.desk-object { position:fixed; z-index:15; cursor:pointer; transition:all 0.45s var(--transition-bounce); filter:drop-shadow(0 3px 6px rgba(0,0,0,0.08)); }
+.desk-object:hover { transform:scale(1.06) rotate(-1deg); filter:drop-shadow(0 8px 20px rgba(0,0,0,0.14)); z-index:50; }
+.desk-object:active { transform:scale(0.96) rotate(1deg); }
+.compass { top:7%; right:8%; width:70px; height:90px; transform:rotate(25deg); }
+.compass-leg { position:absolute; width:4px; background:linear-gradient(180deg,#888 0%,#666 100%); border-radius:2px; }
+.compass-leg.left { height:70px; left:28px; top:12px; transform:rotate(-8deg); transform-origin:top center; }
+.compass-leg.right { height:70px; left:38px; top:12px; transform:rotate(8deg); transform-origin:top center; }
+.compass-joint { position:absolute; top:6px; left:50%; transform:translateX(-50%); width:14px; height:14px; background:linear-gradient(135deg,#aaa 0%,#888 100%); border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+.compass-joint::after { content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:6px; height:6px; background:#777; border-radius:50%; }
+.compass-handle { position:absolute; top:0; left:50%; transform:translateX(-50%); width:8px; height:10px; background:linear-gradient(180deg,#999 0%,#777 100%); border-radius:2px 2px 0 0; }
+.compass-point { position:absolute; bottom:0; width:0; height:0; border-left:2px solid transparent; border-right:2px solid transparent; }
+.compass-point.left { left:26px; border-top:8px solid #555; } .compass-point.right { left:40px; border-top:6px solid #555; }
+.pencil { top:14%; left:6%; width:150px; height:12px; transform:rotate(-28deg); }
+.pencil-body { width:130px; height:10px; background:linear-gradient(180deg,#f0e6d0 0%,#d8ccb0 100%); border-radius:2px; position:relative; box-shadow:inset 0 -1px 2px rgba(0,0,0,0.06); }
+.pencil-body::after { content:''; position:absolute; left:-14px; top:0; width:0; height:0; border-top:5px solid transparent; border-bottom:5px solid transparent; border-right:14px solid #e8dcc8; }
+.pencil-body::before { content:''; position:absolute; left:-18px; top:3px; width:0; height:0; border-top:2px solid transparent; border-bottom:2px solid transparent; border-right:5px solid #4a4a4a; }
+.pencil-eraser { position:absolute; right:-14px; top:0; width:14px; height:10px; background:linear-gradient(180deg,#d4b8a8 0%,#c4a898 100%); border-radius:0 3px 3px 0; }
+.pencil-ferrule { position:absolute; right:-3px; top:0; width:3px; height:10px; background:#a0a0a0; }
+.ruler { bottom:8%; left:4%; width:220px; height:36px; transform:rotate(10deg); }
+.ruler-body { width:220px; height:30px; background:linear-gradient(180deg,#e8e4dc 0%,#d8d4cc 100%); border-radius:3px; position:relative; box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),0 2px 6px rgba(0,0,0,0.08); border:1px solid rgba(0,0,0,0.06); }
+.ruler-markings { position:absolute; bottom:5px; left:10px; right:10px; height:16px; background:repeating-linear-gradient(90deg,#888 0px,#888 1px,transparent 1px,transparent 9px); }
+.ruler-markings::after { content:''; position:absolute; bottom:7px; left:0; right:0; height:9px; background:repeating-linear-gradient(90deg,#888 0px,#888 1px,transparent 1px,transparent 49px); }
+.eraser { bottom:18%; right:6%; width:52px; height:28px; transform:rotate(-12deg); }
+.eraser-body { width:52px; height:22px; background:linear-gradient(180deg,#f5f0e8 0%,#e8e0d4 50%,#f0ebe0 50%,#e5ddd0 100%); border-radius:4px; position:relative; box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),0 2px 6px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.05); }
+.eraser-body::after { content:''; position:absolute; top:50%; left:0; right:0; height:1px; background:rgba(0,0,0,0.06); }
+.coffee-cup { top:6%; left:10%; width:52px; height:44px; }
+.cup-body { width:40px; height:36px; background:linear-gradient(135deg,#f5f0e8 0%,#e8e0d4 100%); border-radius:3px 3px 18px 18px; position:relative; box-shadow:inset -3px 0 6px rgba(0,0,0,0.04),0 3px 8px rgba(0,0,0,0.08); border:1px solid rgba(0,0,0,0.05); }
+.cup-handle { position:absolute; right:-12px; top:6px; width:14px; height:18px; border:3px solid #d8d0c4; border-radius:0 10px 10px 0; border-left:none; }
+.coffee-surface { position:absolute; top:3px; left:3px; right:3px; height:6px; background:#5a4a3a; border-radius:50%; opacity:0.85; }
+.steam { position:absolute; top:-8px; left:50%; width:6px; height:16px; background:rgba(180,180,180,0.25); border-radius:50%; filter:blur(5px); animation:steam-rise 3.5s ease-in-out infinite; }
+.steam:nth-child(2) { left:30%; animation-delay:0.6s; height:14px; } .steam:nth-child(3) { left:70%; animation-delay:1.2s; height:15px; }
+@keyframes steam-rise { 0%,100%{transform:translateY(0) scaleX(1); opacity:0;} 50%{transform:translateY(-18px) scaleX(1.4); opacity:0.5;} }
+.toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(16px); background:rgba(42,42,42,0.9); color:#f0f0e8; padding:12px 28px; border-radius:6px; font-size:12px; font-weight:500; box-shadow:0 8px 32px rgba(0,0,0,0.15); z-index:200; opacity:0; transition:all 0.4s var(--transition-smooth); pointer-events:none; white-space:nowrap; letter-spacing:0.3px; }
+::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.12); border-radius:3px; } ::-webkit-scrollbar-thumb:hover { background:rgba(0,0,0,0.18); }
+@media (max-width:768px) {
+  .editor-desk { width:90vw; height:58vh; }
+  .paper-top,.paper-bottom { width:240px; height:280px; }
+  .paper-left,.paper-right { width:220px; height:320px; }
+  .paper-tl,.paper-tr,.paper-bl,.paper-br { width:160px; height:160px; }
+  .pencil { width:110px; } .pencil-body { width:90px; }
+  .ruler { width:160px; } .ruler-body { width:160px; }
+  .compass { width:55px; height:75px; } .compass-leg { height:55px; }
 }
 </style>
 </head>
 <body>
 
-<!-- AUTH SCREEN -->
-<div id="authScreen">
-  <div class="container" style="max-width:360px;">
-    <div class="card">
-      <div class="card-header">🔐 Authentication</div>
-      <div class="card-body">
-        <h1 style="font-size:22px;">Bot SaaS</h1>
-        <div style="font-size:12px;color:var(--ink-muted);margin-bottom:16px;">Manage your Discord bots from anywhere.</div>
+<!-- AUTH OVERLAY -->
+<div id="authOverlay">
+  <div class="auth-card">
+    <h1>Bot SaaS</h1>
+    <div class="sub">Manage your Discord bots from anywhere.</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuth('login')" id="tab-login">Login</div>
+      <div class="auth-tab" onclick="switchAuth('register')" id="tab-register">Register</div>
+    </div>
+    <div id="panel-login" class="auth-panel active">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="you@example.com">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="••••••••" onkeypress="if(event.key==='Enter')doLogin()">
+      <div class="btn btn-block" onclick="doLogin()">LOGIN</div>
+    </div>
+    <div id="panel-register" class="auth-panel hidden">
+      <label>Email</label>
+      <input type="email" id="regEmail" placeholder="you@example.com">
+      <label>Password</label>
+      <input type="password" id="regPassword" placeholder="••••••••" onkeypress="if(event.key==='Enter')doRegister()">
+      <div class="btn btn-block" onclick="doRegister()">CREATE ACCOUNT</div>
+    </div>
+    <div id="authStatus" class="status"></div>
+  </div>
+</div>
 
-        <div class="nav" style="margin-bottom:12px;">
-          <div class="nav-item active" onclick="switchAuth('login')" id="tab-login">Login</div>
-          <div class="nav-item" onclick="switchAuth('register')" id="tab-register">Register</div>
+<div class="desk-surface"></div>
+<div class="desk-vignette"></div>
+<div class="backdrop" id="backdrop"></div>
+
+<!-- CENTER EDITOR -->
+<div class="editor-desk" id="editorDesk">
+  <div class="editor-header">
+    <div class="editor-dot dot-red"></div>
+    <div class="editor-dot dot-yellow"></div>
+    <div class="editor-dot dot-green"></div>
+    <div class="editor-title" id="editorTitle">Bot SaaS — Drafting Desk</div>
+    <div style="margin-left:auto; font-size:10px; color:var(--ink-faint); cursor:pointer; padding:4px 8px; border-radius:4px;" onclick="doLogout()" title="Logout">Exit</div>
+  </div>
+  <div class="editor-body">
+    <div class="editor-sidebar">
+      <div class="sidebar-icon active" onclick="openPaperByClass('paper-left')" title="My Bots">📁</div>
+      <div class="sidebar-icon" onclick="openPaperByClass('paper-top')" title="Add Bot">➕</div>
+      <div class="sidebar-icon" onclick="openPaperByClass('paper-right')" title="Settings">🔧</div>
+      <div class="sidebar-icon" onclick="openPaperByClass('paper-tr')" title="AI Status">⚡</div>
+    </div>
+    <div class="editor-code" id="codeArea">
+      <div id="center-landing" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center;">
+        <div style="font-family:Georgia,serif; font-size:32px; color:var(--ink); margin-bottom:10px; letter-spacing:-0.5px;">Bot SaaS</div>
+        <div style="font-size:13px; color:var(--ink-muted); line-height:1.7; max-width:340px;">
+          Connect your Discord bot to our shared AI backend.<br>
+          Click the <b>Project</b> paper above or the <b>Explorer</b> paper to the left to begin.
         </div>
-
-        <div id="auth-login">
-          <label>Email</label>
-          <input type="email" id="loginEmail" placeholder="you@example.com">
-          <label>Password</label>
-          <input type="password" id="loginPassword" placeholder="••••••••">
-          <div class="btn" onclick="doLogin()" style="width:100%;margin-top:4px;">LOGIN</div>
+        <div style="margin-top:24px; font-size:11px; color:var(--ink-faint);">
+          Papers on the edges are your menus. Desk objects are shortcuts.
         </div>
-
-        <div id="auth-register" class="hidden">
-          <label>Email</label>
-          <input type="email" id="regEmail" placeholder="you@example.com">
-          <label>Password</label>
-          <input type="password" id="regPassword" placeholder="••••••••">
-          <div class="btn" onclick="doRegister()" style="width:100%;margin-top:4px;">CREATE ACCOUNT</div>
+      </div>
+      <div id="center-dashboard" style="display:none; padding:18px 8px;">
+        <div style="font-family:Georgia,serif; font-size:22px; color:var(--ink); margin-bottom:16px;" id="dashTitle">Dashboard</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="background:rgba(0,0,0,0.02); border-radius:6px; padding:14px; border:1px solid rgba(0,0,0,0.04);">
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin-bottom:4px;">Bot Name</div>
+            <div style="font-size:17px; font-weight:600; color:var(--ink);" id="center-botname">--</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.02); border-radius:6px; padding:14px; border:1px solid rgba(0,0,0,0.04);">
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin-bottom:4px;">Status</div>
+            <div style="font-size:17px; font-weight:600; color:var(--ink);" id="center-status">--</div>
+          </div>
         </div>
-
-        <div id="authStatus" class="status"></div>
+        <div style="margin-top:14px; font-size:12px; color:var(--ink-muted); line-height:1.7;" id="center-hint">
+          Select a bot from the Explorer paper to manage settings.
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- APP SCREEN -->
-<div id="appScreen">
-  <div class="container">
-    <div class="topbar">
-      <div>
-        <h1 style="font-size:22px;">Dashboard</h1>
-        <div style="font-size:11px;color:var(--ink-faint);">Manage your bots & AI settings</div>
-      </div>
-      <div style="text-align:right;">
-        <div class="user" id="userEmail">user@example.com</div>
-        <div style="font-size:10px;color:var(--accent-sage);cursor:pointer;" onclick="doLogout()">Logout</div>
-      </div>
-    </div>
-
-    <div class="nav">
-      <div class="nav-item active" onclick="switchSection('bots')" id="nav-bots">My Bots</div>
-      <div class="nav-item" onclick="switchSection('add')" id="nav-add">+ Add Bot</div>
-      <div class="nav-item" onclick="switchSection('settings')" id="nav-settings">Settings</div>
-    </div>
-
-    <!-- BOTS LIST -->
-    <div class="section active" id="sec-bots">
-      <div class="card">
-        <div class="card-header">🤖 Connected Bots</div>
-        <div class="card-body" id="botsList">
-          <div style="font-size:12px;color:var(--ink-faint);">Loading...</div>
-        </div>
+<!-- PAPERS -->
+<div class="paper paper-top" data-paper="top">
+  <div class="paper-clip"></div>
+  <div class="paper-close">✕</div>
+  <div class="paper-header">📂 Project</div>
+  <div class="paper-body">
+    <div class="paper-content" id="top-landing">
+      <h3>Connect Bot</h3>
+      <label>Discord Bot Token</label>
+      <input type="password" id="tokenInput" placeholder="Paste your Bot Token here">
+      <div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px;">Your token is stored securely in Supabase (RLS-protected).</div>
+      <div class="paper-item" onclick="addBot()" style="justify-content:center; background:var(--accent-sage); color:#fff; border:none;"><span style="font-weight:600; letter-spacing:0.5px; font-size:11px;">CONNECT</span></div>
+      <div id="addBotStatus" class="status" style="font-size:10px; text-align:center; margin-top:4px;"></div>
+      <div style="margin-top:12px; font-size:10px; color:var(--ink-faint); line-height:1.6;">
+        1. Create a bot at Discord Developer Portal<br>
+        2. Copy the Bot Token and paste it above<br>
+        3. Customise personality, AI model, voice, and more<br>
+        4. Invite the bot to your servers and ping it to chat
       </div>
     </div>
-
-    <!-- ADD BOT -->
-    <div class="section" id="sec-add">
-      <div class="card">
-        <div class="card-header">➕ Add Discord Bot</div>
-        <div class="card-body">
-          <label>Bot Name</label>
-          <input type="text" id="addBotName" placeholder="My Awesome Bot">
-          <label>Discord Bot Token</label>
-          <input type="password" id="addBotToken" placeholder="Paste your Bot Token here">
-          <div style="font-size:10px;color:var(--ink-faint);margin-bottom:10px;">Your token is stored securely in your Supabase database (RLS-protected). The backend will validate it.</div>
-          <div class="btn" onclick="addBot()" style="width:100%;">CONNECT BOT</div>
-          <div id="addBotStatus" class="status"></div>
-        </div>
+    <div class="paper-content" id="top-dashboard" style="display:none;">
+      <h3>Bot Status</h3>
+      <div class="paper-item"><span class="icon" style="background:rgba(138,154,138,0.15);">●</span><span id="botNameDisplay">--</span></div>
+      <div class="paper-item"><span class="icon">🆔</span><span id="botIdDisplay">--</span></div>
+      <div class="paper-item"><span class="icon">⚡</span><span id="botActiveDisplay">--</span></div>
+      <div style="margin-top:12px; display:flex; gap:6px;">
+        <div class="paper-item" onclick="showInvite()" style="flex:1; justify-content:center; background:rgba(138,154,138,0.12); border-color:rgba(138,154,138,0.25);">Invite</div>
+        <div class="paper-item" onclick="deleteCurrentBot()" style="flex:1; justify-content:center; background:rgba(200,100,100,0.08); color:#a06060; border-color:rgba(200,100,100,0.15);">Delete</div>
       </div>
-    </div>
-
-    <!-- SETTINGS -->
-    <div class="section" id="sec-settings">
-      <div class="card">
-        <div class="card-header">⚙️ Bot Settings</div>
-        <div class="card-body" id="settingsBody">
-          <div style="font-size:12px;color:var(--ink-faint);">Select a bot from My Bots to edit settings.</div>
-        </div>
+      <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.06);">
+        <div class="paper-item" onclick="showAddForm()" style="justify-content:center; background:rgba(0,0,0,0.02); border-color:rgba(0,0,0,0.08);"><span style="font-size:10px; color:var(--ink-muted);">+ Connect Another Bot</span></div>
       </div>
     </div>
   </div>
+</div>
+
+<div class="paper paper-bottom" data-paper="bottom">
+  <div class="paper-clip"></div>
+  <div class="paper-close">✕</div>
+  <div class="paper-header">💻 Terminal</div>
+  <div class="paper-body">
+    <div class="paper-content">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; line-height:1.9; color:var(--ink-muted);">
+        <div style="color:#6a9a6a;">➜  bot-saas git:(main) node server.js</div>
+        <div style="margin-top:8px; color:#7a8a9a;" id="term-line-1">Waiting for connection...</div>
+        <div style="color:#a09070;" id="term-line-2">--</div>
+        <div style="color:#8a7a8a;" id="term-line-3">--</div>
+        <div style="margin-top:8px; color:#6a9a6a;">➜  _</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-left" data-paper="left">
+  <div class="paper-clip"></div>
+  <div class="paper-close">✕</div>
+  <div class="paper-header">🗂️ Explorer</div>
+  <div class="paper-body">
+    <div class="paper-content">
+      <h3>My Bots</h3>
+      <div id="botsList">
+        <div style="font-size:11px; color:var(--ink-faint); padding:8px 0;">No bots connected yet.<br>Open the Project paper to connect one.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-right" data-paper="right">
+  <div class="paper-clip"></div>
+  <div class="paper-close">✕</div>
+  <div class="paper-header">⚙️ Settings</div>
+  <div class="paper-body">
+    <div class="paper-content" id="settingsBody">
+      <div style="font-size:12px; color:var(--ink-faint); padding:8px 0;">Select a bot from Explorer to edit settings.</div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-tl" data-paper="tl">
+  <div class="paper-clip"></div>
+  <div class="paper-close">✕</div>
+  <div class="paper-header">📝 Notes</div>
+  <div class="paper-body">
+    <div class="paper-content">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; line-height:1.9; color:var(--ink-muted);">
+        <div style="color:var(--ink); font-weight:600; margin-bottom:6px; font-size:11px; text-transform:uppercase; letter-spacing:1px; border-bottom:1.5px solid var(--accent-sage); padding-bottom:4px; display:inline-block;">Commands</div><br>
+        <span style="color:#7a8a9a;">/ask</span> &lt;prompt&gt;<br>
+        <span style="color:#7a8a9a;">/reset</span> — clear memory<br>
+        <span style="color:#7a8a9a;">/purgeall</span> — owner wipe<br>
+        <span style="color:#7a8a9a;">!tts</span> on | off<br>
+        <span style="color:#7a8a9a;">!voice</span> &lt;id&gt;<br>
+        <span style="color:#7a8a9a;">@Bot</span> — chat<br>
+        <span style="color:#7a8a9a;">!reset</span> — text reset
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-tr" data-paper="tr">
+  <div class="paper-clip"></div>
+  <div class="paper-close">✕</div>
+  <div class="paper-header">🔀 AI Status</div>
+  <div class="paper-body">
+    <div class="paper-content">
+      <h3>Providers</h3>
+      <div class="paper-item"><span class="icon" style="background:#e8f5e9; color:#4caf50; font-size:10px;">●</span>Gemini</div>
+      <div class="paper-item"><span class="icon" style="background:#f3e5f5; color:#9c27b0; font-size:10px;">●</span>Groq</div>
+      <div class="paper-item"><span class="icon" style="background:#e3f2fd; color:#2196f3; font-size:10px;">●</span>OpenRouter</div>
+      <div class="paper-item"><span class="icon" style="background:#fff3e0; color:#ff9800; font-size:10px;">●</span>Fish Audio</div>
+      <div class="paper-item"><span class="icon" style="background:#fffde7; color:#f9a825; font-size:10px;">●</span>Hugging Face</div>
+      <div style="margin-top:10px; font-size:10px; color:var(--ink-faint); line-height:1.5;">
+        Provider status is managed by the SaaS backend owner. Configure which one your bot uses in Settings.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-bl" data-paper="bl">
+  <div class="paper-clip"></div>
+  <div class="paper-close">✕</div>
+  <div class="paper-header">🐛 Contexts</div>
+  <div class="paper-body">
+    <div class="paper-content">
+      <h3>Memory</h3>
+      <div style="font-size:11px; color:var(--ink-faint); line-height:1.6;">
+        Context memory is stored per-channel by the backend. Use <b>/reset</b> in Discord to clear a channel, or <b>/purgeall</b> (owner only) to wipe everything.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-br" data-paper="br">
+  <div class="paper-clip"></div>
+  <div class="paper-close">✕</div>
+  <div class="paper-header">🧩 Extras</div>
+  <div class="paper-body">
+    <div class="paper-content">
+      <h3>Quick Links</h3>
+      <div class="paper-item" onclick="window.open('https://discord.com/developers/applications','_blank')"><span class="icon">🎮</span>Discord Dev Portal</div>
+      <div class="paper-item" onclick="window.open('https://fish.audio','_blank')"><span class="icon">🔊</span>Fish Audio Voices</div>
+      <div class="paper-item" onclick="window.open('https://openrouter.ai','_blank')"><span class="icon">🧠</span>OpenRouter Models</div>
+      <div class="paper-item" onclick="window.open('https://groq.com','_blank')"><span class="icon">⚡</span>Groq Console</div>
+    </div>
+  </div>
+</div>
+
+<!-- DESK OBJECTS -->
+<div class="desk-object compass" title="Compass" onclick="showToast('📐 Compass points to creativity')">
+  <div class="compass-handle"></div><div class="compass-joint"></div>
+  <div class="compass-leg left"></div><div class="compass-leg right"></div>
+  <div class="compass-point left"></div><div class="compass-point right"></div>
+</div>
+<div class="desk-object coffee-cup" title="Coffee" onclick="showToast('☕ Refreshed'); loadBots();">
+  <div class="steam"></div><div class="steam"></div><div class="steam"></div>
+  <div class="cup-body"><div class="coffee-surface"></div><div class="cup-handle"></div></div>
+</div>
+<div class="desk-object pencil" title="Pencil" onclick="openPaperByClass('paper-right'); showToast('✏️ Edit mode')">
+  <div class="pencil-body"><div class="pencil-ferrule"></div><div class="pencil-eraser"></div></div>
+</div>
+<div class="desk-object ruler" title="Ruler" onclick="showToast('📏 Guidelines toggled')">
+  <div class="ruler-body"><div class="ruler-markings"></div></div>
+</div>
+<div class="desk-object eraser" title="Eraser" onclick="showToast('🧹 Memory is managed via Discord commands')">
+  <div class="eraser-body"></div>
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════════════
-// INLINE SUPABASE LITE — No CDN. Talks directly to Supabase REST API.
-// ═══════════════════════════════════════════════════════════════
-(function() {
-  class SupabaseLite {
-    constructor(url, key) {
-      this.url = url.replace(/\/$/, '');
-      this.key = key;
-      this._listeners = [];
-      this._token = localStorage.getItem('sb_token') || null;
-      this._user = null;
-    }
-    _headers() {
-      return {
-        'apikey': this.key,
-        'Authorization': 'Bearer ' + (this._token || this.key),
-        'Content-Type': 'application/json'
-      };
-    }
-    async _request(method, path, body) {
-      const res = await fetch(this.url + path, {
-        method, headers: this._headers(),
-        body: body ? JSON.stringify(body) : undefined
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg = data.msg || data.message || data.error_description || JSON.stringify(data);
-        throw new Error(msg);
-      }
-      return {data, error: null};
-    }
-    from(table) { return new QueryBuilder(this, table); }
-    _notify(event, session) { this._listeners.forEach(cb => cb(event, session)); }
-  }
+// ═══════════════════════════════════════════════════════════════════════════════
+//  SUPABASE CONFIG  —  REST API (no CDN, works on blocked networks)
+// ═══════════════════════════════════════════════════════════════════════════════
+const SUPABASE_URL  = 'https://tdawmkgedbxbjkctylld.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo';
 
-  class AuthLite {
-    constructor(client) { this.client = client; }
-    async signInWithPassword({email, password}) {
-      try {
-        const {data} = await this.client._request('POST', '/auth/v1/token?grant_type=password', {email, password});
-        this.client._token = data.access_token;
-        localStorage.setItem('sb_token', data.access_token);
-        localStorage.setItem('sb_refresh', data.refresh_token);
-        this.client._user = data.user;
-        this.client._notify('SIGNED_IN', {user: data.user});
-        return {data: {user: data.user, session: data}, error: null};
-      } catch(e) {
-        return {data: null, error: {message: e.message}};
-      }
-    }
-    async signUp({email, password}) {
-      try {
-        const {data} = await this.client._request('POST', '/auth/v1/signup', {email, password});
-        return {data: {user: data.user}, error: null};
-      } catch(e) {
-        return {data: null, error: {message: e.message}};
-      }
-    }
-    async signOut() {
-      if (this.client._token) {
-        try { await this.client._request('POST', '/auth/v1/logout', {}); } catch(e){}
-      }
-      this.client._token = null; this.client._user = null;
-      localStorage.removeItem('sb_token'); localStorage.removeItem('sb_refresh');
-      this.client._notify('SIGNED_OUT', {});
-      return {error: null};
-    }
-    onAuthStateChange(cb) {
-      this.client._listeners.push(cb);
-      return {data: {subscription: {unsubscribe: () => {
-        const i = this.client._listeners.indexOf(cb);
-        if (i > -1) this.client._listeners.splice(i, 1);
-      }}}};
-    }
-    async getUser() {
-      if (!this.client._token) return {data: {user: null}, error: null};
-      try {
-        const {data} = await this.client._request('GET', '/auth/v1/user', null);
-        this.client._user = data;
-        return {data: {user: data}, error: null};
-      } catch(e) {
-        return {data: {user: null}, error: {message: e.message}};
-      }
-    }
-  }
+// Minimal REST client — replaces @supabase/supabase-js
+class SB {
+  constructor(url, key) { this.url = url.replace(/\/$/,''); this.key = key; this.token = localStorage.getItem('sb_token')||null; this.user = null; }
+  _h(auth){ const h={'apikey':this.key,'Content-Type':'application/json'}; if(auth&&this.token) h['Authorization']='Bearer '+this.token; return h; }
+  async signUp(email,password){ const r=await fetch(`${this.url}/auth/v1/signup`,{method:'POST',headers:this._h(false),body:JSON.stringify({email,password})}); return r.json(); }
+  async signIn(email,password){ const r=await fetch(`${this.url}/auth/v1/token?grant_type=password`,{method:'POST',headers:this._h(false),body:JSON.stringify({email,password})}); const d=await r.json(); if(d.access_token){this.token=d.access_token;this.user=d.user;localStorage.setItem('sb_token',this.token);} return d; }
+  async getUser(){ if(!this.token)return{user:null}; const r=await fetch(`${this.url}/auth/v1/user`,{headers:this._h(true)}); const d=await r.json(); if(d.id){this.user=d;} return{user:d.id?d:null}; }
+  async signOut(){ if(this.token) await fetch(`${this.url}/auth/v1/logout`,{method:'POST',headers:this._h(true)}); this.token=null;this.user=null;localStorage.removeItem('sb_token'); }
+  async select(table,cols='*',eqCol,eqVal,order='created_at.desc'){ const u=`${this.url}/rest/v1/${table}?select=${cols}&${eqCol}=eq.${encodeURIComponent(eqVal)}&order=${order}`; const r=await fetch(u,{headers:this._h(true)}); return r.json(); }
+  async insert(table,row){ const r=await fetch(`${this.url}/rest/v1/${table}`,{method:'POST',headers:{...this._h(true),'Prefer':'return=representation'},body:JSON.stringify(row)}); return r.json(); }
+  async update(table,row,eqCol,eqVal){ const r=await fetch(`${this.url}/rest/v1/${table}?${eqCol}=eq.${encodeURIComponent(eqVal)}`,{method:'PATCH',headers:{...this._h(true),'Prefer':'return=representation'},body:JSON.stringify(row)}); return r.json(); }
+  async delete(table,eqCol,eqVal){ const r=await fetch(`${this.url}/rest/v1/${table}?${eqCol}=eq.${encodeURIComponent(eqVal)}`,{method:'DELETE',headers:this._h(true)}); return r.ok?{}:r.json(); }
+}
+const sb = new SB(SUPABASE_URL, SUPABASE_ANON);
 
-  class QueryBuilder {
-    constructor(client, table) {
-      this.client = client; this.table = table;
-      this._select = '*'; this._eq = []; this._order = null;
-      this._method = 'GET'; this._body = null;
-    }
-    select(cols) { this._select = cols; return this; }
-    eq(col, val) { this._eq.push({col, val}); return this; }
-    order(col, opts) {
-      this._order = {col, ascending: opts ? opts.ascending !== false : true};
-      return this;
-    }
-    insert(data) { this._method = 'POST'; this._body = data; return this; }
-    update(data) { this._method = 'PATCH'; this._body = data; return this; }
-    delete() { this._method = 'DELETE'; this._body = null; return this; }
-
-    _buildURL() {
-      let url = '/rest/v1/' + this.table;
-      const p = [];
-      if (this._method === 'GET') p.push('select=' + encodeURIComponent(this._select));
-      this._eq.forEach(q => p.push(q.col + '=eq.' + encodeURIComponent(q.val)));
-      if (this._order) p.push('order=' + this._order.col + '.' + (this._order.ascending ? 'asc' : 'desc'));
-      if (p.length) url += '?' + p.join('&');
-      return url;
-    }
-
-    async _run() {
-      const headers = {...this.client._headers()};
-      if (this._method === 'POST') headers['Prefer'] = 'return=representation';
-      const res = await fetch(this.client.url + this._buildURL(), {
-        method: this._method, headers,
-        body: this._body ? JSON.stringify(this._body) : undefined
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        return {data: null, error: {message: err.message || err.msg || ('HTTP ' + res.status)}};
-      }
-      const data = this._method === 'DELETE' ? null : await res.json();
-      return {data, error: null};
-    }
-    then(onF, onR) { return this._run().then(onF, onR); }
-    catch(onR) { return this._run().catch(onR); }
-  }
-
-  const _origCreate = SupabaseLite;
-  window.supabase = {
-    createClient(url, key) {
-      const c = new _origCreate(url, key);
-      c.auth = new AuthLite(c);
-      return c;
-    }
-  };
-})();
-// ═══════════════════════════════════════════════════════════════
-
-// ─── CONFIG ───
-const SUPABASE_URL = 'https://tdawmkgedbxbjkctylld.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ═══════════════════════════════════════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════════════════════════════════════
 let currentUser = null;
 let currentBotId = null;
 let botsCache = [];
 
-// ─── AUTH ───
+// ═══════════════════════════════════════════════════════════════════════════════
+//  AUTH
+// ═══════════════════════════════════════════════════════════════════════════════
+function switchAuth(mode) {
+  document.getElementById('tab-login').classList.toggle('active', mode==='login');
+  document.getElementById('tab-register').classList.toggle('active', mode==='register');
+  document.getElementById('panel-login').classList.toggle('active', mode==='login');
+  document.getElementById('panel-login').classList.toggle('hidden', mode!=='login');
+  document.getElementById('panel-register').classList.toggle('active', mode==='register');
+  document.getElementById('panel-register').classList.toggle('hidden', mode!=='register');
+  setStatus('authStatus','','');
+}
 async function doLogin() {
   const email = document.getElementById('loginEmail').value.trim();
   const pw = document.getElementById('loginPassword').value;
-  setStatus('authStatus', 'Logging in...', 'info');
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password: pw });
-  if (error) return setStatus('authStatus', error.message, 'err');
-  enterApp(data.user);
+  setStatus('authStatus','Logging in...','info');
+  const d = await sb.signIn(email,pw);
+  if(d.error) return setStatus('authStatus', d.error_description||d.error||d.message, 'err');
+  if(!d.access_token) return setStatus('authStatus','Login failed','err');
+  enterApp(d.user);
 }
-
 async function doRegister() {
   const email = document.getElementById('regEmail').value.trim();
   const pw = document.getElementById('regPassword').value;
-  if (pw.length < 6) return setStatus('authStatus', 'Password must be 6+ chars', 'err');
-  setStatus('authStatus', 'Creating account...', 'info');
-  const { data, error } = await supabase.auth.signUp({ email, password: pw });
-  if (error) return setStatus('authStatus', error.message, 'err');
-  setStatus('authStatus', 'Account created! Check your email to confirm.', 'ok');
-  setTimeout(() => switchAuth('login'), 1500);
+  if(pw.length<6) return setStatus('authStatus','Password must be 6+ chars','err');
+  setStatus('authStatus','Creating account...','info');
+  const d = await sb.signUp(email,pw);
+  if(d.error) return setStatus('authStatus', d.error_description||d.error||d.message, 'err');
+  setStatus('authStatus','Account created! Check email to confirm.','ok');
+  setTimeout(()=>switchAuth('login'),1500);
 }
-
 async function doLogout() {
-  await supabase.auth.signOut();
+  await sb.signOut();
   location.reload();
 }
-
-function switchAuth(mode) {
-  document.getElementById('tab-login').classList.toggle('active', mode === 'login');
-  document.getElementById('tab-register').classList.toggle('active', mode === 'register');
-  document.getElementById('auth-login').classList.toggle('hidden', mode !== 'login');
-  document.getElementById('auth-register').classList.toggle('hidden', mode !== 'register');
-  setStatus('authStatus', '', '');
-}
-
 function enterApp(user) {
   currentUser = user;
-  document.getElementById('userEmail').textContent = user.email;
-  document.getElementById('authScreen').style.display = 'none';
-  document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('editorTitle').textContent = (user.email||'User') + ' — Drafting Desk';
   loadBots();
 }
 
-// ─── BOTS ───
+// ═══════════════════════════════════════════════════════════════════════════════
+//  BOTS
+// ═══════════════════════════════════════════════════════════════════════════════
 async function loadBots() {
-  const { data, error } = await supabase.from('user_bots').select('*').eq('user_id', currentUser.id).order('created_at', {ascending:false});
-  if (error) return console.error(error);
-  botsCache = data || [];
+  const data = await sb.select('user_bots','*','user_id',currentUser.id);
+  botsCache = Array.isArray(data)?data:[];
   const list = document.getElementById('botsList');
-  if (!botsCache.length) {
-    list.innerHTML = '<div style="font-size:12px;color:var(--ink-faint);">No bots yet. Click "+ Add Bot" to connect one.</div>';
-    return;
+  if(!botsCache.length){
+    list.innerHTML = '<div style="font-size:11px; color:var(--ink-faint); padding:8px 0;">No bots yet.<br>Open the Project paper to connect one.</div>';
+  } else {
+    list.innerHTML = botsCache.map(b=>`
+      <div class="paper-item" onclick="selectBot('${b.id}')">
+        <span class="icon">🤖</span>
+        <div style="flex:1;">
+          <div style="font-size:12px; font-weight:500; color:var(--ink);">${b.bot_name||'Unnamed Bot'}</div>
+          <div style="font-size:10px; color:var(--ink-faint);">${b.is_active?'🟢 Active':'🔴 Inactive'} · ${(b.bot_id||'').slice(0,8)}...</div>
+        </div>
+        <div style="display:flex; gap:4px;">
+          <span style="font-size:10px; color:var(--accent-sage); cursor:pointer; padding:2px 6px; background:rgba(138,154,138,0.08); border-radius:3px;" onclick="event.stopPropagation();toggleBot('${b.id}',${!b.is_active})">${b.is_active?'Pause':'Resume'}</span>
+          <span style="font-size:10px; color:#a06060; cursor:pointer; padding:2px 6px; background:rgba(200,100,100,0.06); border-radius:3px;" onclick="event.stopPropagation();deleteBot('${b.id}')">Del</span>
+        </div>
+      </div>
+    `).join('');
   }
-  list.innerHTML = botsCache.map(b => `
-    <div class="bot-row" onclick="openSettings('${b.id}')">
-      <div>
-        <div class="name">${b.bot_name || 'Unnamed Bot'}</div>
-        <div class="meta">${b.is_active ? '🟢 Active' : '🔴 Inactive'} · ID: ${(b.bot_id || '').slice(0,8)}...</div>
-      </div>
-      <div style="display:flex;gap:6px;">
-        <div class="btn btn-secondary" style="padding:4px 10px;font-size:10px;" onclick="event.stopPropagation();toggleBot('${b.id}', ${!b.is_active})">${b.is_active ? 'Pause' : 'Resume'}</div>
-        <div class="btn btn-danger" style="padding:4px 10px;font-size:10px;" onclick="event.stopPropagation();deleteBot('${b.id}')">Delete</div>
-      </div>
-    </div>
-  `).join('');
+  updateTerminal();
 }
-
 async function addBot() {
-  const name = document.getElementById('addBotName').value.trim();
-  const token = document.getElementById('addBotToken').value.trim();
-  if (!token) return setStatus('addBotStatus', 'Token required', 'err');
-  if (token.length < 50) return setStatus('addBotStatus', 'That does not look like a valid Discord bot token', 'err');
-
-  setStatus('addBotStatus', 'Saving to Supabase...', 'info');
+  const token = document.getElementById('tokenInput').value.trim();
+  if(!token) return setStatus('addBotStatus','Token required','err');
+  setStatus('addBotStatus','Validating with Discord...','info');
   try {
-    const { error } = await supabase.from('user_bots').insert({
-      user_id: currentUser.id,
-      bot_name: name || 'Bot',
-      discord_token: token,
-      is_active: true,
-      settings: {}
-    });
-    if (error) throw error;
-
-    setStatus('addBotStatus', 'Bot connected! The backend will validate the token.', 'ok');
-    document.getElementById('addBotToken').value = '';
-    document.getElementById('addBotName').value = '';
-    setTimeout(() => { switchSection('bots'); loadBots(); }, 800);
-  } catch (e) {
-    setStatus('addBotStatus', e.message, 'err');
+    const resp = await fetch('https://discord.com/api/v10/oauth2/applications/@me',{headers:{'Authorization':'Bot '+token}});
+    if(!resp.ok) throw new Error('Invalid token');
+    const app = await resp.json();
+    const botId = app.id;
+    const botName = app.bot?.username || 'Bot';
+    setStatus('addBotStatus','Saving to Supabase...','info');
+    const row = {user_id:currentUser.id, bot_id:botId, bot_name:botName, discord_token:token, is_active:true, settings:{}};
+    const res = await sb.insert('user_bots', row);
+    if(Array.isArray(res)&&res.length){
+      setStatus('addBotStatus',`Connected ${botName}!`,'ok');
+      document.getElementById('tokenInput').value='';
+      loadBots();
+      setTimeout(()=>selectBot(res[0].id),400);
+    } else if(res.error){
+      setStatus('addBotStatus',res.error.message||res.error,'err');
+    } else {
+      setStatus('addBotStatus','Saved!','ok'); loadBots();
+    }
+  } catch(e) {
+    setStatus('addBotStatus',e.message,'err');
   }
 }
-
-async function toggleBot(id, active) {
-  await supabase.from('user_bots').update({ is_active: active }).eq('id', id).eq('user_id', currentUser.id);
+async function toggleBot(id,active){
+  await sb.update('user_bots',{is_active:active},'id',id);
+  loadBots();
+  if(currentBotId===id) selectBot(id);
+}
+async function deleteBot(id){
+  if(!confirm('Delete this bot? It will go offline.')) return;
+  await sb.delete('user_bots','id',id);
+  if(currentBotId===id){ currentBotId=null; showLanding(); }
   loadBots();
 }
+async function deleteCurrentBot(){ if(currentBotId) deleteBot(currentBotId); }
 
-async function deleteBot(id) {
-  if (!confirm('Delete this bot? It will go offline.')) return;
-  await supabase.from('user_bots').delete().eq('id', id).eq('user_id', currentUser.id);
-  loadBots();
-  if (currentBotId === id) {
-    document.getElementById('settingsBody').innerHTML = '<div style="font-size:12px;color:var(--ink-faint);">Select a bot from My Bots to edit settings.</div>';
-  }
+// ═══════════════════════════════════════════════════════════════════════════════
+//  BOT SELECTION & SETTINGS
+// ═══════════════════════════════════════════════════════════════════════════════
+function selectBot(id) {
+  currentBotId = id;
+  const bot = botsCache.find(b=>b.id===id);
+  if(!bot) return;
+  // Show dashboard
+  document.getElementById('center-landing').style.display='none';
+  document.getElementById('center-dashboard').style.display='block';
+  document.getElementById('dashTitle').textContent = (bot.bot_name||'Bot') + ' Dashboard';
+  document.getElementById('center-botname').textContent = bot.bot_name||'--';
+  document.getElementById('center-status').textContent = bot.is_active?'🟢 Active':'🔴 Inactive';
+  document.getElementById('center-hint').textContent = 'Bot ID: ' + (bot.bot_id||'--') + ' · Edit settings in the Settings paper.';
+  // Top paper dashboard
+  document.getElementById('top-landing').style.display='none';
+  document.getElementById('top-dashboard').style.display='block';
+  document.getElementById('botNameDisplay').textContent = bot.bot_name||'--';
+  document.getElementById('botIdDisplay').textContent = 'ID: ' + (bot.bot_id||'--');
+  document.getElementById('botActiveDisplay').textContent = bot.is_active?'🟢 Active':'🔴 Inactive';
+  // Render settings form
+  renderSettings(bot);
+  updateTerminal();
 }
+function showLanding() {
+  currentBotId = null;
+  document.getElementById('center-landing').style.display='flex';
+  document.getElementById('center-dashboard').style.display='none';
+  document.getElementById('top-landing').style.display='block';
+  document.getElementById('top-dashboard').style.display='none';
+  document.getElementById('settingsBody').innerHTML = '<div style="font-size:12px; color:var(--ink-faint); padding:8px 0;">Select a bot from Explorer to edit settings.</div>';
+}
+function showAddForm(){ showLanding(); openPaperByClass('paper-top'); }
+function showInvite(){ const bot=botsCache.find(b=>b.id===currentBotId); if(!bot||!bot.bot_id)return; window.open('https://discord.com/oauth2/authorize?client_id='+bot.bot_id+'&permissions=274877910080&scope=bot%20applications.commands','_blank'); }
 
-// ─── SETTINGS ───
-function openSettings(botId) {
-  currentBotId = botId;
-  switchSection('settings');
-  const bot = botsCache.find(b => b.id === botId);
-  if (!bot) return;
+function renderSettings(bot) {
   const s = bot.settings || {};
   document.getElementById('settingsBody').innerHTML = `
-    <div style="margin-bottom:10px;font-size:12px;color:var(--ink-muted);">Editing: <b>${bot.bot_name}</b></div>
-
-    <h2>Personality</h2>
-    <textarea id="s-personality" placeholder="How should your bot behave?">${s.personality || ''}</textarea>
-
-    <h2>AI Provider</h2>
+    <div style="margin-bottom:10px; font-size:12px; color:var(--ink-muted);">Editing: <b>${bot.bot_name}</b></div>
+    <h3>Personality</h3>
+    <textarea id="s-personality" placeholder="How should your bot behave?" style="min-height:50px; resize:vertical;">${s.personality||''}</textarea>
+    <h3>AI Provider</h3>
     <select id="s-provider">
-      <option value="auto" ${(s.provider||'auto')==='auto'?'selected':''}>Auto</option>
-      <option value="gemini" ${s.provider==='gemini'?'selected':''}>Gemini</option>
-      <option value="groq" ${s.provider==='groq'?'selected':''}>Groq</option>
-      <option value="openrouter" ${s.provider==='openrouter'?'selected':''}>OpenRouter</option>
-      <option value="huggingface" ${s.provider==='huggingface'?'selected':''}>Hugging Face</option>
+      <option value="auto" ${(s.provider||'auto')==='auto'?'selected':''}>Auto (Gemini → Groq → OpenRouter → HF)</option>
+      <option value="gemini" ${s.provider==='gemini'?'selected':''}>Gemini Only</option>
+      <option value="groq" ${s.provider==='groq'?'selected':''}>Groq Only</option>
+      <option value="openrouter" ${s.provider==='openrouter'?'selected':''}>OpenRouter Only</option>
+      <option value="huggingface" ${s.provider==='huggingface'?'selected':''}>Hugging Face Only</option>
     </select>
-
-    <h2>Models</h2>
-    <div class="grid-2">
-      <div><label>Gemini</label><input type="text" id="s-gemini" value="${s.gemini_model||'gemini-2.0-flash'}"></div>
-      <div><label>Groq</label><input type="text" id="s-groq" value="${s.groq_model||'llama-3.3-70b-versatile'}"></div>
-    </div>
-    <label>OpenRouter Model</label>
+    <h3>Models</h3>
+    <label>Gemini</label>
+    <input type="text" id="s-gemini" value="${s.gemini_model||'gemini-2.0-flash'}">
+    <label>Groq</label>
+    <input type="text" id="s-groq" value="${s.groq_model||'llama-3.3-70b-versatile'}">
+    <label>Hugging Face</label>
+    <input type="text" id="s-hf" value="${s.huggingface_model||''}" placeholder="blank = auto fallback">
+    <label>OpenRouter</label>
     <input type="text" id="s-or" value="${s.model||'openrouter/free'}">
-
-    <h2>Generation</h2>
-    <div class="grid-3">
+    <h3>Generation</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
       <div><label>Max Tokens</label><input type="number" id="s-tokens" value="${s.max_tokens||800}"></div>
       <div><label>Temp</label><input type="number" id="s-temp" step="0.1" value="${s.temperature||0.7}"></div>
       <div><label>Cooldown</label><input type="number" id="s-cd" value="${s.cooldown_seconds||10}"></div>
     </div>
-
-    <h2>Features</h2>
-    <div class="toggle"><input type="checkbox" id="s-vision" ${s.vision_enabled?'checked':''}><label>Vision</label></div>
-    <div class="toggle"><input type="checkbox" id="s-tts" ${s.tts_enabled?'checked':''}><label>TTS</label></div>
-    <div class="toggle"><input type="checkbox" id="s-search" ${s.auto_search!==false?'checked':''}><label>Auto Search</label></div>
-    <div class="toggle"><input type="checkbox" id="s-memory" ${s.user_memory_enabled!==false?'checked':''}><label>User Memory</label></div>
-    <div class="toggle"><input type="checkbox" id="s-openchat" ${s.open_chat_enabled?'checked':''}><label>Open Chat</label></div>
-
-    <div class="btn" onclick="saveSettings()" style="width:100%;margin-top:8px;">SAVE SETTINGS</div>
-    <div id="saveStatus" class="status"></div>
+    <h3>Features</h3>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-vision" ${s.vision_enabled?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">Vision</label></div>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-tts" ${s.tts_enabled?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">TTS</label></div>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-search" ${s.auto_search!==false?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">Auto Search</label></div>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-memory" ${s.user_memory_enabled!==false?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">User Memory</label></div>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-openchat" ${s.open_chat_enabled?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">Open Chat</label></div>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-file" ${s.file_reading_enabled!==false?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">Read PDF/DOCX/CSV</label></div>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-video" ${s.video_watching_enabled!==false?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">Watch Videos</label></div>
+    <h3>Bot Conversation</h3>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-botconv" ${s.bot_conversation_enabled?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">Allow Bot-to-Bot Chat</label></div>
+    <label>Max Exchanges (1-3)</label>
+    <input type="number" id="s-botconvmax" min="1" max="3" value="${s.bot_conversation_max||2}">
+    <div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px; line-height:1.5;">OFF by default to prevent infinite loops. When ON, bots may chat with each other for only 1-3 messages before stopping.</div>
+    <div class="paper-item" onclick="saveSettings()" style="margin-top:14px; justify-content:center; background:var(--accent-sage); color:#fff; border:none;"><span style="font-weight:600; letter-spacing:0.5px; font-size:11px;">APPLY CHANGES</span></div>
+    <div id="saveStatus" class="status" style="font-size:10px; text-align:center; margin-top:4px;"></div>
   `;
 }
-
 async function saveSettings() {
-  if (!currentBotId) return;
+  if(!currentBotId) return;
   const payload = {
     personality: document.getElementById('s-personality').value,
     provider: document.getElementById('s-provider').value,
     gemini_model: document.getElementById('s-gemini').value,
     groq_model: document.getElementById('s-groq').value,
+    huggingface_model: document.getElementById('s-hf').value,
     model: document.getElementById('s-or').value,
     max_tokens: parseInt(document.getElementById('s-tokens').value),
     temperature: parseFloat(document.getElementById('s-temp').value),
@@ -496,36 +643,84 @@ async function saveSettings() {
     auto_search: document.getElementById('s-search').checked,
     user_memory_enabled: document.getElementById('s-memory').checked,
     open_chat_enabled: document.getElementById('s-openchat').checked,
+    file_reading_enabled: document.getElementById('s-file').checked,
+    video_watching_enabled: document.getElementById('s-video').checked,
+    bot_conversation_enabled: document.getElementById('s-botconv').checked,
+    bot_conversation_max: parseInt(document.getElementById('s-botconvmax').value),
   };
-  const { error } = await supabase.from('user_bots').update({ settings: payload }).eq('id', currentBotId).eq('user_id', currentUser.id);
-  if (error) return setStatus('saveStatus', error.message, 'err');
-  setStatus('saveStatus', 'Saved! Changes sync to your device within 30s.', 'ok');
+  const res = await sb.update('user_bots',{settings:payload},'id',currentBotId);
+  if(res.error) return setStatus('saveStatus',res.error.message||res.error,'err');
+  setStatus('saveStatus','Saved! Changes sync to your device within 30s.','ok');
   loadBots();
 }
 
-// ─── UI HELPERS ───
-function switchSection(id) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.getElementById('sec-' + id).classList.add('active');
-  document.getElementById('nav-' + id).classList.add('active');
+// ═══════════════════════════════════════════════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+function setStatus(id,msg,type){
+  const el=document.getElementById(id); if(!el)return;
+  el.textContent=msg; el.className='status '+(type||'');
+  if(type!=='info') setTimeout(()=>{el.textContent='';el.className='status';},4000);
+}
+function showToast(message){
+  const existing=document.querySelector('.toast'); if(existing)existing.remove();
+  const toast=document.createElement('div'); toast.className='toast'; toast.textContent=message;
+  document.body.appendChild(toast);
+  requestAnimationFrame(()=>{toast.style.opacity='1';toast.style.transform='translateX(-50%) translateY(0)';});
+  setTimeout(()=>{toast.style.opacity='0';toast.style.transform='translateX(-50%) translateY(16px)';setTimeout(()=>toast.remove(),400);},2200);
+}
+function updateTerminal(){
+  const bot = currentBotId ? botsCache.find(b=>b.id===currentBotId) : null;
+  document.getElementById('term-line-1').textContent = bot ? 'Bot: ' + (bot.bot_name||'Unknown') + ' | Active: ' + (bot.is_active?'Yes':'No') : 'No bot selected';
+  document.getElementById('term-line-2').textContent = 'Total bots: ' + botsCache.length;
+  document.getElementById('term-line-3').textContent = bot ? 'Bot ID: ' + (bot.bot_id||'--') : 'Waiting for connection...';
 }
 
-function setStatus(id, msg, type) {
-  const el = typeof id === 'string' ? document.getElementById(id) : id;
-  if (!el) return;
-  el.textContent = msg;
-  el.className = 'status ' + (type || '');
-}
+// ═══════════════════════════════════════════════════════════════════════════════
+//  PAPER INTERACTIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+(function(){
+  const papers=document.querySelectorAll('.paper');
+  const backdrop=document.getElementById('backdrop');
+  const editorDesk=document.getElementById('editorDesk');
+  let activePaper=null, isAnimating=false;
+  papers.forEach(paper=>{
+    const closeBtn=paper.querySelector('.paper-close');
+    paper.addEventListener('click',function(e){
+      if(e.target.closest('input,textarea,select,button,label'))return;
+      if(e.target===closeBtn||closeBtn.contains(e.target)){e.stopPropagation();closePaper(paper);return;}
+      if(isAnimating)return;
+      if(paper.classList.contains('open')) closePaper(paper); else openPaper(paper);
+    });
+  });
+  function openPaper(paper){
+    if(activePaper&&activePaper!==paper) closePaper(activePaper);
+    isAnimating=true; activePaper=paper;
+    paper.classList.add('pulled'); backdrop.classList.add('active'); editorDesk.classList.add('pushed');
+    setTimeout(()=>{paper.classList.remove('pulled');paper.classList.add('open');isAnimating=false;},400);
+  }
+  function closePaper(paper){
+    isAnimating=true; paper.classList.remove('open'); paper.classList.add('pulled');
+    setTimeout(()=>{paper.classList.remove('pulled');if(activePaper===paper){activePaper=null;backdrop.classList.remove('active');editorDesk.classList.remove('pushed');}isAnimating=false;},400);
+  }
+  window.openPaperByClass=function(cls){
+    const p=document.querySelector('.'+cls);
+    if(p&&!p.classList.contains('open')) openPaper(p);
+  };
+  backdrop.addEventListener('click',()=>{if(activePaper)closePaper(activePaper);});
+  document.addEventListener('keydown',(e)=>{if(e.key==='Escape'&&activePaper)closePaper(activePaper);});
+  document.querySelectorAll('.sidebar-icon').forEach(icon=>{
+    icon.addEventListener('click',function(){document.querySelectorAll('.sidebar-icon').forEach(i=>i.classList.remove('active'));this.classList.add('active');});
+  });
+  document.addEventListener('contextmenu',e=>{if(e.target.closest('.paper')||e.target.closest('.editor-desk'))return;e.preventDefault();});
+})();
 
-// ─── INIT ───
-supabase.auth.onAuthStateChange((event, session) => {
-  if (session?.user) enterApp(session.user);
-});
-
-(async () => {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) enterApp(user);
+// ═══════════════════════════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════════════════════════
+(async function init(){
+  const {user}=await sb.getUser();
+  if(user){ enterApp(user); }
 })();
 </script>
 </body>
