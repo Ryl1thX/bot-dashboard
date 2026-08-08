@@ -17,7 +17,7 @@ body { width:100vw; height:100vh; overflow:hidden; background:var(--bg); font-fa
 .desk-surface { position:fixed; inset:0; pointer-events:none; z-index:1; opacity:0.4;
   background-image: linear-gradient(90deg,var(--grid) 1px,transparent 1px), linear-gradient(0deg,var(--grid) 1px,transparent 1px); background-size:40px 40px; }
 .desk-vignette { position:fixed; inset:0; pointer-events:none; background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.04) 100%); z-index:2; }
-.backdrop { position:fixed; inset:0; background:rgba(230,230,224,0.5); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity 0.6s ease; z-index:90; }
+.backdrop { position:fixed; inset:0; background:rgba(230,230,224,0.5); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity 0.6s ease; z-index:15; }
 .backdrop.active { opacity:1; pointer-events:all; }
 
 #authOverlay { position:fixed; inset:0; z-index:1000; background:var(--bg); display:flex; align-items:center; justify-content:center; }
@@ -462,6 +462,10 @@ async function sbAuth(path, body, method) {
 }
 async function sbQuery(table, opts) {
   opts = opts || {};
+  if(!currentSession || !currentSession.access_token) {
+    doLogout();
+    throw new Error("Session expired. Please log in again.");
+  }
   const method = opts.method || "GET";
   const match = opts.match;
   const body = opts.body;
@@ -481,6 +485,10 @@ async function sbQuery(table, opts) {
   }
   if(order) url += (url.indexOf("?") !== -1 ? "&" : "?") + "order=" + order;
   const res = await fetch(url, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined });
+  if(res.status === 401 || res.status === 403) {
+    doLogout();
+    throw new Error("Session expired. Please log in again.");
+  }
   const data = await res.json().catch(function(){return {};});
   if(!res.ok) throw new Error(JSON.stringify(data));
   return data;
@@ -936,9 +944,15 @@ document.addEventListener("keydown", function(e){
   if(savedSession) {
     try {
       currentSession = JSON.parse(savedSession);
+      if(currentSession.expires_at && Date.now() >= currentSession.expires_at * 1000) {
+        throw new Error("Session expired");
+      }
       $("authOverlay").style.display = "none";
       loadBots();
-    } catch(e) { localStorage.removeItem("sb_session"); }
+    } catch(e) { 
+      localStorage.removeItem("sb_session"); 
+      currentSession = null;
+    }
   }
 })();
 </script>
