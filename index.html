@@ -422,7 +422,7 @@ class SB {
   async signIn(email,password){ const r=await fetch(`${this.url}/auth/v1/token?grant_type=password`,{method:'POST',headers:this._h(false),body:JSON.stringify({email,password})}); const d=await r.json(); if(d.access_token){this.token=d.access_token;this.user=d.user;localStorage.setItem('sb_token',this.token);} return d; }
   async getUser(){ if(!this.token)return{user:null}; const r=await fetch(`${this.url}/auth/v1/user`,{headers:this._h(true)}); const d=await r.json(); if(d.id){this.user=d;} return{user:d.id?d:null}; }
   async signOut(){ if(this.token) await fetch(`${this.url}/auth/v1/logout`,{method:'POST',headers:this._h(true)}); this.token=null;this.user=null;localStorage.removeItem('sb_token'); }
-  async select(table,cols='*',eqCol,eqVal,order='created_at.desc'){ const u=`${this.url}/rest/v1/${table}?select=${cols}&${eqCol}=eq.${encodeURIComponent(eqVal)}&order=${order}`; const r=await fetch(u,{headers:this._h(true)}); return r.json(); }
+  async select(table,cols='*',eqCol,eqVal,order=null){ let u=`${this.url}/rest/v1/${table}?select=${cols}&${eqCol}=eq.${encodeURIComponent(eqVal)}`; if(order) u+=`&order=${order}`; const r=await fetch(u,{headers:this._h(true)}); return r.json(); }
   async insert(table,row){ const r=await fetch(`${this.url}/rest/v1/${table}`,{method:'POST',headers:{...this._h(true),'Prefer':'return=representation'},body:JSON.stringify(row)}); return r.json(); }
   async update(table,row,eqCol,eqVal){ const r=await fetch(`${this.url}/rest/v1/${table}?${eqCol}=eq.${encodeURIComponent(eqVal)}`,{method:'PATCH',headers:{...this._h(true),'Prefer':'return=representation'},body:JSON.stringify(row)}); return r.json(); }
   async delete(table,eqCol,eqVal){ const r=await fetch(`${this.url}/rest/v1/${table}?${eqCol}=eq.${encodeURIComponent(eqVal)}`,{method:'DELETE',headers:this._h(true)}); return r.ok?{}:r.json(); }
@@ -462,6 +462,7 @@ async function doRegister() {
   setTimeout(()=>switchAuth('login'),1500);
 }
 async function doLogout() {
+  if(window._botPoll) clearInterval(window._botPoll);
   await sb.signOut();
   location.reload();
 }
@@ -470,28 +471,40 @@ function enterApp(user) {
   document.getElementById('authOverlay').style.display = 'none';
   document.getElementById('editorTitle').textContent = (user.email||'User') + ' — Drafting Desk';
   loadBots();
+  // Refresh bot list every 10s while logged in
+  if(window._botPoll) clearInterval(window._botPoll);
+  window._botPoll = setInterval(()=>{ if(currentUser) loadBots(); }, 10000);
 }
 
 async function loadBots() {
-  const data = await sb.select('user_bots','*','user_id',currentUser.id);
-  botsCache = Array.isArray(data)?data:[];
   const list = document.getElementById('botsList');
-  if(!botsCache.length){
-    list.innerHTML = '<div style="font-size:11px; color:var(--ink-faint); padding:8px 0;">No bots yet.<br>Open the Project paper to connect one.</div>';
-  } else {
-    list.innerHTML = botsCache.map(b=>`
-      <div class="paper-item" onclick="selectBot('${b.id}')">
-        <span class="icon">🤖</span>
-        <div style="flex:1;">
-          <div style="font-size:12px; font-weight:500; color:var(--ink);">${b.bot_name||'Unnamed Bot'}</div>
-          <div style="font-size:10px; color:var(--ink-faint);">${b.is_active?'🟢 Active':'🔴 Inactive'} · ${(b.bot_id||'').slice(0,8)}...</div>
+  list.innerHTML = '<div style="font-size:11px; color:var(--ink-faint); padding:8px 0;">Loading bots...</div>';
+  try {
+    const data = await sb.select('user_bots','*','user_id',currentUser.id);
+    if(data.error){
+      list.innerHTML = '<div style="font-size:11px; color:#c06060; padding:8px 0;">Error loading bots: ' + esc(data.error.message||data.error) + '</div>';
+      return;
+    }
+    botsCache = Array.isArray(data)?data:[];
+    if(!botsCache.length){
+      list.innerHTML = '<div style="font-size:11px; color:var(--ink-faint); padding:8px 0;">No bots yet.<br>Open the Project paper to connect one.</div>';
+    } else {
+      list.innerHTML = botsCache.map(b=>`
+        <div class="paper-item" onclick="selectBot('${b.id}')">
+          <span class="icon">🤖</span>
+          <div style="flex:1;">
+            <div style="font-size:12px; font-weight:500; color:var(--ink);">${esc(b.bot_name||'Unnamed Bot')}</div>
+            <div style="font-size:10px; color:var(--ink-faint);">${b.is_active?'🟢 Active':'🔴 Inactive'} · ID: ${esc((b.bot_id||'').slice(0,8))}...</div>
+          </div>
+          <div style="display:flex; gap:4px;">
+            <span style="font-size:10px; color:var(--accent-sage); cursor:pointer; padding:2px 6px; background:rgba(138,154,138,0.08); border-radius:3px;" onclick="event.stopPropagation();toggleBot('${b.id}',${!b.is_active})">${b.is_active?'Pause':'Resume'}</span>
+            <span style="font-size:10px; color:#a06060; cursor:pointer; padding:2px 6px; background:rgba(200,100,100,0.06); border-radius:3px;" onclick="event.stopPropagation();deleteBot('${b.id}')">Del</span>
+          </div>
         </div>
-        <div style="display:flex; gap:4px;">
-          <span style="font-size:10px; color:var(--accent-sage); cursor:pointer; padding:2px 6px; background:rgba(138,154,138,0.08); border-radius:3px;" onclick="event.stopPropagation();toggleBot('${b.id}',${!b.is_active})">${b.is_active?'Pause':'Resume'}</span>
-          <span style="font-size:10px; color:#a06060; cursor:pointer; padding:2px 6px; background:rgba(200,100,100,0.06); border-radius:3px;" onclick="event.stopPropagation();deleteBot('${b.id}')">Del</span>
-        </div>
-      </div>
-    `).join('');
+      `).join('');
+    }
+  } catch(e) {
+    list.innerHTML = '<div style="font-size:11px; color:#c06060; padding:8px 0;">Network error: ' + esc(e.message) + '</div>';
   }
   updateTerminal();
 }
@@ -563,7 +576,13 @@ function showLanding() {
   document.getElementById('settingsBody').innerHTML = '<div style="font-size:12px; color:var(--ink-faint); padding:8px 0;">Select a bot from Explorer to edit settings.</div>';
 }
 function showAddForm(){ showLanding(); openPaperByClass('paper-top'); }
-function showInvite(){ const bot=botsCache.find(b=>b.id===currentBotId); if(!bot||!bot.bot_id)return; window.open('https://discord.com/oauth2/authorize?client_id='+bot.bot_id+'&permissions=274877910080&scope=bot%20applications.commands','_blank'); }
+function showInvite(){
+  const bot=botsCache.find(b=>b.id===currentBotId);
+  if(!bot){ showToast('❌ No bot selected'); return; }
+  if(!bot.bot_id){ showToast('❌ Bot ID missing — re-add this bot'); return; }
+  const url='https://discord.com/oauth2/authorize?client_id='+bot.bot_id+'&permissions=274877910080&scope=bot%20applications.commands';
+  window.open(url,'_blank');
+}
 
 function renderSettings(bot) {
   const s = bot.settings || {};
