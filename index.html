@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Bot SaaS — Drafting Desk</title>
+<title>Bot SaaS &mdash; Drafting Desk</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 :root {
@@ -60,7 +60,7 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 .paper { position:fixed; background:var(--paper); backdrop-filter:blur(12px) saturate(1.2); -webkit-backdrop-filter:blur(12px) saturate(1.2); border-radius:5px; box-shadow:0 1px 3px var(--shadow-soft),0 4px 16px var(--shadow-medium),inset 0 1px 0 rgba(255,255,255,0.6); cursor:pointer; z-index:20; transition:all 0.55s var(--transition-smooth); overflow:hidden; user-select:none; border:1px solid rgba(0,0,0,0.05); }
 .paper::after { content:""; position:absolute; inset:0; background-image:linear-gradient(90deg,rgba(100,130,100,0.04) 1px,transparent 1px),linear-gradient(0deg,rgba(100,130,100,0.04) 1px,transparent 1px); background-size:20px 20px; pointer-events:none; opacity:0.6; }
 .paper-header { height:38px; background:linear-gradient(180deg,rgba(245,245,240,0.9) 0%,rgba(235,235,228,0.8) 100%); border-bottom:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; padding:0 16px; font-size:11px; font-weight:600; color:var(--ink-muted); text-transform:uppercase; letter-spacing:1.5px; position:relative; z-index:2; }
-.paper-body { padding:18px; opacity:0; transition:opacity 0.4s ease 0.15s; position:relative; z-index:2; height:calc(100% - 38px); overflow-y:auto; overflow-x:hidden; }
+.paper-body { padding:18px; opacity:0; transition:opacity 0.4s ease 0.15s; position:relative; z-index:2; height:calc(100% - 38px); overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; }
 .paper.open { cursor:default; } .paper.open .paper-body { opacity:1; }
 .paper-close { position:absolute; top:10px; right:12px; width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:center; font-size:11px; cursor:pointer; opacity:0; transition:all 0.3s ease; color:var(--ink-muted); z-index:10; }
 .paper.open .paper-close { opacity:1; } .paper-close:hover { background:rgba(200,100,100,0.15); color:#a06060; }
@@ -159,6 +159,8 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 .settings-row input, .settings-row select { flex:1; margin-bottom:0; }
 .settings-row label { margin-top:0; flex:0 0 auto; display:flex; align-items:center; gap:6px; cursor:pointer; font-size:11px; text-transform:none; letter-spacing:0; }
 .settings-row input[type="checkbox"] { width:auto; }
+.settings-col2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.settings-col3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
 
 ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.12); border-radius:3px; } ::-webkit-scrollbar-thumb:hover { background:rgba(0,0,0,0.18); }
 @media (max-width:768px) {
@@ -434,6 +436,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 let currentSession = null;
 let currentBot = null;
 let bots = [];
+let openPaperEl = null;
 
 function $(id){ return document.getElementById(id); }
 function setStatus(id, text, type) {
@@ -543,7 +546,7 @@ function extractClientId(token) {
   return null;
 }
 function getInviteUrl(clientId) {
-  return "https://discord.com/oauth2/authorize?client_id=" + clientId + "&permissions=8&integration_type=0&scope=bot+applications.commands";
+  return "https://discord.com/oauth2/authorize?client_id=" + clientId + "&permissions=274877910080&scope=bot%20applications.commands";
 }
 
 async function addBot() {
@@ -560,17 +563,20 @@ async function addBot() {
       if(dres.ok) { const d = await dres.json(); botName = d.username || botName; avatar = d.avatar; }
     } catch(e){}
 
-    const existing = await sbQuery("bots", { match:{user_id: currentSession.user.id, client_id: clientId} });
+    const existing = await sbQuery("user_bots", { match:{user_id: currentSession.user.id, bot_id: clientId} });
     if(existing && existing.length > 0) {
-      await sbQuery("bots", { method:"PATCH", match:{id: existing[0].id}, body:{ token: token, bot_name: botName, avatar: avatar, updated_at: new Date().toISOString() } });
+      await sbQuery("user_bots", { method:"PATCH", match:{id: existing[0].id}, body:{
+        discord_token: token, bot_name: botName, avatar: avatar, updated_at: new Date().toISOString(), is_active: true
+      }});
       showToast("Token updated for existing bot");
     } else {
-      await sbQuery("bots", { method:"POST", body:{
+      await sbQuery("user_bots", { method:"POST", body:{
         user_id: currentSession.user.id,
-        token: token,
-        client_id: clientId,
+        discord_token: token,
+        bot_id: clientId,
         bot_name: botName,
         avatar: avatar,
+        is_active: true,
         settings: getDefaultSettings()
       }});
       showToast("Bot connected successfully");
@@ -587,7 +593,7 @@ async function addBot() {
 async function loadBots() {
   if(!currentSession) return;
   try {
-    bots = await sbQuery("bots", { match:{user_id: currentSession.user.id}, order:"created_at.desc" });
+    bots = await sbQuery("user_bots", { match:{user_id: currentSession.user.id}, order:"created_at.desc" });
     renderBotsList();
     updateTerminal("Loaded " + bots.length + " bot(s)", "User: " + currentSession.user.email, "Supabase: connected");
   } catch(e) {
@@ -602,7 +608,7 @@ function renderBotsList() {
   }
   list.innerHTML = bots.map(function(b, i){
     return '<div class="paper-item ' + (currentBot && currentBot.id === b.id ? "active-bot" : "") + '" onclick="selectBot(' + i + ')">' +
-    '<span class="icon">&#9679;</span><span>' + escapeHtml(b.bot_name || "Unnamed") + '<br><span style="font-size:10px;color:var(--ink-faint)">' + (b.client_id || "--") + '</span></span></div>';
+    '<span class="icon">&#9679;</span><span>' + escapeHtml(b.bot_name || "Unnamed") + '<br><span style="font-size:10px;color:var(--ink-faint)">' + (b.bot_id || "--") + '</span></span></div>';
   }).join("");
 }
 function selectBot(idx) {
@@ -623,11 +629,12 @@ function showDashboard(bot) {
   $("center-dashboard").style.display = "block";
   if(bot) {
     $("center-botname").textContent = bot.bot_name || "Unnamed";
-    $("center-clientid").textContent = bot.client_id || "--";
-    $("center-status").textContent = "Connected";
-    $("center-status").style.color = "#4a9a4a";
+    $("center-clientid").textContent = bot.bot_id || "--";
+    $("center-status").textContent = bot.is_active ? "Active" : "Paused";
+    $("center-status").style.color = bot.is_active ? "#4a9a4a" : "#c06060";
     $("botNameDisplay").textContent = bot.bot_name || "Unnamed";
-    $("botIdDisplay").textContent = bot.client_id || "--";
+    $("botIdDisplay").textContent = bot.bot_id || "--";
+    $("botActiveDisplay").textContent = bot.is_active ? "Active" : "Paused";
     $("top-landing").style.display = "none";
     $("top-dashboard").style.display = "block";
   } else {
@@ -646,7 +653,7 @@ function showAddForm() {
   openPaperByClass("paper-top");
 }
 function showInvite() {
-  const id = currentBot ? currentBot.client_id : null;
+  const id = currentBot ? currentBot.bot_id : null;
   if(!id) { showToast("No bot selected"); return; }
   const url = getInviteUrl(id);
   window.open(url, "_blank");
@@ -655,7 +662,7 @@ async function deleteCurrentBot() {
   if(!currentBot) return;
   if(!confirm('Delete bot "' + (currentBot.bot_name || "Unnamed") + '"? This cannot be undone.')) return;
   try {
-    await sbQuery("bots", { method:"DELETE", match:{id: currentBot.id} });
+    await sbQuery("user_bots", { method:"DELETE", match:{id: currentBot.id} });
     showToast("Bot deleted");
     currentBot = null;
     loadBots();
@@ -671,38 +678,73 @@ function escapeHtml(t) {
   const d = document.createElement("div"); d.textContent = t; return d.innerHTML;
 }
 
-/* ---------- SETTINGS (no API keys, no Minecraft/Lichess) ---------- */
+/* ---------- SETTINGS (matches saas_bot.py DEFAULT_CONFIG) ---------- */
 function getDefaultSettings() {
   return {
-    gemini_enabled: true, gemini_model: "gemini-3.1-flash-lite",
-    groq_enabled: true, groq_model: "llama-3.1-8b-instant",
-    openrouter_enabled: true, openrouter_model: "nemotron-550b-free",
-    fish_enabled: true, fish_voice_id: "", fish_model: "s2.1-pro-free",
-    huggingface_enabled: false, huggingface_model: "",
-    default_provider: "gemini",
-    system_prompt: "You are a helpful Discord bot assistant.",
-    personality: "friendly",
-    max_tokens: 1024, temperature: 0.7,
-    rate_limit_seconds: 5, max_history: 20,
-    tts_enabled: false, auto_tts: false,
-    admin_ids: "", log_level: "INFO", debug_mode: false,
-    vtuber_enabled: false, vtuber_websocket_port: "8765",
-    file_reading_enabled: true, voice_enabled: true, random_dm_enabled: false, game_bot_enabled: false,
-    welcome_message: "Hello! I am your AI assistant. Mention me to chat.",
-    prefix: "!", mention_trigger: true, dm_allowed: true, nsfw_filter: false,
-    cooldown_per_user: 3, image_vision_enabled: true, video_vision_enabled: true,
-    pdf_reading_enabled: true, web_search_enabled: false, memory_persistence: true,
-    context_window: 8192, response_style: "balanced", language: "en"
+    personality: "You are a helpful, friendly assistant. Be concise and direct.",
+    provider: "auto",
+    gemini_model: "gemini-3.1-flash-lite",
+    groq_model: "llama-3.1-8b-instant",
+    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
+    use_custom_model: false,
+    custom_model: "",
+    max_tokens: 800,
+    temperature: 0.7,
+    top_p: 1.0,
+    frequency_penalty: 0.0,
+    presence_penalty: 0.0,
+    context_enabled: true,
+    max_context: 10,
+    cooldown_seconds: 10,
+    tts_enabled: false,
+    fish_voice_id: "",
+    fish_model: "s2.1-pro-free",
+    vision_enabled: true,
+    vision_provider: "openrouter",
+    auto_search: false,
+    user_memory_enabled: true,
+    open_chat_enabled: false,
+    auto_stt: false,
+    message_split_enabled: false,
+    message_split_min: 1,
+    message_split_max: 3,
+    message_split_delay: 1.0,
+    random_dms_enabled: false,
+    random_dms_interval_minutes: 60,
+    random_dms_prompt: "Send a casual, friendly message to check in.",
+    random_chat_enabled: false,
+    random_chat_chance: 0.05,
+    random_chat_context_limit: 50,
+    bot_name_triggers: "bot",
+    file_reading_enabled: true,
+    video_watching_enabled: true,
+    vision_model: "nex-agi/nex-n2-pro",
+    gemini_vision_model: "gemini-1.5-flash-latest",
+    bot_conversation_enabled: false,
+    bot_conversation_max: 2,
+    huggingface_model: ""
   };
 }
 function renderSettings(bot) {
   const s = bot.settings || getDefaultSettings();
   const body = $("settingsBody");
-  const mkRow = function(labelText, inner){ return '<div class="settings-row"><label>' + labelText + '</label>' + inner + '</div>'; };
-  const mkInput = function(k, ph, type){ type = type || "text"; return '<input type="' + type + '" id="set_' + k + '" placeholder="' + (ph||"") + '" value="' + (s[k] !== undefined && s[k] !== null ? escapeHtml(String(s[k])) : "") + '">'; };
-  const mkSelect = function(k, opts){ return '<select id="set_' + k + '">' + opts.map(function(o){ return '<option value="' + o.v + '" ' + (s[k] == o.v ? "selected" : "") + '>' + o.l + '</option>'; }).join("") + '</select>'; };
-  const mkCheck = function(k, labelText){ return '<div class="settings-row"><label><input type="checkbox" id="set_' + k + '" ' + (s[k] ? "checked" : "") + '> ' + labelText + '</label></div>'; };
-  const mkArea = function(k, rows, ph){ rows = rows || 3; return '<textarea id="set_' + k + '" rows="' + rows + '" placeholder="' + (ph||"") + '">' + escapeHtml(s[k] || "") + '</textarea>'; };
+  const mkRow = function(lbl, inner){ return '<div class="settings-row"><label>' + lbl + '</label>' + inner + '</div>'; };
+  const mkInput = function(k, ph, type, step){
+    type = type || "text";
+    const v = s[k] !== undefined && s[k] !== null ? escapeHtml(String(s[k])) : "";
+    const st = step ? ' step="' + step + '"' : '';
+    return '<input type="' + type + '" id="set_' + k + '" placeholder="' + (ph||"") + '" value="' + v + '"' + st + '>';
+  };
+  const mkSelect = function(k, opts){ 
+    return '<select id="set_' + k + '">' + opts.map(function(o){ return '<option value="' + o.v + '" ' + (s[k] == o.v ? "selected" : "") + '>' + o.l + '</option>'; }).join("") + '</select>'; 
+  };
+  const mkCheck = function(k, labelText){ 
+    return '<div class="settings-row"><label><input type="checkbox" id="set_' + k + '" ' + (s[k] ? "checked" : "") + '> ' + labelText + '</label></div>'; 
+  };
+  const mkArea = function(k, rows, ph){ 
+    rows = rows || 3; 
+    return '<textarea id="set_' + k + '" rows="' + rows + '" placeholder="' + (ph||"") + '">' + escapeHtml(s[k] || "") + '</textarea>'; 
+  };
 
   body.innerHTML =
     '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
@@ -711,43 +753,95 @@ function renderSettings(bot) {
     '</div>' +
     '<div id="settingsStatus" class="status" style="margin-bottom:10px;"></div>' +
 
-    '<div class="settings-group"><div class="settings-group-title">AI Providers</div>' +
-    mkCheck("gemini_enabled","Gemini") + mkRow("Gemini Model", mkInput("gemini_model","gemini-3.1-flash-lite")) +
-    mkCheck("groq_enabled","Groq") + mkRow("Groq Model", mkInput("groq_model","llama-3.1-8b-instant")) +
-    mkCheck("openrouter_enabled","OpenRouter") + mkRow("OR Model", mkInput("openrouter_model","nemotron-550b-free")) +
-    mkCheck("fish_enabled","Fish Audio") + mkRow("Fish Voice", mkInput("fish_voice_id","Voice ID")) + mkRow("Fish Model", mkInput("fish_model","s2.1-pro-free")) +
-    mkCheck("huggingface_enabled","Hugging Face") + mkRow("HF Model", mkInput("huggingface_model","")) +
-    mkRow("Default", mkSelect("default_provider",[{v:"gemini",l:"Gemini"},{v:"groq",l:"Groq"},{v:"openrouter",l:"OpenRouter"},{v:"huggingface",l:"Hugging Face"}])) +
+    '<div class="settings-group"><div class="settings-group-title">Personality</div>' +
+    mkRow("System Prompt", mkArea("personality", 3, "How should your bot behave?")) +
     '</div>' +
 
-    '<div class="settings-group"><div class="settings-group-title">Behaviour</div>' +
-    mkRow("System Prompt", mkArea("system_prompt", 3, "Personality prompt")) +
-    mkRow("Personality", mkInput("personality","friendly")) +
-    mkRow("Max Tokens", mkInput("max_tokens","","number")) +
-    mkRow("Temperature", mkInput("temperature","","number")) +
-    mkRow("Rate Limit (s)", mkInput("rate_limit_seconds","","number")) +
-    mkRow("Max History", mkInput("max_history","","number")) +
-    mkRow("Context Window", mkInput("context_window","","number")) +
-    mkRow("Response Style", mkSelect("response_style",[{v:"concise",l:"Concise"},{v:"balanced",l:"Balanced"},{v:"verbose",l:"Verbose"}])) +
-    mkRow("Language", mkInput("language","en")) +
-    mkCheck("tts_enabled","TTS Enabled") + mkCheck("auto_tts","Auto TTS") +
-    mkCheck("mention_trigger","Mention Trigger") + mkCheck("dm_allowed","DM Allowed") +
-    mkCheck("nsfw_filter","NSFW Filter") + mkCheck("memory_persistence","Memory Persistence") +
+    '<div class="settings-group"><div class="settings-group-title">AI Provider</div>' +
+    mkRow("Provider", mkSelect("provider",[{v:"auto",l:"Auto (fallback chain)"},{v:"gemini",l:"Gemini Only"},{v:"groq",l:"Groq Only"},{v:"openrouter",l:"OpenRouter Only"},{v:"huggingface",l:"Hugging Face Only"}])) +
     '</div>' +
 
-    '<div class="settings-group"><div class="settings-group-title">Integrations</div>' +
-    mkCheck("vtuber_enabled","VTuber") + mkRow("VTuber WS Port", mkInput("vtuber_websocket_port")) +
-    mkCheck("file_reading_enabled","File Reading") + mkCheck("voice_enabled","Voice") + mkCheck("random_dm_enabled","Random DMs") + mkCheck("game_bot_enabled","Game Bot") +
-    mkCheck("image_vision_enabled","Image Vision") + mkCheck("video_vision_enabled","Video Vision") + mkCheck("pdf_reading_enabled","PDF Reading") + mkCheck("web_search_enabled","Web Search") +
+    '<div class="settings-group"><div class="settings-group-title">Models</div>' +
+    mkRow("Gemini Model", mkInput("gemini_model","gemini-3.1-flash-lite")) +
+    mkRow("Groq Model", mkInput("groq_model","llama-3.1-8b-instant")) +
+    mkRow("HF Model", mkInput("huggingface_model","meta-llama/Llama-3.3-70B-Instruct")) +
+    mkRow("OR Model", mkSelect("model",[{v:"nvidia/nemotron-3-ultra-550b-a55b:free",l:"Nemotron 3 Ultra 550B (Free)"},{v:"openrouter/free",l:"Auto (Free)"},{v:"google/gemini-2.0-flash-exp:free",l:"Gemini 2.0 Flash (Free)"},{v:"meta-llama/llama-3.3-70b-instruct:free",l:"Llama 3.3 70B (Free)"},{v:"deepseek/deepseek-chat:free",l:"DeepSeek Chat (Free)"},{v:"mistralai/mistral-7b-instruct:free",l:"Mistral 7B (Free)"}])) +
+    mkCheck("use_custom_model","Use Custom Model") +
+    mkRow("Custom Model", mkInput("custom_model","anthropic/claude-3.5-sonnet")) +
     '</div>' +
 
-    '<div class="settings-group"><div class="settings-group-title">Admin</div>' +
-    mkRow("Admin IDs", mkInput("admin_ids","comma-separated IDs")) +
-    mkRow("Log Level", mkSelect("log_level",[{v:"DEBUG",l:"DEBUG"},{v:"INFO",l:"INFO"},{v:"WARNING",l:"WARNING"},{v:"ERROR",l:"ERROR"}])) +
-    mkCheck("debug_mode","Debug Mode") +
-    mkRow("Prefix", mkInput("prefix","!")) +
-    mkRow("Cooldown/User", mkInput("cooldown_per_user","","number")) +
-    mkRow("Welcome Msg", mkArea("welcome_message", 2, "Hello!")) +
+    '<div class="settings-group"><div class="settings-group-title">Generation</div>' +
+    '<div class="settings-col2">' +
+    '<div>' + mkRow("Max Tokens", mkInput("max_tokens","","number")) + '</div>' +
+    '<div>' + mkRow("Temperature", mkInput("temperature","","number","0.1")) + '</div>' +
+    '<div>' + mkRow("Top P", mkInput("top_p","","number","0.05")) + '</div>' +
+    '<div>' + mkRow("Cooldown (s)", mkInput("cooldown_seconds","","number")) + '</div>' +
+    '<div>' + mkRow("Freq Penalty", mkInput("frequency_penalty","","number","0.1")) + '</div>' +
+    '<div>' + mkRow("Pres Penalty", mkInput("presence_penalty","","number","0.1")) + '</div>' +
+    '</div>' +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Memory</div>' +
+    mkCheck("context_enabled","Context Enabled") +
+    mkRow("Max Context", mkInput("max_context","","number")) +
+    mkCheck("user_memory_enabled","User Memory (per-user profiles)") +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Voice (Fish Audio)</div>' +
+    mkCheck("tts_enabled","TTS Enabled") +
+    mkRow("Voice ID", mkInput("fish_voice_id","paste Fish Audio voice ID")) +
+    mkRow("Fish Model", mkSelect("fish_model",[{v:"s2.1-pro-free",l:"s2.1-pro-free"},{v:"s2-pro",l:"s2-pro"},{v:"s2",l:"s2"}])) +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Vision</div>' +
+    mkCheck("vision_enabled","Vision Enabled") +
+    mkRow("Vision Provider", mkSelect("vision_provider",[{v:"openrouter",l:"OpenRouter"},{v:"gemini",l:"Gemini"}])) +
+    mkRow("OR Vision Model", mkInput("vision_model","nex-agi/nex-n2-pro")) +
+    mkRow("Gemini Vision", mkInput("gemini_vision_model","gemini-1.5-flash-latest")) +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">File & Video</div>' +
+    mkCheck("file_reading_enabled","Read PDF/DOCX/CSV attachments") +
+    mkCheck("video_watching_enabled","Watch video attachments (ffmpeg)") +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Auto Features</div>' +
+    mkCheck("auto_search","Auto web search (realtime queries)") +
+    mkCheck("auto_stt","Auto-STT (transcribe audio msgs)") +
+    mkCheck("open_chat_enabled","Open chat (reply on name trigger)") +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Message Splitting</div>' +
+    mkCheck("message_split_enabled","Split long replies into multiple msgs") +
+    '<div class="settings-col3">' +
+    '<div>' + mkRow("Min", mkInput("message_split_min","","number")) + '</div>' +
+    '<div>' + mkRow("Max", mkInput("message_split_max","","number")) + '</div>' +
+    '<div>' + mkRow("Delay(s)", mkInput("message_split_delay","","number","0.1")) + '</div>' +
+    '</div>' +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Random DMs</div>' +
+    mkCheck("random_dms_enabled","Send random DMs to past users") +
+    mkRow("Interval (min)", mkInput("random_dms_interval_minutes","","number")) +
+    mkRow("DM Prompt", mkInput("random_dms_prompt","casual check-in prompt")) +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Random Chat</div>' +
+    mkCheck("random_chat_enabled","Randomly join channel conversations") +
+    '<div class="settings-col2">' +
+    '<div>' + mkRow("Chance (0-1)", mkInput("random_chat_chance","","number","0.01")) + '</div>' +
+    '<div>' + mkRow("Context msgs", mkInput("random_chat_context_limit","","number")) + '</div>' +
+    '</div>' +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Bot Name Triggers</div>' +
+    mkRow("Triggers (comma)", mkInput("bot_name_triggers","bot, ai, helper")) +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Bot Conversation</div>' +
+    mkCheck("bot_conversation_enabled","Allow Bot-to-Bot Chat") +
+    mkRow("Max Exchanges (1-3)", mkInput("bot_conversation_max","","number")) +
+    '<div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px; line-height:1.5;">OFF by default to prevent infinite loops. When ON, bots may chat with each other for only 1-3 messages before stopping.</div>' +
     '</div>';
 }
 async function saveSettings() {
@@ -764,7 +858,7 @@ async function saveSettings() {
   });
   setStatus("settingsStatus", "Saving...", "info");
   try {
-    await sbQuery("bots", { method:"PATCH", match:{id: currentBot.id}, body:{ settings: newSettings, updated_at: new Date().toISOString() } });
+    await sbQuery("user_bots", { method:"PATCH", match:{id: currentBot.id}, body:{ settings: newSettings, updated_at: new Date().toISOString() } });
     currentBot.settings = newSettings;
     setStatus("settingsStatus", "Saved successfully", "ok");
     showToast("Settings saved");
@@ -781,50 +875,60 @@ function resetSettings() {
 }
 
 /* ---------- PAPER UI ---------- */
-let openPaper = null;
 function openPaperByClass(cls) {
   const el = document.querySelector("." + cls);
   if(!el) return;
-  if(openPaper && openPaper !== el) closePaper(openPaper);
+  if(openPaperEl && openPaperEl !== el) closePaper(openPaperEl);
+  if(el.classList.contains("open")) return;
   el.classList.add("open");
   el.classList.remove("pulled");
   $("backdrop").classList.add("active");
   $("editorDesk").classList.add("pushed");
-  openPaper = el;
+  openPaperEl = el;
 }
 function closePaper(el) {
   if(!el) return;
   el.classList.remove("open");
   el.classList.add("pulled");
-  setTimeout(function(){ el.classList.remove("pulled"); }, 600);
+  setTimeout(function(){ el.classList.remove("pulled"); }, 400);
 }
 function closeAllPapers() {
   document.querySelectorAll(".paper.open").forEach(function(p){ closePaper(p); });
   $("backdrop").classList.remove("active");
   $("editorDesk").classList.remove("pushed");
-  openPaper = null;
+  openPaperEl = null;
 }
 
 document.querySelectorAll(".paper").forEach(function(p){
   p.addEventListener("click", function(e){
-    if(e.target.classList.contains("paper-close")) {
+    if(e.target.classList.contains("paper-close") || (e.target.parentElement && e.target.parentElement.classList.contains("paper-close"))) {
       e.stopPropagation();
       closePaper(p);
-      $("backdrop").classList.remove("active");
-      $("editorDesk").classList.remove("pushed");
-      openPaper = null;
+      if(openPaperEl === p) {
+        openPaperEl = null;
+        $("backdrop").classList.remove("active");
+        $("editorDesk").classList.remove("pushed");
+      }
       return;
     }
     if(p.classList.contains("open")) return;
-    if(openPaper && openPaper !== p) closePaper(openPaper);
+    if(openPaperEl && openPaperEl !== p) closePaper(openPaperEl);
     p.classList.add("open");
     p.classList.remove("pulled");
     $("backdrop").classList.add("active");
     $("editorDesk").classList.add("pushed");
-    openPaper = p;
+    openPaperEl = p;
   });
 });
 $("backdrop").addEventListener("click", closeAllPapers);
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape" && openPaperEl) {
+    closePaper(openPaperEl);
+    openPaperEl = null;
+    $("backdrop").classList.remove("active");
+    $("editorDesk").classList.remove("pushed");
+  }
+});
 
 /* ---------- INIT ---------- */
 (function init(){
