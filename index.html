@@ -80,7 +80,7 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 .paper-left.pulled { transform:translateY(-50%) translateX(-38%) rotateY(0deg) scale(0.97); box-shadow:12px 4px 40px var(--shadow-deep); }
 .paper-left.open { transform:translateY(-50%) translateX(24px) rotateY(6deg) scale(1); box-shadow:32px 10px 64px var(--shadow-deep),10px 4px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
 
-.paper-right { right:0; top:50%; transform:translateY(-50%) translateX(90%) rotateY(6deg); width:340px; height:520px; transform-origin:right center; }
+.paper-right { right:0; top:50%; transform:translateY(-50%) translateX(90%) rotateY(6deg); width:380px; height:560px; transform-origin:right center; }
 .paper-right:hover { transform:translateY(-50%) translateX(68%) rotateY(3deg); box-shadow:-8px 4px 32px var(--shadow-medium); }
 .paper-right.pulled { transform:translateY(-50%) translateX(38%) rotateY(0deg) scale(0.97); box-shadow:-12px 4px 40px var(--shadow-deep); }
 .paper-right.open { transform:translateY(-50%) translateX(-24px) rotateY(-6deg) scale(1); box-shadow:-32px 10px 64px var(--shadow-deep),-10px 4px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
@@ -164,10 +164,14 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 
 ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.12); border-radius:3px; } ::-webkit-scrollbar-thumb:hover { background:rgba(0,0,0,0.18); }
 @media (max-width:768px) {
-  .editor-desk { width:90vw; height:58vh; }
-  .paper-top,.paper-bottom { width:240px; height:280px; }
-  .paper-left,.paper-right { width:220px; height:340px; }
-  .paper-tl,.paper-tr,.paper-bl,.paper-br { width:160px; height:160px; }
+  .editor-desk { width:94vw; height:58vh; }
+  .paper-top,.paper-bottom { width:92vw; height:70vh; }
+  .paper-left,.paper-right { width:92vw; height:78vh; }
+  .paper-left { left:4vw !important; transform:translateY(-50%) translateX(-90%) rotateY(-6deg) !important; }
+  .paper-right { right:4vw !important; transform:translateY(-50%) translateX(90%) rotateY(6deg) !important; }
+  .paper-left.open { transform:translateY(-50%) translateX(0) rotateY(0) scale(1) !important; }
+  .paper-right.open { transform:translateY(-50%) translateX(0) rotateY(0) scale(1) !important; }
+  .paper-tl,.paper-tr,.paper-bl,.paper-br { width:45vw; height:160px; }
   .pencil { width:110px; } .pencil-body { width:90px; }
   .ruler { width:160px; } .ruler-body { width:160px; }
   .compass { width:55px; height:75px; } .compass-leg { height:55px; }
@@ -768,12 +772,12 @@ function renderSettings(bot) {
     '</div>' +
 
     '<div class="settings-group"><div class="settings-group-title">Models</div>' +
-    mkRow("Gemini Model", mkInput("gemini_model","gemini-3.1-flash-lite")) +
-    mkRow("Groq Model", mkInput("groq_model","llama-3.1-8b-instant")) +
-    mkRow("HF Model", mkInput("huggingface_model","meta-llama/Llama-3.3-70B-Instruct")) +
-    mkRow("OR Model", mkSelect("model",[{v:"nvidia/nemotron-3-ultra-550b-a55b:free",l:"Nemotron 3 Ultra 550B (Free)"},{v:"openrouter/free",l:"Auto (Free)"},{v:"google/gemini-2.0-flash-exp:free",l:"Gemini 2.0 Flash (Free)"},{v:"meta-llama/llama-3.3-70b-instruct:free",l:"Llama 3.3 70B (Free)"},{v:"deepseek/deepseek-chat:free",l:"DeepSeek Chat (Free)"},{v:"mistralai/mistral-7b-instruct:free",l:"Mistral 7B (Free)"}])) +
-    mkCheck("use_custom_model","Use Custom Model") +
-    mkRow("Custom Model", mkInput("custom_model","anthropic/claude-3.5-sonnet")) +
+    mkRow("Gemini", mkInput("gemini_model","gemini-3.1-flash-lite")) +
+    mkRow("Groq", mkInput("groq_model","llama-3.1-8b-instant")) +
+    mkRow("HF", mkInput("huggingface_model","meta-llama/Llama-3.3-70B-Instruct")) +
+    mkRow("OR", mkSelect("model",[{v:"nvidia/nemotron-3-ultra-550b-a55b:free",l:"Nemotron 3 Ultra 550B (Free)"},{v:"openrouter/free",l:"Auto (Free)"},{v:"google/gemini-2.0-flash-exp:free",l:"Gemini 2.0 Flash (Free)"},{v:"meta-llama/llama-3.3-70b-instruct:free",l:"Llama 3.3 70B (Free)"},{v:"deepseek/deepseek-chat:free",l:"DeepSeek Chat (Free)"},{v:"mistralai/mistral-7b-instruct:free",l:"Mistral 7B (Free)"}])) +
+    mkCheck("use_custom_model","Use Custom") +
+    mkRow("Custom", mkInput("custom_model","anthropic/claude-3.5-sonnet")) +
     '</div>' +
 
     '<div class="settings-group"><div class="settings-group-title">Generation</div>' +
