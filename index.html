@@ -7,9 +7,9 @@
 <style>
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 :root {
-  --bg:#e8e8e4; --bg-warm:#e2e2dc; --paper:rgba(252,252,248,0.78);
-  --paper-solid:#fafaf6; --ink:#2a2a2a; --ink-muted:#6b6b6b; --ink-faint:#9a9a9a;
-  --accent-sage:#8a9a8a; --accent-steel:#7a8a9a; --accent-clay:#b8a898; --accent-gold:#c4a882;
+  --bg:#e8e8e4; --paper:rgba(252,252,248,0.78); --paper-solid:#fafaf6;
+  --ink:#2a2a2a; --ink-muted:#6b6b6b; --ink-faint:#9a9a9a;
+  --accent-sage:#8a9a8a; --accent-steel:#7a8a9a; --accent-clay:#b8a898;
   --grid:rgba(100,130,100,0.08); --shadow-soft:rgba(0,0,0,0.06); --shadow-medium:rgba(0,0,0,0.10); --shadow-deep:rgba(0,0,0,0.18);
   --transition-smooth:cubic-bezier(0.25,0.46,0.45,0.94); --transition-bounce:cubic-bezier(0.34,1.56,0.64,1); --transition-dramatic:cubic-bezier(0.16,1,0.3,1);
 }
@@ -19,6 +19,7 @@ body { width:100vw; height:100vh; overflow:hidden; background:var(--bg); font-fa
 .desk-vignette { position:fixed; inset:0; pointer-events:none; background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.04) 100%); z-index:2; }
 .backdrop { position:fixed; inset:0; background:rgba(230,230,224,0.5); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity 0.6s ease; z-index:90; }
 .backdrop.active { opacity:1; pointer-events:all; }
+
 #authOverlay { position:fixed; inset:0; z-index:1000; background:var(--bg); display:flex; align-items:center; justify-content:center; }
 .auth-card { background:var(--paper-solid); padding:32px; border-radius:6px; box-shadow:0 16px 48px rgba(0,0,0,0.08); width:min(90vw,360px); border:1px solid rgba(0,0,0,0.06); }
 .auth-card h1 { font-family:Georgia,serif; font-size:24px; color:var(--ink); margin-bottom:4px; }
@@ -34,10 +35,7 @@ input, textarea, select {
   color:var(--ink); padding:8px 10px; font-size:12px; font-family:inherit; outline:none; margin-top:4px; margin-bottom:6px;
 }
 input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
-.btn {
-  display:inline-block; padding:8px 16px; background:var(--accent-sage); color:#fff; border-radius:4px;
-  font-size:11px; font-weight:600; cursor:pointer; letter-spacing:0.5px; border:none; text-align:center; transition:opacity .2s;
-}
+.btn { display:inline-block; padding:8px 16px; background:var(--accent-sage); color:#fff; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer; letter-spacing:0.5px; border:none; text-align:center; transition:opacity .2s; }
 .btn:hover { opacity:0.9; }
 .btn-block { width:100%; margin-top:8px; }
 .btn-danger { background:#c06060; }
@@ -45,13 +43,8 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 .status { font-size:11px; min-height:16px; margin-top:4px; }
 .status.ok { color:#4a9a4a; } .status.err { color:#c06060; } .status.info { color:var(--accent-steel); }
 .hidden { display:none !important; }
-.editor-desk {
-  position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
-  width:min(82vw,960px); height:min(72vh,640px); background:var(--paper-solid);
-  border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.04),0 4px 12px rgba(0,0,0,0.06),0 16px 48px rgba(0,0,0,0.08);
-  z-index:10; display:flex; flex-direction:column; overflow:hidden; transition:transform 0.7s var(--transition-dramatic),box-shadow 0.7s var(--transition-dramatic);
-  border:1px solid rgba(0,0,0,0.06);
-}
+
+.editor-desk { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:min(82vw,960px); height:min(72vh,640px); background:var(--paper-solid); border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.04),0 4px 12px rgba(0,0,0,0.06),0 16px 48px rgba(0,0,0,0.08); z-index:10; display:flex; flex-direction:column; overflow:hidden; transition:transform 0.7s var(--transition-dramatic),box-shadow 0.7s var(--transition-dramatic); border:1px solid rgba(0,0,0,0.06); }
 .editor-desk.pushed { transform:translate(-50%,-50%) scale(0.94); filter:brightness(0.97); box-shadow:0 1px 2px rgba(0,0,0,0.03),0 2px 6px rgba(0,0,0,0.04); }
 .editor-header { height:44px; background:#f5f5f0; display:flex; align-items:center; padding:0 18px; gap:10px; border-bottom:1px solid rgba(0,0,0,0.06); }
 .editor-dot { width:10px; height:10px; border-radius:50%; }
@@ -63,60 +56,67 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 .sidebar-icon:hover, .sidebar-icon.active { background:rgba(138,154,138,0.15); color:var(--accent-sage); transform:scale(1.08); }
 .sidebar-icon.active::before { content:''; position:absolute; left:-8px; top:50%; transform:translateY(-50%); width:3px; height:16px; background:var(--accent-sage); border-radius:0 2px 2px 0; }
 .editor-code { flex:1; padding:22px 24px; font-size:13px; line-height:1.7; color:var(--ink); overflow-y:auto; background:#fdfdf9; }
-.paper { position:fixed; background:var(--paper); backdrop-filter:blur(12px) saturate(1.2); -webkit-backdrop-filter:blur(12px) saturate(1.2);
-  border-radius:5px; box-shadow:0 1px 3px var(--shadow-soft),0 4px 16px var(--shadow-medium),inset 0 1px 0 rgba(255,255,255,0.6);
-  cursor:pointer; z-index:20; transition:all 0.55s var(--transition-smooth); overflow:hidden; user-select:none; border:1px solid rgba(0,0,0,0.05);
-}
+
+.paper { position:fixed; background:var(--paper); backdrop-filter:blur(12px) saturate(1.2); -webkit-backdrop-filter:blur(12px) saturate(1.2); border-radius:5px; box-shadow:0 1px 3px var(--shadow-soft),0 4px 16px var(--shadow-medium),inset 0 1px 0 rgba(255,255,255,0.6); cursor:pointer; z-index:20; transition:all 0.55s var(--transition-smooth); overflow:hidden; user-select:none; border:1px solid rgba(0,0,0,0.05); }
 .paper::after { content:''; position:absolute; inset:0; background-image:linear-gradient(90deg,rgba(100,130,100,0.04) 1px,transparent 1px),linear-gradient(0deg,rgba(100,130,100,0.04) 1px,transparent 1px); background-size:20px 20px; pointer-events:none; opacity:0.6; }
-.paper-header { height:38px; background:linear-gradient(180deg,rgba(245,245,240,0.9) 0%,rgba(235,235,228,0.8) 100%); border-bottom:1px solid rgba(0,0,0,0.06);
-  display:flex; align-items:center; padding:0 16px; font-size:11px; font-weight:600; color:var(--ink-muted); text-transform:uppercase; letter-spacing:1.5px; position:relative; z-index:2; }
+.paper-header { height:38px; background:linear-gradient(180deg,rgba(245,245,240,0.9) 0%,rgba(235,235,228,0.8) 100%); border-bottom:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; padding:0 16px; font-size:11px; font-weight:600; color:var(--ink-muted); text-transform:uppercase; letter-spacing:1.5px; position:relative; z-index:2; }
 .paper-body { padding:18px; opacity:0; transition:opacity 0.4s ease 0.15s; position:relative; z-index:2; height:calc(100% - 38px); overflow-y:auto; overflow-x:hidden; }
-.paper.open { cursor:default; }
-.paper.open .paper-body { opacity:1; }
+.paper.open { cursor:default; } .paper.open .paper-body { opacity:1; }
 .paper-close { position:absolute; top:10px; right:12px; width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:center; font-size:11px; cursor:pointer; opacity:0; transition:all 0.3s ease; color:var(--ink-muted); z-index:10; }
 .paper.open .paper-close { opacity:1; } .paper-close:hover { background:rgba(200,100,100,0.15); color:#a06060; }
+
 .paper-top { top:0; left:50%; transform:translateX(-50%) translateY(-72%) rotateX(6deg); width:300px; height:340px; transform-origin:top center; }
 .paper-top:hover { transform:translateX(-50%) translateY(-50%) rotateX(3deg); box-shadow:0 8px 32px var(--shadow-medium); }
 .paper-top.pulled { transform:translateX(-50%) translateY(-20%) rotateX(0deg) scale(0.97); box-shadow:0 12px 40px var(--shadow-deep); }
 .paper-top.open { transform:translateX(-50%) translateY(24px) rotateX(-6deg) scale(1); box-shadow:0 32px 64px var(--shadow-deep),0 8px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
+
 .paper-bottom { bottom:0; left:50%; transform:translateX(-50%) translateY(88%) rotateX(-6deg); width:340px; height:280px; transform-origin:bottom center; }
 .paper-bottom:hover { transform:translateX(-50%) translateY(65%) rotateX(-3deg); box-shadow:0 -8px 32px var(--shadow-medium); }
 .paper-bottom.pulled { transform:translateX(-50%) translateY(35%) rotateX(0deg) scale(0.97); box-shadow:0 -12px 40px var(--shadow-deep); }
 .paper-bottom.open { transform:translateX(-50%) translateY(-24px) rotateX(6deg) scale(1); box-shadow:0 -32px 64px var(--shadow-deep),0 -8px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
+
 .paper-left { left:0; top:50%; transform:translateY(-50%) translateX(-90%) rotateY(-6deg); width:280px; height:400px; transform-origin:left center; }
 .paper-left:hover { transform:translateY(-50%) translateX(-68%) rotateY(-3deg); box-shadow:8px 4px 32px var(--shadow-medium); }
 .paper-left.pulled { transform:translateY(-50%) translateX(-38%) rotateY(0deg) scale(0.97); box-shadow:12px 4px 40px var(--shadow-deep); }
 .paper-left.open { transform:translateY(-50%) translateX(24px) rotateY(6deg) scale(1); box-shadow:32px 10px 64px var(--shadow-deep),10px 4px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
-.paper-right { right:0; top:50%; transform:translateY(-50%) translateX(90%) rotateY(6deg); width:300px; height:420px; transform-origin:right center; }
+
+.paper-right { right:0; top:50%; transform:translateY(-50%) translateX(90%) rotateY(6deg); width:320px; height:520px; transform-origin:right center; }
 .paper-right:hover { transform:translateY(-50%) translateX(68%) rotateY(3deg); box-shadow:-8px 4px 32px var(--shadow-medium); }
 .paper-right.pulled { transform:translateY(-50%) translateX(38%) rotateY(0deg) scale(0.97); box-shadow:-12px 4px 40px var(--shadow-deep); }
 .paper-right.open { transform:translateY(-50%) translateX(-24px) rotateY(-6deg) scale(1); box-shadow:-32px 10px 64px var(--shadow-deep),-10px 4px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
+
 .paper-tl { top:0; left:0; transform:translate(-72%,-72%) rotate(-10deg); width:240px; height:240px; transform-origin:top left; }
 .paper-tl:hover { transform:translate(-52%,-52%) rotate(-5deg); box-shadow:8px 8px 32px var(--shadow-medium); }
 .paper-tl.pulled { transform:translate(-32%,-32%) rotate(-3deg) scale(0.97); box-shadow:12px 12px 40px var(--shadow-deep); }
 .paper-tl.open { transform:translate(24px,24px) rotate(2deg) scale(1); box-shadow:24px 24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
+
 .paper-tr { top:0; right:0; transform:translate(72%,-72%) rotate(10deg); width:220px; height:260px; transform-origin:top right; }
 .paper-tr:hover { transform:translate(52%,-52%) rotate(5deg); box-shadow:-8px 8px 32px var(--shadow-medium); }
 .paper-tr.pulled { transform:translate(32%,-32%) rotate(3deg) scale(0.97); box-shadow:-12px 12px 40px var(--shadow-deep); }
 .paper-tr.open { transform:translate(-24px,24px) rotate(-2deg) scale(1); box-shadow:-24px 24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
+
 .paper-bl { bottom:0; left:0; transform:translate(-72%,72%) rotate(10deg); width:260px; height:220px; transform-origin:bottom left; }
 .paper-bl:hover { transform:translate(-52%,52%) rotate(5deg); box-shadow:8px -8px 32px var(--shadow-medium); }
 .paper-bl.pulled { transform:translate(-32%,32%) rotate(3deg) scale(0.97); box-shadow:12px -12px 40px var(--shadow-deep); }
 .paper-bl.open { transform:translate(24px,-24px) rotate(-2deg) scale(1); box-shadow:24px -24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
+
 .paper-br { bottom:0; right:0; transform:translate(72%,72%) rotate(-10deg); width:240px; height:240px; transform-origin:bottom right; }
 .paper-br:hover { transform:translate(52%,52%) rotate(-5deg); box-shadow:-8px -8px 32px var(--shadow-medium); }
 .paper-br.pulled { transform:translate(32%,32%) rotate(-3deg) scale(0.97); box-shadow:-12px -12px 40px var(--shadow-deep); }
 .paper-br.open { transform:translate(-24px,-24px) rotate(2deg) scale(1); box-shadow:-24px -24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
+
 .paper-clip { position:absolute; width:36px; height:10px; border:2px solid #b8b0a0; border-radius:0 0 6px 6px; border-top:none; top:8px; z-index:5; opacity:0.5; }
 .paper-tl .paper-clip { right:28px; transform:rotate(-12deg); } .paper-tr .paper-clip { left:28px; transform:rotate(12deg); }
 .paper-bl .paper-clip { right:28px; transform:rotate(12deg); } .paper-br .paper-clip { left:28px; transform:rotate(-12deg); }
 .paper-top .paper-clip { right:36px; transform:rotate(-8deg); } .paper-bottom .paper-clip { left:36px; transform:rotate(8deg); }
 .paper-left .paper-clip { top:28px; right:8px; transform:rotate(90deg); } .paper-right .paper-clip { top:28px; left:8px; transform:rotate(-90deg); }
+
 .paper-content { padding:14px; font-size:12.5px; color:var(--ink-muted); line-height:1.55; }
 .paper-content h3 { font-size:11px; margin-bottom:14px; color:var(--ink); border-bottom:1.5px solid var(--accent-sage); padding-bottom:6px; display:inline-block; text-transform:uppercase; letter-spacing:1.2px; font-weight:600; }
 .paper-item { padding:8px 12px; margin:5px 0; background:rgba(0,0,0,0.02); border-radius:5px; cursor:pointer; transition:all 0.3s var(--transition-smooth); display:flex; align-items:center; gap:10px; border:1px solid transparent; }
 .paper-item:hover { background:rgba(138,154,138,0.08); border-color:rgba(138,154,138,0.2); transform:translateX(3px); }
 .paper-item .icon { width:22px; height:22px; border-radius:5px; background:rgba(138,154,138,0.12); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--accent-sage); }
+
 .desk-object { position:fixed; z-index:15; cursor:pointer; transition:all 0.45s var(--transition-bounce); filter:drop-shadow(0 3px 6px rgba(0,0,0,0.08)); }
 .desk-object:hover { transform:scale(1.06) rotate(-1deg); filter:drop-shadow(0 8px 20px rgba(0,0,0,0.14)); z-index:50; }
 .desk-object:active { transform:scale(0.96) rotate(1deg); }
@@ -410,14 +410,13 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 
 <script>
 // ═══════════════════════════════════════════════════════════════════════════════
-//  SUPABASE CONFIG  —  REST API (no CDN, works on blocked networks)
+//  SUPABASE REST CLIENT (CDN-free)
 // ═══════════════════════════════════════════════════════════════════════════════
 const SUPABASE_URL  = 'https://tdawmkgedbxbjkctylld.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo';
 
-// Minimal REST client — replaces @supabase/supabase-js
 class SB {
-  constructor(url, key) { this.url = url.replace(/\/$/,''); this.key = key; this.token = localStorage.getItem('sb_token')||null; this.user = null; }
+  constructor(url,key){ this.url=url.replace(/\/$/,''); this.key=key; this.token=localStorage.getItem('sb_token')||null; this.user=null; }
   _h(auth){ const h={'apikey':this.key,'Content-Type':'application/json'}; if(auth&&this.token) h['Authorization']='Bearer '+this.token; return h; }
   async signUp(email,password){ const r=await fetch(`${this.url}/auth/v1/signup`,{method:'POST',headers:this._h(false),body:JSON.stringify({email,password})}); return r.json(); }
   async signIn(email,password){ const r=await fetch(`${this.url}/auth/v1/token?grant_type=password`,{method:'POST',headers:this._h(false),body:JSON.stringify({email,password})}); const d=await r.json(); if(d.access_token){this.token=d.access_token;this.user=d.user;localStorage.setItem('sb_token',this.token);} return d; }
@@ -430,16 +429,10 @@ class SB {
 }
 const sb = new SB(SUPABASE_URL, SUPABASE_ANON);
 
-// ═══════════════════════════════════════════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════════════════════════════════════════
 let currentUser = null;
 let currentBotId = null;
 let botsCache = [];
 
-// ═══════════════════════════════════════════════════════════════════════════════
-//  AUTH
-// ═══════════════════════════════════════════════════════════════════════════════
 function switchAuth(mode) {
   document.getElementById('tab-login').classList.toggle('active', mode==='login');
   document.getElementById('tab-register').classList.toggle('active', mode==='register');
@@ -479,9 +472,6 @@ function enterApp(user) {
   loadBots();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-//  BOTS
-// ═══════════════════════════════════════════════════════════════════════════════
 async function loadBots() {
   const data = await sb.select('user_bots','*','user_id',currentUser.id);
   botsCache = Array.isArray(data)?data:[];
@@ -505,6 +495,7 @@ async function loadBots() {
   }
   updateTerminal();
 }
+
 async function addBot() {
   const token = document.getElementById('tokenInput').value.trim();
   if(!token) return setStatus('addBotStatus','Token required','err');
@@ -545,27 +536,21 @@ async function deleteBot(id){
 }
 async function deleteCurrentBot(){ if(currentBotId) deleteBot(currentBotId); }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-//  BOT SELECTION & SETTINGS
-// ═══════════════════════════════════════════════════════════════════════════════
 function selectBot(id) {
   currentBotId = id;
   const bot = botsCache.find(b=>b.id===id);
   if(!bot) return;
-  // Show dashboard
   document.getElementById('center-landing').style.display='none';
   document.getElementById('center-dashboard').style.display='block';
   document.getElementById('dashTitle').textContent = (bot.bot_name||'Bot') + ' Dashboard';
   document.getElementById('center-botname').textContent = bot.bot_name||'--';
   document.getElementById('center-status').textContent = bot.is_active?'🟢 Active':'🔴 Inactive';
   document.getElementById('center-hint').textContent = 'Bot ID: ' + (bot.bot_id||'--') + ' · Edit settings in the Settings paper.';
-  // Top paper dashboard
   document.getElementById('top-landing').style.display='none';
   document.getElementById('top-dashboard').style.display='block';
   document.getElementById('botNameDisplay').textContent = bot.bot_name||'--';
   document.getElementById('botIdDisplay').textContent = 'ID: ' + (bot.bot_id||'--');
   document.getElementById('botActiveDisplay').textContent = bot.is_active?'🟢 Active':'🔴 Inactive';
-  // Render settings form
   renderSettings(bot);
   updateTerminal();
 }
@@ -584,8 +569,10 @@ function renderSettings(bot) {
   const s = bot.settings || {};
   document.getElementById('settingsBody').innerHTML = `
     <div style="margin-bottom:10px; font-size:12px; color:var(--ink-muted);">Editing: <b>${bot.bot_name}</b></div>
+
     <h3>Personality</h3>
-    <textarea id="s-personality" placeholder="How should your bot behave?" style="min-height:50px; resize:vertical;">${s.personality||''}</textarea>
+    <textarea id="s-personality" placeholder="How should your bot behave?" style="min-height:50px; resize:vertical;">${esc(s.personality||'')}</textarea>
+
     <h3>AI Provider</h3>
     <select id="s-provider">
       <option value="auto" ${(s.provider||'auto')==='auto'?'selected':''}>Auto (Gemini → Groq → OpenRouter → HF)</option>
@@ -594,38 +581,166 @@ function renderSettings(bot) {
       <option value="openrouter" ${s.provider==='openrouter'?'selected':''}>OpenRouter Only</option>
       <option value="huggingface" ${s.provider==='huggingface'?'selected':''}>Hugging Face Only</option>
     </select>
+
     <h3>Models</h3>
     <label>Gemini</label>
-    <input type="text" id="s-gemini" value="${s.gemini_model||'gemini-2.0-flash'}">
+    <input type="text" id="s-gemini" value="${esc(s.gemini_model||'gemini-3.1-flash-lite')}">
     <label>Groq</label>
-    <input type="text" id="s-groq" value="${s.groq_model||'llama-3.3-70b-versatile'}">
+    <input type="text" id="s-groq" value="${esc(s.groq_model||'llama-3.1-8b-instant')}">
     <label>Hugging Face</label>
-    <input type="text" id="s-hf" value="${s.huggingface_model||''}" placeholder="blank = auto fallback">
+    <input type="text" id="s-hf" value="${esc(s.huggingface_model||'')}" placeholder="blank = auto fallback">
     <label>OpenRouter</label>
-    <input type="text" id="s-or" value="${s.model||'openrouter/free'}">
-    <h3>Generation</h3>
-    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
-      <div><label>Max Tokens</label><input type="number" id="s-tokens" value="${s.max_tokens||800}"></div>
-      <div><label>Temp</label><input type="number" id="s-temp" step="0.1" value="${s.temperature||0.7}"></div>
-      <div><label>Cooldown</label><input type="number" id="s-cd" value="${s.cooldown_seconds||10}"></div>
+    <select id="s-or">
+      <option value="nvidia/nemotron-3-ultra-550b-a55b:free" ${(s.model||'')==='nvidia/nemotron-3-ultra-550b-a55b:free'?'selected':''}>Nemotron 3 Ultra 550B (Free)</option>
+      <option value="openrouter/free" ${(s.model||'')==='openrouter/free'?'selected':''}>Auto (Free)</option>
+      <option value="google/gemini-2.0-flash-exp:free" ${(s.model||'')==='google/gemini-2.0-flash-exp:free'?'selected':''}>Gemini 2.0 Flash (Free)</option>
+      <option value="meta-llama/llama-3.3-70b-instruct:free" ${(s.model||'')==='meta-llama/llama-3.3-70b-instruct:free'?'selected':''}>Llama 3.3 70B (Free)</option>
+      <option value="deepseek/deepseek-chat:free" ${(s.model||'')==='deepseek/deepseek-chat:free'?'selected':''}>DeepSeek Chat (Free)</option>
+      <option value="mistralai/mistral-7b-instruct:free" ${(s.model||'')==='mistralai/mistral-7b-instruct:free'?'selected':''}>Mistral 7B (Free)</option>
+      <option value="nvidia/llama-3.1-nemotron-70b-instruct:free" ${(s.model||'')==='nvidia/llama-3.1-nemotron-70b-instruct:free'?'selected':''}>Nemotron 70B (Free)</option>
+    </select>
+    <div style="display:flex; align-items:center; gap:6px; margin:6px 0;">
+      <input type="checkbox" id="s-usecustom" ${s.use_custom_model?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">Use Custom Model</label>
     </div>
-    <h3>Features</h3>
-    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-vision" ${s.vision_enabled?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">Vision</label></div>
-    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-tts" ${s.tts_enabled?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">TTS</label></div>
-    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-search" ${s.auto_search!==false?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">Auto Search</label></div>
-    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-memory" ${s.user_memory_enabled!==false?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">User Memory</label></div>
-    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-openchat" ${s.open_chat_enabled?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">Open Chat</label></div>
-    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-file" ${s.file_reading_enabled!==false?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">Read PDF/DOCX/CSV</label></div>
-    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-video" ${s.video_watching_enabled!==false?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">Watch Videos</label></div>
+    <input type="text" id="s-custommodel" value="${esc(s.custom_model||'')}" placeholder="e.g. anthropic/claude-3.5-sonnet">
+
+    <h3>Generation</h3>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div><label>Max Tokens</label><input type="number" id="s-tokens" min="50" max="4000" value="${s.max_tokens||800}"></div>
+      <div><label>Temperature</label><input type="number" id="s-temp" min="0" max="2" step="0.1" value="${s.temperature!==undefined?s.temperature:0.7}"></div>
+      <div><label>Top P</label><input type="number" id="s-topp" min="0" max="1" step="0.05" value="${s.top_p!==undefined?s.top_p:1.0}"></div>
+      <div><label>Cooldown (s)</label><input type="number" id="s-cd" min="0" max="300" value="${s.cooldown_seconds!==undefined?s.cooldown_seconds:10}"></div>
+      <div><label>Freq Penalty</label><input type="number" id="s-freqpen" min="-2" max="2" step="0.1" value="${s.frequency_penalty!==undefined?s.frequency_penalty:0}"></div>
+      <div><label>Pres Penalty</label><input type="number" id="s-prespen" min="-2" max="2" step="0.1" value="${s.presence_penalty!==undefined?s.presence_penalty:0}"></div>
+    </div>
+
+    <h3>Memory</h3>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-ctxenabled" ${s.context_enabled!==false?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">Context Enabled</label>
+    </div>
+    <label>Max Context Messages</label>
+    <input type="number" id="s-maxctx" min="1" max="50" value="${s.max_context!==undefined?s.max_context:10}">
+
+    <h3>Voice (Fish Audio)</h3>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-tts" ${s.tts_enabled?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">TTS Enabled</label>
+    </div>
+    <label>Voice ID</label>
+    <input type="text" id="s-voiceid" value="${esc(s.fish_voice_id||'')}" placeholder="paste Fish Audio voice ID">
+    <label>Fish Model</label>
+    <select id="s-fishmodel">
+      <option value="s2.1-pro-free" ${(s.fish_model||'s2.1-pro-free')==='s2.1-pro-free'?'selected':''}>s2.1-pro-free</option>
+      <option value="s2-pro" ${s.fish_model==='s2-pro'?'selected':''}>s2-pro</option>
+      <option value="s2" ${s.fish_model==='s2'?'selected':''}>s2</option>
+    </select>
+
+    <h3>Vision</h3>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-vision" ${s.vision_enabled!==false?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">Vision Enabled</label>
+    </div>
+    <label>Vision Provider</label>
+    <select id="s-visionprovider">
+      <option value="openrouter" ${(s.vision_provider||'openrouter')==='openrouter'?'selected':''}>OpenRouter</option>
+      <option value="gemini" ${s.vision_provider==='gemini'?'selected':''}>Gemini</option>
+    </select>
+    <label>OpenRouter Vision Model</label>
+    <input type="text" id="s-visionmodel" value="${esc(s.vision_model||'nex-agi/nex-n2-pro')}" placeholder="leave blank for free fallbacks">
+    <label>Gemini Vision Model</label>
+    <input type="text" id="s-gemvision" value="${esc(s.gemini_vision_model||'gemini-1.5-flash-latest')}">
+
+    <h3>File &amp; Video</h3>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-fileread" ${s.file_reading_enabled!==false?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">Read PDF / DOCX / CSV attachments</label>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-video" ${s.video_watching_enabled!==false?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">Watch video attachments (ffmpeg)</label>
+    </div>
+    <div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px; line-height:1.5;">
+      PDF needs pymupdf / pdfplumber / PyPDF2 / pdftotext. Video needs ffmpeg+ffprobe on host.
+    </div>
+
+    <h3>Auto Features</h3>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-autosearch" ${s.auto_search?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">Auto web search (realtime queries)</label>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-autostt" ${s.auto_stt?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">Auto-STT (transcribe audio msgs)</label>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-usermem" ${s.user_memory_enabled!==false?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">User memory (per-user profiles)</label>
+    </div>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-openchat" ${s.open_chat_enabled?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">Open chat (reply on name trigger)</label>
+    </div>
+
+    <h3>Message Splitting</h3>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-split" ${s.message_split_enabled?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">Split long replies into multiple msgs</label>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+      <div><label>Min</label><input type="number" id="s-splitmin" min="1" max="10" value="${s.message_split_min!==undefined?s.message_split_min:1}"></div>
+      <div><label>Max</label><input type="number" id="s-splitmax" min="1" max="10" value="${s.message_split_max!==undefined?s.message_split_max:3}"></div>
+      <div><label>Delay (s)</label><input type="number" id="s-splitdelay" min="0" max="10" step="0.1" value="${s.message_split_delay!==undefined?s.message_split_delay:1.0}"></div>
+    </div>
+
+    <h3>Random DMs</h3>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-randomdm" ${s.random_dms_enabled?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">Send random DMs to past users</label>
+    </div>
+    <label>Interval (minutes)</label>
+    <input type="number" id="s-randomdmint" min="5" max="1440" value="${s.random_dms_interval_minutes!==undefined?s.random_dms_interval_minutes:60}">
+    <label>DM Prompt</label>
+    <input type="text" id="s-randomdmprompt" value="${esc(s.random_dms_prompt||'Send a casual, friendly message to check in.')}" placeholder="casual check-in prompt">
+
+    <h3>Random Chat</h3>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-randomchat" ${s.random_chat_enabled?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">Randomly join channel conversations</label>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+      <div><label>Chance (0-1)</label><input type="number" id="s-randomchatchance" min="0" max="1" step="0.01" value="${s.random_chat_chance!==undefined?s.random_chat_chance:0.05}"></div>
+      <div><label>Context msgs</label><input type="number" id="s-randomchatctx" min="5" max="200" value="${s.random_chat_context_limit!==undefined?s.random_chat_context_limit:50}"></div>
+    </div>
+
+    <h3>Bot Name Triggers</h3>
+    <label>Comma-separated words that wake the bot</label>
+    <input type="text" id="s-triggers" value="${esc((s.bot_name_triggers||['bot']).join(', '))}" placeholder="bot, ai, help">
+
     <h3>Bot Conversation</h3>
-    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="s-botconv" ${s.bot_conversation_enabled?'checked':''} style="width:auto; margin:0;"><label style="margin:0;">Allow Bot-to-Bot Chat</label></div>
+    <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+      <input type="checkbox" id="s-botconv" ${s.bot_conversation_enabled?'checked':''} style="width:auto; margin:0;">
+      <label style="margin:0;">Allow Bot-to-Bot Chat</label>
+    </div>
     <label>Max Exchanges (1-3)</label>
-    <input type="number" id="s-botconvmax" min="1" max="3" value="${s.bot_conversation_max||2}">
-    <div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px; line-height:1.5;">OFF by default to prevent infinite loops. When ON, bots may chat with each other for only 1-3 messages before stopping.</div>
-    <div class="paper-item" onclick="saveSettings()" style="margin-top:14px; justify-content:center; background:var(--accent-sage); color:#fff; border:none;"><span style="font-weight:600; letter-spacing:0.5px; font-size:11px;">APPLY CHANGES</span></div>
+    <input type="number" id="s-botconvmax" min="1" max="3" value="${s.bot_conversation_max!==undefined?s.bot_conversation_max:2}">
+    <div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px; line-height:1.5;">
+      OFF by default to prevent infinite loops. When ON, bots may chat with each other for only 1-3 messages before stopping.
+    </div>
+
+    <div class="paper-item" onclick="saveSettings()" style="margin-top:14px; justify-content:center; background:var(--accent-sage); color:#fff; border:none;">
+      <span style="font-weight:600; letter-spacing:0.5px; font-size:11px;">APPLY CHANGES</span>
+    </div>
     <div id="saveStatus" class="status" style="font-size:10px; text-align:center; margin-top:4px;"></div>
   `;
 }
+
+function esc(str) {
+  if(!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 async function saveSettings() {
   if(!currentBotId) return;
   const payload = {
@@ -635,16 +750,40 @@ async function saveSettings() {
     groq_model: document.getElementById('s-groq').value,
     huggingface_model: document.getElementById('s-hf').value,
     model: document.getElementById('s-or').value,
+    use_custom_model: document.getElementById('s-usecustom').checked,
+    custom_model: document.getElementById('s-custommodel').value,
     max_tokens: parseInt(document.getElementById('s-tokens').value),
     temperature: parseFloat(document.getElementById('s-temp').value),
+    top_p: parseFloat(document.getElementById('s-topp').value),
     cooldown_seconds: parseInt(document.getElementById('s-cd').value),
-    vision_enabled: document.getElementById('s-vision').checked,
+    frequency_penalty: parseFloat(document.getElementById('s-freqpen').value),
+    presence_penalty: parseFloat(document.getElementById('s-prespen').value),
+    context_enabled: document.getElementById('s-ctxenabled').checked,
+    max_context: parseInt(document.getElementById('s-maxctx').value),
     tts_enabled: document.getElementById('s-tts').checked,
-    auto_search: document.getElementById('s-search').checked,
-    user_memory_enabled: document.getElementById('s-memory').checked,
-    open_chat_enabled: document.getElementById('s-openchat').checked,
-    file_reading_enabled: document.getElementById('s-file').checked,
+    fish_voice_id: document.getElementById('s-voiceid').value,
+    fish_model: document.getElementById('s-fishmodel').value,
+    vision_enabled: document.getElementById('s-vision').checked,
+    vision_provider: document.getElementById('s-visionprovider').value,
+    vision_model: document.getElementById('s-visionmodel').value,
+    gemini_vision_model: document.getElementById('s-gemvision').value,
+    file_reading_enabled: document.getElementById('s-fileread').checked,
     video_watching_enabled: document.getElementById('s-video').checked,
+    auto_search: document.getElementById('s-autosearch').checked,
+    auto_stt: document.getElementById('s-autostt').checked,
+    user_memory_enabled: document.getElementById('s-usermem').checked,
+    open_chat_enabled: document.getElementById('s-openchat').checked,
+    message_split_enabled: document.getElementById('s-split').checked,
+    message_split_min: parseInt(document.getElementById('s-splitmin').value),
+    message_split_max: parseInt(document.getElementById('s-splitmax').value),
+    message_split_delay: parseFloat(document.getElementById('s-splitdelay').value),
+    random_dms_enabled: document.getElementById('s-randomdm').checked,
+    random_dms_interval_minutes: parseInt(document.getElementById('s-randomdmint').value),
+    random_dms_prompt: document.getElementById('s-randomdmprompt').value,
+    random_chat_enabled: document.getElementById('s-randomchat').checked,
+    random_chat_chance: parseFloat(document.getElementById('s-randomchatchance').value),
+    random_chat_context_limit: parseInt(document.getElementById('s-randomchatctx').value),
+    bot_name_triggers: document.getElementById('s-triggers').value.split(',').map(t=>t.trim()).filter(t=>t),
     bot_conversation_enabled: document.getElementById('s-botconv').checked,
     bot_conversation_max: parseInt(document.getElementById('s-botconvmax').value),
   };
@@ -654,9 +793,6 @@ async function saveSettings() {
   loadBots();
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-//  UI HELPERS
-// ═══════════════════════════════════════════════════════════════════════════════
 function setStatus(id,msg,type){
   const el=document.getElementById(id); if(!el)return;
   el.textContent=msg; el.className='status '+(type||'');
@@ -676,9 +812,6 @@ function updateTerminal(){
   document.getElementById('term-line-3').textContent = bot ? 'Bot ID: ' + (bot.bot_id||'--') : 'Waiting for connection...';
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-//  PAPER INTERACTIONS
-// ═══════════════════════════════════════════════════════════════════════════════
 (function(){
   const papers=document.querySelectorAll('.paper');
   const backdrop=document.getElementById('backdrop');
@@ -715,9 +848,6 @@ function updateTerminal(){
   document.addEventListener('contextmenu',e=>{if(e.target.closest('.paper')||e.target.closest('.editor-desk'))return;e.preventDefault();});
 })();
 
-// ═══════════════════════════════════════════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════════════════════════════════════════
 (async function init(){
   const {user}=await sb.getUser();
   if(user){ enterApp(user); }
