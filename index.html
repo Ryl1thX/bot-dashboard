@@ -80,7 +80,7 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 .paper-left.pulled { transform:translateY(-50%) translateX(-38%) rotateY(0deg) scale(0.97); box-shadow:12px 4px 40px var(--shadow-deep); }
 .paper-left.open { transform:translateY(-50%) translateX(24px) rotateY(6deg) scale(1); box-shadow:32px 10px 64px var(--shadow-deep),10px 4px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
 
-.paper-right { right:0; top:50%; transform:translateY(-50%) translateX(90%) rotateY(6deg); width:340px; height:560px; transform-origin:right center; }
+.paper-right { right:0; top:50%; transform:translateY(-50%) translateX(90%) rotateY(6deg); width:340px; height:520px; transform-origin:right center; }
 .paper-right:hover { transform:translateY(-50%) translateX(68%) rotateY(3deg); box-shadow:-8px 4px 32px var(--shadow-medium); }
 .paper-right.pulled { transform:translateY(-50%) translateX(38%) rotateY(0deg) scale(0.97); box-shadow:-12px 4px 40px var(--shadow-deep); }
 .paper-right.open { transform:translateY(-50%) translateX(-24px) rotateY(-6deg) scale(1); box-shadow:-32px 10px 64px var(--shadow-deep),-10px 4px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
@@ -428,11 +428,6 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 </div>
 
 <script>
-/* ============================================================
-   BOT SAAS DASHBOARD — CDN-Free Supabase REST Client
-   Anon key baked in for public access
-   ============================================================ */
-
 const SUPABASE_URL = "https://tdawmkgedbxbjkctylld.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo";
 
@@ -440,7 +435,6 @@ let currentSession = null;
 let currentBot = null;
 let bots = [];
 
-/* ---------- UTILS ---------- */
 function $(id){ return document.getElementById(id); }
 function setStatus(id, text, type) {
   type = type || "info";
@@ -452,7 +446,6 @@ function showToast(msg) {
   setTimeout(function(){ t.classList.remove("show"); }, 2500);
 }
 
-/* ---------- SUPABASE REST CLIENT ---------- */
 async function sbAuth(path, body, method) {
   method = method || "POST";
   const res = await fetch(SUPABASE_URL + "/auth/v1" + path, {
@@ -490,7 +483,6 @@ async function sbQuery(table, opts) {
   return data;
 }
 
-/* ---------- AUTH ---------- */
 function switchAuth(tab) {
   $("tab-login").classList.toggle("active", tab === "login");
   $("tab-register").classList.toggle("active", tab === "register");
@@ -537,7 +529,6 @@ function onAuthSuccess() {
   loadBots();
 }
 
-/* ---------- DISCORD TOKEN UTILS ---------- */
 function extractClientId(token) {
   try {
     const parts = token.split(".");
@@ -555,7 +546,6 @@ function getInviteUrl(clientId) {
   return "https://discord.com/oauth2/authorize?client_id=" + clientId + "&permissions=8&integration_type=0&scope=bot+applications.commands";
 }
 
-/* ---------- BOT MANAGEMENT ---------- */
 async function addBot() {
   const token = $("tokenInput").value.trim();
   if(!token) { setStatus("addBotStatus", "Paste a token first", "err"); return; }
@@ -681,14 +671,14 @@ function escapeHtml(t) {
   const d = document.createElement("div"); d.textContent = t; return d.innerHTML;
 }
 
-/* ---------- SETTINGS ---------- */
+/* ---------- SETTINGS (no API keys, no Minecraft/Lichess) ---------- */
 function getDefaultSettings() {
   return {
-    gemini_enabled: true, gemini_api_key: "", gemini_model: "gemini-3.1-flash-lite",
-    groq_enabled: true, groq_api_key: "", groq_model: "llama-3.1-8b-instant",
-    openrouter_enabled: true, openrouter_api_key: "", openrouter_model: "nemotron-550b-free",
-    fish_enabled: true, fish_api_key: "", fish_voice_id: "", fish_model: "s2.1-pro-free",
-    huggingface_enabled: false, huggingface_api_key: "", huggingface_model: "",
+    gemini_enabled: true, gemini_model: "gemini-3.1-flash-lite",
+    groq_enabled: true, groq_model: "llama-3.1-8b-instant",
+    openrouter_enabled: true, openrouter_model: "nemotron-550b-free",
+    fish_enabled: true, fish_voice_id: "", fish_model: "s2.1-pro-free",
+    huggingface_enabled: false, huggingface_model: "",
     default_provider: "gemini",
     system_prompt: "You are a helpful Discord bot assistant.",
     personality: "friendly",
@@ -696,8 +686,6 @@ function getDefaultSettings() {
     rate_limit_seconds: 5, max_history: 20,
     tts_enabled: false, auto_tts: false,
     admin_ids: "", log_level: "INFO", debug_mode: false,
-    minecraft_enabled: false, minecraft_host: "localhost", minecraft_port: "25565", minecraft_username: "Bot",
-    lichess_enabled: false, lichess_api_token: "",
     vtuber_enabled: false, vtuber_websocket_port: "8765",
     file_reading_enabled: true, voice_enabled: true, random_dm_enabled: false, game_bot_enabled: false,
     welcome_message: "Hello! I am your AI assistant. Mention me to chat.",
@@ -724,11 +712,11 @@ function renderSettings(bot) {
     '<div id="settingsStatus" class="status" style="margin-bottom:10px;"></div>' +
 
     '<div class="settings-group"><div class="settings-group-title">AI Providers</div>' +
-    mkCheck("gemini_enabled","Gemini") + mkRow("Gemini Key", mkInput("gemini_api_key","API key")) + mkRow("Gemini Model", mkInput("gemini_model","gemini-3.1-flash-lite")) +
-    mkCheck("groq_enabled","Groq") + mkRow("Groq Key", mkInput("groq_api_key","API key")) + mkRow("Groq Model", mkInput("groq_model","llama-3.1-8b-instant")) +
-    mkCheck("openrouter_enabled","OpenRouter") + mkRow("OR Key", mkInput("openrouter_api_key","API key")) + mkRow("OR Model", mkInput("openrouter_model","nemotron-550b-free")) +
-    mkCheck("fish_enabled","Fish Audio") + mkRow("Fish Key", mkInput("fish_api_key","API key")) + mkRow("Fish Voice", mkInput("fish_voice_id","Voice ID")) + mkRow("Fish Model", mkInput("fish_model","s2.1-pro-free")) +
-    mkCheck("huggingface_enabled","Hugging Face") + mkRow("HF Key", mkInput("huggingface_api_key","API key")) + mkRow("HF Model", mkInput("huggingface_model","")) +
+    mkCheck("gemini_enabled","Gemini") + mkRow("Gemini Model", mkInput("gemini_model","gemini-3.1-flash-lite")) +
+    mkCheck("groq_enabled","Groq") + mkRow("Groq Model", mkInput("groq_model","llama-3.1-8b-instant")) +
+    mkCheck("openrouter_enabled","OpenRouter") + mkRow("OR Model", mkInput("openrouter_model","nemotron-550b-free")) +
+    mkCheck("fish_enabled","Fish Audio") + mkRow("Fish Voice", mkInput("fish_voice_id","Voice ID")) + mkRow("Fish Model", mkInput("fish_model","s2.1-pro-free")) +
+    mkCheck("huggingface_enabled","Hugging Face") + mkRow("HF Model", mkInput("huggingface_model","")) +
     mkRow("Default", mkSelect("default_provider",[{v:"gemini",l:"Gemini"},{v:"groq",l:"Groq"},{v:"openrouter",l:"OpenRouter"},{v:"huggingface",l:"Hugging Face"}])) +
     '</div>' +
 
@@ -748,8 +736,6 @@ function renderSettings(bot) {
     '</div>' +
 
     '<div class="settings-group"><div class="settings-group-title">Integrations</div>' +
-    mkCheck("minecraft_enabled","Minecraft") + mkRow("MC Host", mkInput("minecraft_host")) + mkRow("MC Port", mkInput("minecraft_port")) + mkRow("MC Username", mkInput("minecraft_username")) +
-    mkCheck("lichess_enabled","Lichess") + mkRow("Lichess Token", mkInput("lichess_api_token")) +
     mkCheck("vtuber_enabled","VTuber") + mkRow("VTuber WS Port", mkInput("vtuber_websocket_port")) +
     mkCheck("file_reading_enabled","File Reading") + mkCheck("voice_enabled","Voice") + mkCheck("random_dm_enabled","Random DMs") + mkCheck("game_bot_enabled","Game Bot") +
     mkCheck("image_vision_enabled","Image Vision") + mkCheck("video_vision_enabled","Video Vision") + mkCheck("pdf_reading_enabled","PDF Reading") + mkCheck("web_search_enabled","Web Search") +
