@@ -461,8 +461,27 @@ async function sbAuth(path, body, method) {
   if(!res.ok) throw new Error(data.msg || data.message || data.error_description || JSON.stringify(data));
   return data;
 }
+
+async function refreshSession() {
+  if(!currentSession || !currentSession.refresh_token) return false;
+  try {
+    const data = await sbAuth("/token?grant_type=refresh_token", {
+      refresh_token: currentSession.refresh_token
+    });
+    currentSession = data;
+    localStorage.setItem("sb_session", JSON.stringify(data));
+    return true;
+  } catch(e) {
+    console.error("[AUTH] Refresh failed:", e);
+    return false;
+  }
+}
 async function sbQuery(table, opts) {
   opts = opts || {};
+  if(!currentSession || !currentSession.access_token) {
+    doLogout();
+    throw new Error("Session expired. Please log in again.");
+  }
   const method = opts.method || "GET";
   const match = opts.match;
   const body = opts.body;
@@ -481,7 +500,18 @@ async function sbQuery(table, opts) {
     url += "?" + q.toString();
   }
   if(order) url += (url.indexOf("?") !== -1 ? "&" : "?") + "order=" + order;
-  const res = await fetch(url, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined });
+  let res = await fetch(url, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined });
+  // Auto-refresh on JWT expiry (PGRST303 / 401)
+  if(res.status === 401 || res.status === 403) {
+    const refreshed = await refreshSession();
+    if(refreshed) {
+      headers["Authorization"] = "Bearer " + currentSession.access_token;
+      res = await fetch(url, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined });
+    } else {
+      doLogout();
+      throw new Error("Session expired. Please log in again.");
+    }
+  }
   const data = await res.json().catch(function(){return {};});
   if(!res.ok) throw new Error(JSON.stringify(data));
   return data;
@@ -943,4 +973,3 @@ document.addEventListener("keydown", function(e){
 </script>
 </body>
 </html>
-
