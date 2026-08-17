@@ -17,7 +17,7 @@ body { width:100vw; height:100vh; overflow:hidden; background:var(--bg); font-fa
 .desk-surface { position:fixed; inset:0; pointer-events:none; z-index:1; opacity:0.4;
   background-image: linear-gradient(90deg,var(--grid) 1px,transparent 1px), linear-gradient(0deg,var(--grid) 1px,transparent 1px); background-size:40px 40px; }
 .desk-vignette { position:fixed; inset:0; pointer-events:none; background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.04) 100%); z-index:2; }
-.backdrop { position:fixed; inset:0; background:rgba(230,230,224,0.5); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity 0.6s ease; z-index:90; ; will-change:opacity}
+.backdrop { position:fixed; inset:0; background:rgba(230,230,224,0.5); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity 0.6s ease; z-index:90; will-change:opacity; }
 .backdrop.active { opacity:1; pointer-events:all; }
 
 #authOverlay { position:fixed; inset:0; z-index:1000; background:var(--bg); display:flex; align-items:center; justify-content:center; }
@@ -61,7 +61,7 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 .paper { position:fixed; background:var(--paper); backdrop-filter:blur(12px) saturate(1.2); -webkit-backdrop-filter:blur(12px) saturate(1.2); border-radius:5px; transform:translateZ(0); will-change:transform,opacity; backface-visibility:hidden; box-shadow:0 1px 3px var(--shadow-soft),0 4px 16px var(--shadow-medium),inset 0 1px 0 rgba(255,255,255,0.6); cursor:pointer; z-index:20; transition:all 0.55s var(--transition-smooth); overflow:hidden; user-select:none; border:1px solid rgba(0,0,0,0.05); }
 .paper::after { content:""; position:absolute; inset:0; background-image:linear-gradient(90deg,rgba(100,130,100,0.04) 1px,transparent 1px),linear-gradient(0deg,rgba(100,130,100,0.04) 1px,transparent 1px); background-size:20px 20px; pointer-events:none; opacity:0.6; }
 .paper-header { height:38px; background:linear-gradient(180deg,rgba(245,245,240,0.9) 0%,rgba(235,235,228,0.8) 100%); border-bottom:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; padding:0 16px; font-size:11px; font-weight:600; color:var(--ink-muted); text-transform:uppercase; letter-spacing:1.5px; position:relative; z-index:2; }
-.paper-body { padding:18px; opacity:0; transition:opacity 0.4s ease 0.15s; position:relative; z-index:2; height:calc(100% - 38px); overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; ; transform:translateZ(0)}
+.paper-body { padding:18px; opacity:0; transition:opacity 0.4s ease 0.15s; position:relative; z-index:2; height:calc(100% - 38px); overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; transform:translateZ(0); }
 .paper.open { cursor:default; } .paper.open .paper-body { opacity:1; }
 .paper-close { position:absolute; top:10px; right:12px; width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:center; font-size:11px; cursor:pointer; opacity:0; transition:all 0.3s ease; color:var(--ink-muted); z-index:10; }
 .paper.open .paper-close { opacity:1; } .paper-close:hover { background:rgba(200,100,100,0.15); color:#a06060; }
@@ -81,17 +81,17 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 .paper-left.pulled { transform:translateY(-50%) translateX(-38%) rotateY(0deg) scale(0.97); box-shadow:12px 4px 40px var(--shadow-deep); }
 .paper-left.open { transform:translateY(-50%) translateX(24px) rotateY(6deg) scale(1); box-shadow:32px 10px 64px var(--shadow-deep),10px 4px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
 
-.paper-right { right:0; top:50%; transform:translateY(-50%) translateX(90%) rotateY(6deg); width:340px; height:520px; transform-origin:right center; }
+.paper-right { right:0; top:50%; transform:translateY(-50%) translateX(90%) rotateY(6deg); width:350px; height:540px; transform-origin:right center; }
 .paper-right:hover { transform:translateY(-50%) translateX(68%) rotateY(3deg); box-shadow:-8px 4px 32px var(--shadow-medium); }
 .paper-right.pulled { transform:translateY(-50%) translateX(38%) rotateY(0deg) scale(0.97); box-shadow:-12px 4px 40px var(--shadow-deep); }
 .paper-right.open { transform:translateY(-50%) translateX(-24px) rotateY(-6deg) scale(1); box-shadow:-32px 10px 64px var(--shadow-deep),-10px 4px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
 
-.paper-tl { top:0; left:0; transform:translate(-72%,-72%) rotate(-10deg); width:240px; height:240px; transform-origin:top left; }
+.paper-tl { top:0; left:0; transform:translate(-72%,-72%) rotate(-10deg); width:250px; height:250px; transform-origin:top left; }
 .paper-tl:hover { transform:translate(-52%,-52%) rotate(-5deg); box-shadow:8px 8px 32px var(--shadow-medium); }
 .paper-tl.pulled { transform:translate(-32%,-32%) rotate(-3deg) scale(0.97); box-shadow:12px 12px 40px var(--shadow-deep); }
 .paper-tl.open { transform:translate(24px,24px) rotate(2deg) scale(1); box-shadow:24px 24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
 
-.paper-tr { top:0; right:0; transform:translate(72%,-72%) rotate(10deg); width:220px; height:260px; transform-origin:top right; }
+.paper-tr { top:0; right:0; transform:translate(72%,-72%) rotate(10deg); width:240px; height:280px; transform-origin:top right; }
 .paper-tr:hover { transform:translate(52%,-52%) rotate(5deg); box-shadow:-8px 8px 32px var(--shadow-medium); }
 .paper-tr.pulled { transform:translate(32%,-32%) rotate(3deg) scale(0.97); box-shadow:-12px 12px 40px var(--shadow-deep); }
 .paper-tr.open { transform:translate(-24px,24px) rotate(-2deg) scale(1); box-shadow:-24px 24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
@@ -307,7 +307,7 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
   <div class="paper-body">
     <div class="paper-content">
       <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; line-height:1.9; color:var(--ink-muted);">
-        <div style="color:#6a9a6a;">&#10132;  bot-saas git:(main) node server.js</div>
+        <div style="color:#6a9a6a;">&#10132;  bot-saas git:(main) python saas_bot.py</div>
         <div style="margin-top:8px; color:#7a8a9a;" id="term-line-1">Waiting for connection...</div>
         <div style="color:#a09070;" id="term-line-2">--</div>
         <div style="color:#8a7a8a;" id="term-line-3">--</div>
@@ -350,13 +350,17 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
     <div class="paper-content">
       <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; line-height:1.9; color:var(--ink-muted);">
         <div style="color:var(--ink); font-weight:600; margin-bottom:6px; font-size:11px; text-transform:uppercase; letter-spacing:1px; border-bottom:1.5px solid var(--accent-sage); padding-bottom:4px; display:inline-block;">Commands</div><br>
-        <span style="color:#7a8a9a;">/ask</span> &lt;prompt&gt;<br>
-        <span style="color:#7a8a9a;">/reset</span> &mdash; clear memory<br>
+        <span style="color:#7a8a9a;">/ask</span> &lt;prompt&gt; [img]<br>
+        <span style="color:#7a8a9a;">/summarize</span> [amount] [user]<br>
+        <span style="color:#7a8a9a;">/memory</span> &mdash; show profile<br>
+        <span style="color:#7a8a9a;">/persona</span> &lt;notes&gt;<br>
+        <span style="color:#7a8a9a;">/search</span> &lt;query&gt;<br>
+        <span style="color:#7a8a9a;">/transcribe</span> &mdash; audio STT<br>
+        <span style="color:#7a8a9a;">/reset</span> &mdash; clear channel<br>
         <span style="color:#7a8a9a;">/purgeall</span> &mdash; owner wipe<br>
-        <span style="color:#7a8a9a;">!tts</span> on | off<br>
+        <span style="color:#7a8a9a;">!tts</span> on | off | status<br>
         <span style="color:#7a8a9a;">!voice</span> &lt;id&gt;<br>
-        <span style="color:#7a8a9a;">@Bot</span> &mdash; chat<br>
-        <span style="color:#7a8a9a;">!reset</span> &mdash; text reset
+        <span style="color:#7a8a9a;">!testmistral</span> | <span style="color:#7a8a9a;">!testgemini</span>
       </div>
     </div>
   </div>
@@ -368,14 +372,17 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
   <div class="paper-header">&#128256; AI Status</div>
   <div class="paper-body">
     <div class="paper-content">
-      <h3>Providers</h3>
-      <div class="paper-item"><span class="icon" style="background:#e8f5e9; color:#4caf50; font-size:10px;">&#9679;</span>Gemini</div>
-      <div class="paper-item"><span class="icon" style="background:#f3e5f5; color:#9c27b0; font-size:10px;">&#9679;</span>Groq</div>
-      <div class="paper-item"><span class="icon" style="background:#e3f2fd; color:#2196f3; font-size:10px;">&#9679;</span>OpenRouter</div>
-      <div class="paper-item"><span class="icon" style="background:#fff3e0; color:#ff9800; font-size:10px;">&#9679;</span>Fish Audio</div>
+      <h3>Active Backends</h3>
+      <div class="paper-item"><span class="icon" style="background:#e8f5e9; color:#4caf50; font-size:10px;">&#9679;</span>Gemini (Text &amp; Vision)</div>
+      <div class="paper-item"><span class="icon" style="background:#f3e5f5; color:#9c27b0; font-size:10px;">&#9679;</span>Groq (LLM &amp; Whisper)</div>
+      <div class="paper-item"><span class="icon" style="background:#fff3e0; color:#ff6f00; font-size:10px;">&#9679;</span>Mistral (Text &amp; Pixtral)</div>
+      <div class="paper-item"><span class="icon" style="background:#e3f2fd; color:#2196f3; font-size:10px;">&#9679;</span>OpenRouter (Vision / LLM)</div>
+      <div class="paper-item"><span class="icon" style="background:#e8f8f5; color:#1abc9c; font-size:10px;">&#9679;</span>Edge Neural TTS (Free)</div>
+      <div class="paper-item"><span class="icon" style="background:#fce4ec; color:#e91e63; font-size:10px;">&#9679;</span>ElevenLabs Studio</div>
+      <div class="paper-item"><span class="icon" style="background:#ede7f6; color:#673ab7; font-size:10px;">&#9679;</span>Cartesia Sonic</div>
       <div class="paper-item"><span class="icon" style="background:#fffde7; color:#f9a825; font-size:10px;">&#9679;</span>Hugging Face</div>
       <div style="margin-top:10px; font-size:10px; color:var(--ink-faint); line-height:1.5;">
-        Provider status is managed by the SaaS backend owner. Configure which one your bot uses in Settings.
+        Provider keys are loaded securely on the backend. Multi-tier auto-failover ensures 100% uptime.
       </div>
     </div>
   </div>
@@ -384,12 +391,16 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 <div class="paper paper-bl" data-paper="bl">
   <div class="paper-clip"></div>
   <div class="paper-close">&#10005;</div>
-  <div class="paper-header">&#128030; Contexts</div>
+  <div class="paper-header">&#128030; Memory &amp; Context</div>
   <div class="paper-body">
     <div class="paper-content">
-      <h3>Memory</h3>
-      <div style="font-size:11px; color:var(--ink-faint); line-height:1.6;">
-        Context memory is stored per-channel by the backend. Use <b>/reset</b> in Discord to clear a channel, or <b>/purgeall</b> (owner only) to wipe everything.
+      <h3>Memory Profiling</h3>
+      <div style="font-size:11px; color:var(--ink-muted); line-height:1.6;">
+        User memory is tracked across conversations. The bot remembers:
+        <br>&bull; User facts and preferences
+        <br>&bull; Notable user quotes &amp; inside jokes
+        <br>&bull; Discord activities &amp; guild roles
+        <br>&bull; Scene context in servers &amp; DMs
       </div>
     </div>
   </div>
@@ -403,9 +414,10 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
     <div class="paper-content">
       <h3>Quick Links</h3>
       <div class="paper-item" onclick="window.open('https://discord.com/developers/applications','_blank')"><span class="icon">&#127918;</span>Discord Dev Portal</div>
-      <div class="paper-item" onclick="window.open('https://fish.audio','_blank')"><span class="icon">&#128266;</span>Fish Audio Voices</div>
-      <div class="paper-item" onclick="window.open('https://openrouter.ai','_blank')"><span class="icon">&#129504;</span>OpenRouter Models</div>
+      <div class="paper-item" onclick="window.open('https://console.mistral.ai','_blank')"><span class="icon">&#129302;</span>Mistral Console</div>
       <div class="paper-item" onclick="window.open('https://groq.com','_blank')"><span class="icon">&#9889;</span>Groq Console</div>
+      <div class="paper-item" onclick="window.open('https://openrouter.ai','_blank')"><span class="icon">&#129504;</span>OpenRouter Models</div>
+      <div class="paper-item" onclick="window.open('https://elevenlabs.io','_blank')"><span class="icon">&#127908;</span>ElevenLabs</div>
     </div>
   </div>
 </div>
@@ -426,7 +438,7 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 <div class="desk-object ruler" title="Ruler" onclick="showToast('Guidelines toggled')">
   <div class="ruler-body"><div class="ruler-markings"></div></div>
 </div>
-<div class="desk-object eraser" title="Eraser" onclick="showToast('Memory is managed via Discord commands')">
+<div class="desk-object eraser" title="Eraser" onclick="showToast('Memory is managed via Discord commands (/memory, /summarize)')">
   <div class="eraser-body"></div>
 </div>
 
@@ -501,7 +513,6 @@ async function sbQuery(table, opts) {
   }
   if(order) url += (url.indexOf("?") !== -1 ? "&" : "?") + "order=" + order;
   let res = await fetch(url, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined });
-  // Auto-refresh on JWT expiry (PGRST303 / 401)
   if(res.status === 401 || res.status === 403) {
     const refreshed = await refreshSession();
     if(refreshed) {
@@ -707,14 +718,15 @@ function escapeHtml(t) {
   const d = document.createElement("div"); d.textContent = t; return d.innerHTML;
 }
 
-/* ---------- SETTINGS (matches saas_bot.py DEFAULT_CONFIG) ---------- */
+/* ---------- SETTINGS (Aligned with saas_bot.py DEFAULT_CONFIG) ---------- */
 function getDefaultSettings() {
   return {
-    personality: "You are a helpful, friendly assistant. Be concise and direct.",
+    personality: "You are a helpful, friendly, and deeply engaging companion. Speak naturally, express opinions, and remember details about users.",
     provider: "auto",
-    gemini_model: "gemini-3.1-flash-lite",
-    groq_model: "llama-3.1-8b-instant",
-    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
+    gemini_model: "gemini-3-flash-preview",
+    groq_model: "openai/gpt-oss-120b",
+    mistral_model: "mistral-small-latest",
+    model: "meta-llama/llama-3.3-70b-instruct",
     use_custom_model: false,
     custom_model: "",
     max_tokens: 800,
@@ -726,11 +738,23 @@ function getDefaultSettings() {
     max_context: 10,
     cooldown_seconds: 10,
     tts_enabled: false,
+    tts_provider: "auto",
+    elevenlabs_voice_id: "21m00Tcm4TlvDq8ikWAM",
+    elevenlabs_model: "eleven_turbo_v2_5",
+    openai_voice: "nova",
+    openai_model: "tts-1",
+    cartesia_voice_id: "a0e99841-438c-4a64-b679-ae501e7d6091",
+    cartesia_model: "sonic-3.5",
+    groq_tts_voice: "hannah",
+    groq_tts_model: "canopylabs/orpheus-v1-english",
+    edge_tts_voice: "en-US-AvaMultilingualNeural",
     fish_voice_id: "",
     fish_model: "s2.1-pro-free",
     vision_enabled: true,
-    vision_provider: "openrouter",
-    auto_search: false,
+    vision_provider: "gemini",
+    vision_model: "meta-llama/llama-3.2-11b-vision-instruct",
+    gemini_vision_model: "gemini-3-flash-preview",
+    auto_search: true,
     user_memory_enabled: true,
     open_chat_enabled: false,
     auto_stt: false,
@@ -747,13 +771,12 @@ function getDefaultSettings() {
     bot_name_triggers: "bot",
     file_reading_enabled: true,
     video_watching_enabled: true,
-    vision_model: "nex-agi/nex-n2-pro",
-    gemini_vision_model: "gemini-1.5-flash-latest",
     bot_conversation_enabled: false,
     bot_conversation_max: 2,
     huggingface_model: ""
   };
 }
+
 function renderSettings(bot) {
   const s = bot.settings || getDefaultSettings();
   const body = $("settingsBody");
@@ -787,92 +810,118 @@ function renderSettings(bot) {
     '</div>' +
 
     '<div class="settings-group"><div class="settings-group-title">AI Provider</div>' +
-    mkRow("Provider", mkSelect("provider",[{v:"auto",l:"Auto (fallback chain)"},{v:"gemini",l:"Gemini Only"},{v:"groq",l:"Groq Only"},{v:"openrouter",l:"OpenRouter Only"},{v:"huggingface",l:"Hugging Face Only"}])) +
+    mkRow("Provider", mkSelect("provider",[
+      {v:"auto",l:"Auto (Gemini -> Groq -> Mistral -> OpenRouter -> HF)"},
+      {v:"gemini",l:"Gemini Only"},
+      {v:"groq",l:"Groq Only"},
+      {v:"mistral",l:"Mistral Only"},
+      {v:"openrouter",l:"OpenRouter Only"},
+      {v:"huggingface",l:"Hugging Face Only"}
+    ])) +
     '</div>' +
 
     '<div class="settings-group"><div class="settings-group-title">Models</div>' +
-    mkRow("Gemini", mkInput("gemini_model","gemini-3.1-flash-lite")) +
-    mkRow("Groq", mkInput("groq_model","llama-3.1-8b-instant")) +
-    mkRow("HF", mkInput("huggingface_model","meta-llama/Llama-3.3-70B-Instruct")) +
-    mkRow("OR", mkSelect("model",[{v:"nvidia/nemotron-3-ultra-550b-a55b:free",l:"Nemotron 3 Ultra 550B (Free)"},{v:"openrouter/free",l:"Auto (Free)"},{v:"google/gemini-2.0-flash-exp:free",l:"Gemini 2.0 Flash (Free)"},{v:"meta-llama/llama-3.3-70b-instruct:free",l:"Llama 3.3 70B (Free)"},{v:"deepseek/deepseek-chat:free",l:"DeepSeek Chat (Free)"},{v:"mistralai/mistral-7b-instruct:free",l:"Mistral 7B (Free)"}])) +
-    mkCheck("use_custom_model","Use Custom") +
-    mkRow("Custom", mkInput("custom_model","anthropic/claude-3.5-sonnet")) +
+    mkRow("Gemini Model", mkInput("gemini_model","gemini-3-flash-preview")) +
+    mkRow("Groq Model", mkInput("groq_model","openai/gpt-oss-120b")) +
+    mkRow("Mistral Model", mkInput("mistral_model","mistral-small-latest")) +
+    mkRow("Hugging Face Model", mkInput("huggingface_model","Qwen/Qwen2.5-72B-Instruct")) +
+    mkRow("OpenRouter Model", mkInput("model","meta-llama/llama-3.3-70b-instruct")) +
+    mkCheck("use_custom_model","Use Custom OpenRouter Model") +
+    mkRow("Custom Model Slug", mkInput("custom_model","anthropic/claude-3.5-sonnet")) +
     '</div>' +
 
-    '<div class="settings-group"><div class="settings-group-title">Generation</div>' +
+    '<div class="settings-group"><div class="settings-group-title">Generation Parameters</div>' +
     '<div class="settings-col2">' +
-    '<div>' + mkRow("Max Tokens", mkInput("max_tokens","","number")) + '</div>' +
-    '<div>' + mkRow("Temperature", mkInput("temperature","","number","0.1")) + '</div>' +
-    '<div>' + mkRow("Top P", mkInput("top_p","","number","0.05")) + '</div>' +
-    '<div>' + mkRow("Cooldown (s)", mkInput("cooldown_seconds","","number")) + '</div>' +
-    '<div>' + mkRow("Freq Penalty", mkInput("frequency_penalty","","number","0.1")) + '</div>' +
-    '<div>' + mkRow("Pres Penalty", mkInput("presence_penalty","","number","0.1")) + '</div>' +
+    '<div>' + mkRow("Max Tokens", mkInput("max_tokens","800","number")) + '</div>' +
+    '<div>' + mkRow("Temperature", mkInput("temperature","0.7","number","0.1")) + '</div>' +
+    '<div>' + mkRow("Top P", mkInput("top_p","1.0","number","0.05")) + '</div>' +
+    '<div>' + mkRow("Cooldown (s)", mkInput("cooldown_seconds","10","number")) + '</div>' +
+    '<div>' + mkRow("Freq Penalty", mkInput("frequency_penalty","0.0","number","0.1")) + '</div>' +
+    '<div>' + mkRow("Pres Penalty", mkInput("presence_penalty","0.0","number","0.1")) + '</div>' +
     '</div>' +
     '</div>' +
 
-    '<div class="settings-group"><div class="settings-group-title">Memory</div>' +
+    '<div class="settings-group"><div class="settings-group-title">Memory &amp; Profiling</div>' +
     mkCheck("context_enabled","Context Enabled") +
-    mkRow("Max Context", mkInput("max_context","","number")) +
-    mkCheck("user_memory_enabled","User Memory (per-user profiles)") +
+    mkRow("Max Context", mkInput("max_context","10","number")) +
+    mkCheck("user_memory_enabled","Track User Memories &amp; Scene Context") +
     '</div>' +
 
-    '<div class="settings-group"><div class="settings-group-title">Voice (Fish Audio)</div>' +
-    mkCheck("tts_enabled","TTS Enabled") +
-    mkRow("Voice ID", mkInput("fish_voice_id","paste Fish Audio voice ID")) +
+    '<div class="settings-group"><div class="settings-group-title">Voice &amp; Multi-Engine TTS</div>' +
+    mkCheck("tts_enabled","Enable Voice Audio Responses") +
+    mkRow("TTS Engine", mkSelect("tts_provider",[
+      {v:"auto",l:"Auto (ElevenLabs -> OpenAI -> Cartesia -> Groq -> Edge -> Fish)"},
+      {v:"edge",l:"Edge Neural TTS (Free, zero keys)"},
+      {v:"elevenlabs",l:"ElevenLabs Studio"},
+      {v:"openai",l:"OpenAI TTS"},
+      {v:"cartesia",l:"Cartesia Sonic"},
+      {v:"groq",l:"Groq Orpheus"},
+      {v:"fish",l:"Fish Audio"}
+    ])) +
+    mkRow("Edge Voice", mkInput("edge_tts_voice","en-US-AvaMultilingualNeural")) +
+    mkRow("ElevenLabs Voice ID", mkInput("elevenlabs_voice_id","21m00Tcm4TlvDq8ikWAM")) +
+    mkRow("OpenAI Voice", mkInput("openai_voice","nova")) +
+    mkRow("Cartesia Voice ID", mkInput("cartesia_voice_id","a0e99841-438c-4a64-b679-ae501e7d6091")) +
+    mkRow("Fish Audio Voice ID", mkInput("fish_voice_id","paste Fish Audio reference ID")) +
     mkRow("Fish Model", mkSelect("fish_model",[{v:"s2.1-pro-free",l:"s2.1-pro-free"},{v:"s2-pro",l:"s2-pro"},{v:"s2",l:"s2"}])) +
     '</div>' +
 
-    '<div class="settings-group"><div class="settings-group-title">Vision</div>' +
-    mkCheck("vision_enabled","Vision Enabled") +
-    mkRow("Vision Provider", mkSelect("vision_provider",[{v:"openrouter",l:"OpenRouter"},{v:"gemini",l:"Gemini"}])) +
-    mkRow("OR Vision Model", mkInput("vision_model","nex-agi/nex-n2-pro")) +
-    mkRow("Gemini Vision", mkInput("gemini_vision_model","gemini-1.5-flash-latest")) +
+    '<div class="settings-group"><div class="settings-group-title">Vision &amp; Image Understanding</div>' +
+    mkCheck("vision_enabled","Enable Vision") +
+    mkRow("Vision Provider", mkSelect("vision_provider",[
+      {v:"gemini",l:"Gemini Vision (Fast & Accurate)"},
+      {v:"mistral",l:"Mistral Pixtral Vision"},
+      {v:"openrouter",l:"OpenRouter Vision"}
+    ])) +
+    mkRow("Gemini Vision Model", mkInput("gemini_vision_model","gemini-3-flash-preview")) +
+    mkRow("OpenRouter Vision Model", mkInput("vision_model","meta-llama/llama-3.2-11b-vision-instruct")) +
     '</div>' +
 
-    '<div class="settings-group"><div class="settings-group-title">File & Video</div>' +
-    mkCheck("file_reading_enabled","Read PDF/DOCX/CSV attachments") +
-    mkCheck("video_watching_enabled","Watch video attachments (ffmpeg)") +
+    '<div class="settings-group"><div class="settings-group-title">File &amp; Video Understanding</div>' +
+    mkCheck("file_reading_enabled","Read PDF/DOCX/CSV document attachments") +
+    mkCheck("video_watching_enabled","Watch and analyze video attachments (ffmpeg frames)") +
     '</div>' +
 
-    '<div class="settings-group"><div class="settings-group-title">Auto Features</div>' +
-    mkCheck("auto_search","Auto web search (realtime queries)") +
-    mkCheck("auto_stt","Auto-STT (transcribe audio msgs)") +
-    mkCheck("open_chat_enabled","Open chat (reply on name trigger)") +
+    '<div class="settings-group"><div class="settings-group-title">Autonomous Features</div>' +
+    mkCheck("auto_search","Proactive web search on real-time queries") +
+    mkCheck("auto_stt","Auto-STT (transcribe audio/voice notes via Whisper)") +
+    mkCheck("open_chat_enabled","Open chat (trigger on bot name mention)") +
     '</div>' +
 
     '<div class="settings-group"><div class="settings-group-title">Message Splitting</div>' +
-    mkCheck("message_split_enabled","Split long replies into multiple msgs") +
+    mkCheck("message_split_enabled","Split long replies into natural separate messages") +
     '<div class="settings-col3">' +
-    '<div>' + mkRow("Min", mkInput("message_split_min","","number")) + '</div>' +
-    '<div>' + mkRow("Max", mkInput("message_split_max","","number")) + '</div>' +
-    '<div>' + mkRow("Delay(s)", mkInput("message_split_delay","","number","0.1")) + '</div>' +
+    '<div>' + mkRow("Min Msgs", mkInput("message_split_min","1","number")) + '</div>' +
+    '<div>' + mkRow("Max Msgs", mkInput("message_split_max","3","number")) + '</div>' +
+    '<div>' + mkRow("Delay (s)", mkInput("message_split_delay","1.0","number","0.1")) + '</div>' +
     '</div>' +
     '</div>' +
 
     '<div class="settings-group"><div class="settings-group-title">Random DMs</div>' +
-    mkCheck("random_dms_enabled","Send random DMs to past users") +
-    mkRow("Interval (min)", mkInput("random_dms_interval_minutes","","number")) +
-    mkRow("DM Prompt", mkInput("random_dms_prompt","casual check-in prompt")) +
+    mkCheck("random_dms_enabled","Send casual check-in DMs to past users") +
+    mkRow("Interval (min)", mkInput("random_dms_interval_minutes","60","number")) +
+    mkRow("DM Prompt", mkInput("random_dms_prompt","Send a casual, friendly message to check in.")) +
     '</div>' +
 
-    '<div class="settings-group"><div class="settings-group-title">Random Chat</div>' +
-    mkCheck("random_chat_enabled","Randomly join channel conversations") +
+    '<div class="settings-group"><div class="settings-group-title">Random Server Chat</div>' +
+    mkCheck("random_chat_enabled","Randomly participate in server discussions") +
     '<div class="settings-col2">' +
-    '<div>' + mkRow("Chance (0-1)", mkInput("random_chat_chance","","number","0.01")) + '</div>' +
-    '<div>' + mkRow("Context msgs", mkInput("random_chat_context_limit","","number")) + '</div>' +
+    '<div>' + mkRow("Chance (0-1)", mkInput("random_chat_chance","0.05","number","0.01")) + '</div>' +
+    '<div>' + mkRow("Context msgs", mkInput("random_chat_context_limit","50","number")) + '</div>' +
     '</div>' +
     '</div>' +
 
     '<div class="settings-group"><div class="settings-group-title">Bot Name Triggers</div>' +
-    mkRow("Triggers (comma)", mkInput("bot_name_triggers","bot, ai, helper")) +
+    mkRow("Triggers (comma-separated)", mkInput("bot_name_triggers","bot, ai, helper")) +
     '</div>' +
 
     '<div class="settings-group"><div class="settings-group-title">Bot Conversation</div>' +
     mkCheck("bot_conversation_enabled","Allow Bot-to-Bot Chat") +
-    mkRow("Max Exchanges (1-3)", mkInput("bot_conversation_max","","number")) +
-    '<div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px; line-height:1.5;">OFF by default to prevent infinite loops. When ON, bots may chat with each other for only 1-3 messages before stopping.</div>' +
+    mkRow("Max Exchanges (1-3)", mkInput("bot_conversation_max","2","number")) +
+    '<div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px; line-height:1.5;">OFF by default to prevent infinite loops. When ON, bots chat for up to 1-3 messages before stopping.</div>' +
     '</div>';
 }
+
 async function saveSettings() {
   if(!currentBot) { setStatus("settingsStatus", "No bot selected", "err"); return; }
   const keys = Object.keys(getDefaultSettings());
@@ -895,6 +944,7 @@ async function saveSettings() {
     setStatus("settingsStatus", e.message, "err");
   }
 }
+
 function resetSettings() {
   if(!currentBot) return;
   if(!confirm("Reset all settings to defaults?")) return;
