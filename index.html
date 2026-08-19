@@ -354,13 +354,13 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
         <span style="color:#7a8a9a;">/summarize</span> [amount] [user]<br>
         <span style="color:#7a8a9a;">/memory</span> &mdash; show profile<br>
         <span style="color:#7a8a9a;">/persona</span> &lt;notes&gt;<br>
+        <span style="color:#7a8a9a;">/forgetme</span> &mdash; wipe my memory<br>
+        <span style="color:#7a8a9a;">/purgememory</span> &lt;all|self|user|channel&gt;<br>
+        <span style="color:#7a8a9a;">/purgeall</span> &mdash; owner full wipe<br>
+        <span style="color:#7a8a9a;">/reset</span> &mdash; clear channel<br>
         <span style="color:#7a8a9a;">/search</span> &lt;query&gt;<br>
         <span style="color:#7a8a9a;">/transcribe</span> &mdash; audio STT<br>
-        <span style="color:#7a8a9a;">/reset</span> &mdash; clear channel<br>
-        <span style="color:#7a8a9a;">/purgeall</span> &mdash; owner wipe<br>
-        <span style="color:#7a8a9a;">!tts</span> on | off | status<br>
-        <span style="color:#7a8a9a;">!voice</span> &lt;id&gt;<br>
-        <span style="color:#7a8a9a;">!testmistral</span> | <span style="color:#7a8a9a;">!testgemini</span>
+        <span style="color:#7a8a9a;">!forgetme</span> | <span style="color:#7a8a9a;">!purgeall</span>
       </div>
     </div>
   </div>
@@ -726,6 +726,13 @@ function getDefaultSettings() {
     gemini_model: "gemini-3-flash-preview",
     groq_model: "openai/gpt-oss-120b",
     mistral_model: "mistral-small-latest",
+    openai_chat_model: "gpt-4o-mini",
+    openai_key: "",
+    openai_base_url: "",
+    openai_vision_model: "gpt-4o-mini",
+    deepseek_model: "deepseek-chat",
+    deepseek_key: "",
+    deepseek_base_url: "",
     model: "meta-llama/llama-3.3-70b-instruct",
     use_custom_model: false,
     custom_model: "",
@@ -811,10 +818,12 @@ function renderSettings(bot) {
 
     '<div class="settings-group"><div class="settings-group-title">AI Provider</div>' +
     mkRow("Provider", mkSelect("provider",[
-      {v:"auto",l:"Auto (Gemini -> Groq -> Mistral -> OpenRouter -> HF)"},
+      {v:"auto",l:"Auto (Gemini -> Groq -> Mistral -> OpenAI -> DeepSeek -> OpenRouter -> HF)"},
       {v:"gemini",l:"Gemini Only"},
       {v:"groq",l:"Groq Only"},
       {v:"mistral",l:"Mistral Only"},
+      {v:"openai",l:"OpenAI Only"},
+      {v:"deepseek",l:"DeepSeek Only"},
       {v:"openrouter",l:"OpenRouter Only"},
       {v:"huggingface",l:"Hugging Face Only"}
     ])) +
@@ -824,6 +833,10 @@ function renderSettings(bot) {
     mkRow("Gemini Model", mkInput("gemini_model","gemini-3-flash-preview")) +
     mkRow("Groq Model", mkInput("groq_model","openai/gpt-oss-120b")) +
     mkRow("Mistral Model", mkInput("mistral_model","mistral-small-latest")) +
+    mkRow("OpenAI Model", mkInput("openai_chat_model","gpt-4o-mini (custom model strings supported)")) +
+    mkRow("OpenAI API Key", mkInput("openai_key","sk-... (leave blank to use owner key)","password")) +
+    mkRow("DeepSeek Model", mkInput("deepseek_model","deepseek-chat / deepseek-reasoner")) +
+    mkRow("DeepSeek API Key", mkInput("deepseek_key","sk-... (leave blank to use owner key)","password")) +
     mkRow("Hugging Face Model", mkInput("huggingface_model","Qwen/Qwen2.5-72B-Instruct")) +
     mkRow("OpenRouter Model", mkInput("model","meta-llama/llama-3.3-70b-instruct")) +
     mkCheck("use_custom_model","Use Custom OpenRouter Model") +
@@ -870,10 +883,12 @@ function renderSettings(bot) {
     mkCheck("vision_enabled","Enable Vision") +
     mkRow("Vision Provider", mkSelect("vision_provider",[
       {v:"gemini",l:"Gemini Vision (Fast & Accurate)"},
+      {v:"openai",l:"OpenAI Vision (GPT-4o / GPT-4o-mini)"},
       {v:"mistral",l:"Mistral Pixtral Vision"},
       {v:"openrouter",l:"OpenRouter Vision"}
     ])) +
     mkRow("Gemini Vision Model", mkInput("gemini_vision_model","gemini-3-flash-preview")) +
+    mkRow("OpenAI Vision Model", mkInput("openai_vision_model","gpt-4o-mini")) +
     mkRow("OpenRouter Vision Model", mkInput("vision_model","meta-llama/llama-3.2-11b-vision-instruct")) +
     '</div>' +
 
