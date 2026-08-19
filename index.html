@@ -730,6 +730,9 @@ function getDefaultSettings() {
     openai_key: "",
     openai_base_url: "",
     openai_vision_model: "gpt-4o-mini",
+    custom_base_url: "",
+    custom_key: "",
+    custom_model: "",
     deepseek_model: "deepseek-chat",
     deepseek_key: "",
     deepseek_base_url: "",
@@ -823,13 +826,20 @@ function renderSettings(bot) {
       {v:"groq",l:"Groq Only"},
       {v:"mistral",l:"Mistral Only"},
       {v:"openai",l:"OpenAI Only"},
+      {v:"custom",l:"Custom Endpoint (LiteRouter / Local Tunnel / OpenAI Compatible)"},
       {v:"deepseek",l:"DeepSeek Only"},
       {v:"openrouter",l:"OpenRouter Only"},
       {v:"huggingface",l:"Hugging Face Only"}
     ])) +
     '</div>' +
 
-    '<div class="settings-group"><div class="settings-group-title">Models</div>' +
+    '<div class="settings-group"><div class="settings-group-title">Custom Endpoint (LiteRouter / Local Tunnel / Any OpenAI API)</div>' +
+    mkRow("Base URL", mkInput("custom_base_url","https://api.literouter.com/v1 or http://localhost:11434/v1")) +
+    mkRow("API Key / Token", mkInput("custom_key","API key / token (leave blank for local tunnels)","password")) +
+    mkRow("Model Name", mkInput("custom_model","e.g. claude-3-7-sonnet, deepseek-r1, llama-3.3-70b")) +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Standard Models</div>' +
     mkRow("Gemini Model", mkInput("gemini_model","gemini-3-flash-preview")) +
     mkRow("Groq Model", mkInput("groq_model","openai/gpt-oss-120b")) +
     mkRow("Mistral Model", mkInput("mistral_model","mistral-small-latest")) +
@@ -840,7 +850,6 @@ function renderSettings(bot) {
     mkRow("Hugging Face Model", mkInput("huggingface_model","Qwen/Qwen2.5-72B-Instruct")) +
     mkRow("OpenRouter Model", mkInput("model","meta-llama/llama-3.3-70b-instruct")) +
     mkCheck("use_custom_model","Use Custom OpenRouter Model") +
-    mkRow("Custom Model Slug", mkInput("custom_model","anthropic/claude-3.5-sonnet")) +
     '</div>' +
 
     '<div class="settings-group"><div class="settings-group-title">Generation Parameters</div>' +
