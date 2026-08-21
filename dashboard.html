@@ -614,25 +614,42 @@ async function addBot() {
   setStatus("addBotStatus", "Saving...", "info");
   try {
     let botName = "Bot " + clientId.slice(-4);
+    let avatarUrl = null;
     try {
       const dres = await fetch("https://discord.com/api/v10/users/@me", { headers:{"Authorization":"Bot "+token} });
-      if(dres.ok) { const d = await dres.json(); botName = d.username || botName; }
+      if(dres.ok) {
+        const d = await dres.json();
+        botName = d.username || botName;
+        if(d.avatar && d.id) {
+          avatarUrl = `https://cdn.discordapp.com/avatars/${d.id}/${d.avatar}.png?size=1024`;
+        }
+      }
     } catch(e){}
 
     const existing = await sbQuery("user_bots", { match:{user_id: currentSession.user.id, bot_id: clientId} });
     if(existing && existing.length > 0) {
+      const exSettings = existing[0].settings || {};
+      if(avatarUrl) {
+        exSettings.avatar_url = avatarUrl;
+        exSettings.pfp = avatarUrl;
+      }
       await sbQuery("user_bots", { method:"PATCH", match:{id: existing[0].id}, body:{
-        discord_token: token, bot_name: botName, is_active: true
+        discord_token: token, bot_name: botName, is_active: true, settings: exSettings
       }});
       showToast("Token updated for existing bot");
     } else {
+      const initSettings = getDefaultSettings();
+      if(avatarUrl) {
+        initSettings.avatar_url = avatarUrl;
+        initSettings.pfp = avatarUrl;
+      }
       await sbQuery("user_bots", { method:"POST", body:{
         user_id: currentSession.user.id,
         discord_token: token,
         bot_id: clientId,
         bot_name: botName,
         is_active: true,
-        settings: getDefaultSettings()
+        settings: initSettings
       }});
       showToast("Bot connected successfully");
     }
@@ -987,7 +1004,8 @@ function renderSettings(bot) {
 async function saveSettings() {
   if(!currentBot) { setStatus("settingsStatus", "No bot selected", "err"); return; }
   const keys = Object.keys(getDefaultSettings());
-  const newSettings = {};
+  const oldSettings = (currentBot && currentBot.settings) || {};
+  const newSettings = { ...oldSettings };
   keys.forEach(function(k){
     const el = $("set_" + k);
     if(!el) return;
@@ -996,6 +1014,13 @@ async function saveSettings() {
     else if(typeof def === "number") newSettings[k] = parseFloat(el.value) || 0;
     else newSettings[k] = el.value;
   });
+
+  // Preserve avatar, PFP, owner, and interactions so drafting updates never lose them
+  if (oldSettings.avatar_url && !newSettings.avatar_url) newSettings.avatar_url = oldSettings.avatar_url;
+  if (oldSettings.pfp && !newSettings.pfp) newSettings.pfp = oldSettings.pfp;
+  if (oldSettings.owner_username && !newSettings.owner_username) newSettings.owner_username = oldSettings.owner_username;
+  if (oldSettings.interactions && !newSettings.interactions) newSettings.interactions = oldSettings.interactions;
+
   setStatus("settingsStatus", "Saving...", "info");
   try {
     if(currentBot.id) {

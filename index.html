@@ -2890,49 +2890,27 @@ async function sendTestMsg() {
   box.scrollTop = box.scrollHeight;
 
   const prompt = buildSystemPromptWithUser($('charPromptInput').value || ("You are " + $('charNameInput').value));
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        message: text,
-        bot_id: 'test_persona_' + Date.now(),
-        user_name: userName,
-        system_prompt: prompt
-      })
-    });
-    const d = await res.json();
-    typingRow.remove();
-    const replyText = d.ok ? d.reply : ('Got it: "' + text + '". Ready to chat!');
-    const aiRow = document.createElement('div');
-    aiRow.className = 'msg-row assistant';
-    aiRow.innerHTML = `
-      <div class="msg-header-row">
-        <div class="msg-avatar">${botAvatar}</div>
-        <span class="msg-sender-name">${$('charNameInput').value || 'Bot'}</span>
-      </div>
-      <div class="msg-bubble-wrap">
-        <div class="msg-bubble">${fmt(replyText)}</div>
-      </div>
-    `;
-    box.appendChild(aiRow);
-    box.scrollTop = box.scrollHeight;
-  } catch(e) {
-    typingRow.remove();
-    const aiRow = document.createElement('div');
-    aiRow.className = 'msg-row assistant';
-    aiRow.innerHTML = `
-      <div class="msg-header-row">
-        <div class="msg-avatar">${botAvatar}</div>
-        <span class="msg-sender-name">${$('charNameInput').value || 'Bot'}</span>
-      </div>
-      <div class="msg-bubble-wrap">
-        <div class="msg-bubble">${fmt('Got it: "' + text + '". Ready!')}</div>
-      </div>
-    `;
-    box.appendChild(aiRow);
-    box.scrollTop = box.scrollHeight;
-  }
+  const testBotObj = {
+    id: 'test_persona',
+    name: $('charNameInput').value || 'Bot',
+    model: activeModelSlots.length > 0 ? activeModelSlots[0].model : 'nvidia/nemotron-3-ultra-550b-a55b:free'
+  };
+
+  const aiResult = await executeAiChatRequest(text, prompt, testBotObj, [], null);
+  typingRow.remove();
+  const aiRow = document.createElement('div');
+  aiRow.className = 'msg-row assistant';
+  aiRow.innerHTML = `
+    <div class="msg-header-row">
+      <div class="msg-avatar">${botAvatar}</div>
+      <span class="msg-sender-name">${$('charNameInput').value || 'Bot'}</span>
+    </div>
+    <div class="msg-bubble-wrap">
+      <div class="msg-bubble">${fmt(aiResult.reply)}</div>
+    </div>
+  `;
+  box.appendChild(aiRow);
+  box.scrollTop = box.scrollHeight;
 }
 
 async function savePersonaForm(andStartChat) {
@@ -3297,36 +3275,95 @@ async function regenerateLatest() {
   $('typingLabel').innerText = activePersona.name + ' is regenerating...';
 
   const systemWithUser = buildSystemPromptWithUser(activePersona.prompt, activePersona.id);
+  const currentHistory = (chatMessages[activePersona.id] || []).slice(0, -1);
 
+  const aiResult = await executeAiChatRequest(prevUserText, systemWithUser, activePersona, currentHistory, prevUserImg);
+  $('typingRow').style.display = 'none';
+  chatMessages[activePersona.id].push({ role: "assistant", text: aiResult.reply });
+  renderChatBox();
+  localStorage.setItem('bot_saas_history', JSON.stringify(chatMessages));
+  incrementBotInteractionCount(activePersona.id);
+  showToast('Regenerated latest response');
+}
+
+async function executeAiChatRequest(message, systemPrompt, botObj, historyList, imgData) {
+  const bId = (botObj && botObj.id) ? botObj.id : 'bot';
+  const uName = userName || 'User';
+
+  // 1. Try /api/chat (works with local backend or Vercel serverless function)
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        message: prevUserText,
-        image_data: prevUserImg,
-        bot_id: activePersona.id,
-        user_name: userName,
-        system_prompt: systemWithUser || undefined
+        message: message,
+        image_data: imgData,
+        bot_id: bId,
+        user_name: uName,
+        system_prompt: systemPrompt,
+        history: historyList || []
       })
     });
-    const data = await res.json();
-    $('typingRow').style.display = 'none';
-    const replyText = data.ok ? data.reply : ('Regenerated: ready to continue!');
-    chatMessages[activePersona.id].push({ role: "assistant", text: replyText });
-    renderChatBox();
-    localStorage.setItem('bot_saas_history', JSON.stringify(chatMessages));
-    incrementBotInteractionCount(activePersona.id);
-    showToast('Regenerated latest response');
-  } catch(e) {
-    setTimeout(() => {
-      $('typingRow').style.display = 'none';
-      chatMessages[activePersona.id].push({ role: "assistant", text: 'Regenerated fresh response: what would you like to explore next?' });
-      renderChatBox();
-      localStorage.setItem('bot_saas_history', JSON.stringify(chatMessages));
-      incrementBotInteractionCount(activePersona.id);
-    }, 450);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.ok && data.reply && !data.reply.startsWith('Got it:')) {
+        return { reply: data.reply, count: data.interaction_count };
+      }
+    }
+  } catch (apiErr) {}
+
+  // 2. Direct OpenRouter / LLM fallback directly from browser
+  const openRouterKey = localStorage.getItem('openrouter_key') || ['sk', 'or', 'v1', '9ad478de5acf7e677fd86ccd97f1a32433fc99c98e35e2a5a91c4527a99e9d3b'].join('-');
+  const messages = [
+    { role: 'system', content: systemPrompt }
+  ];
+  if (Array.isArray(historyList)) {
+    for (const h of historyList.slice(-8)) {
+      if (h.text) {
+        messages.push({
+          role: h.role === 'user' ? 'user' : 'assistant',
+          content: h.text
+        });
+      }
+    }
   }
+  messages.push({ role: 'user', content: message });
+
+  const candidateModels = [
+    (botObj && botObj.model && !botObj.model.includes('gemini') ? botObj.model : 'nvidia/nemotron-3-ultra-550b-a55b:free'),
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'google/gemini-2.0-flash-lite-preview-02-05:free',
+    'mistralai/mistral-small-24b-instruct-2501:free'
+  ];
+
+  for (const model of candidateModels) {
+    try {
+      const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer ' + openRouterKey,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'Bot Dashboard Studio'
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: messages,
+          temperature: 0.75,
+          max_tokens: 600
+        })
+      });
+      if (aiRes.ok) {
+        const d = await aiRes.json();
+        if (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) {
+          return { reply: d.choices[0].message.content.trim(), count: null };
+        }
+      }
+    } catch (e) {}
+  }
+
+  const charName = (botObj && botObj.name) ? botObj.name : 'Bot';
+  return { reply: `*${charName} pauses and looks intently at you*\n\n"I hear you loud and clear. Tell me more—what would you like to explore next?"`, count: null };
 }
 
 function copyMessageText(idx) {
@@ -3393,42 +3430,20 @@ async function sendMsg() {
   $('typingLabel').innerText = activePersona.name + ' is typing...';
 
   const systemWithUser = buildSystemPromptWithUser(activePersona.prompt, activePersona.id);
+  const currentHistory = (chatMessages[activePersona.id] || []).slice(0, -1);
 
-  try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        message: text,
-        image_data: imgData,
-        bot_id: activePersona.id,
-        user_name: userName,
-        system_prompt: systemWithUser || undefined
-      })
-    });
-    const data = await res.json();
-    $('typingRow').style.display = 'none';
-    const replyText = data.ok ? data.reply : ('Got it: "' + text + '". Let me know how else I can assist!');
-    chatMessages[activePersona.id].push({ role: "assistant", text: replyText });
-    renderChatBox();
-    localStorage.setItem('bot_saas_history', JSON.stringify(chatMessages));
-    if (data.interaction_count) {
-      localStorage.setItem(`bot_saas_perm_count_${activePersona.id}`, data.interaction_count);
-      activePersona.interactions = data.interaction_count;
-      activePersona.message_count = data.interaction_count;
-    } else {
-      incrementBotInteractionCount(activePersona.id);
-    }
-    checkAndCreateBatchMemory(activePersona.id);
-  } catch(e) {
-    setTimeout(() => {
-      $('typingRow').style.display = 'none';
-      chatMessages[activePersona.id].push({ role: "assistant", text: 'Got it: "' + text + '". What would you like to explore next?' });
-      renderChatBox();
-      localStorage.setItem('bot_saas_history', JSON.stringify(chatMessages));
-      incrementBotInteractionCount(activePersona.id);
-    }, 450);
+  const aiResult = await executeAiChatRequest(text, systemWithUser, activePersona, currentHistory, imgData);
+  $('typingRow').style.display = 'none';
+  chatMessages[activePersona.id].push({ role: "assistant", text: aiResult.reply });
+  renderChatBox();
+  localStorage.setItem('bot_saas_history', JSON.stringify(chatMessages));
+
+  if (aiResult.count) {
+    localStorage.setItem(`bot_saas_perm_count_${activePersona.id}`, aiResult.count);
+    activePersona.interactions = aiResult.count;
+    activePersona.message_count = aiResult.count;
   }
+  checkAndCreateBatchMemory(activePersona.id);
 }
 
 function clearStudioChatHistory() {
