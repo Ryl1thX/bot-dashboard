@@ -1790,6 +1790,29 @@ CRITICAL INSTRUCTION: The above belongs strictly to the USER speaking with you. 
   return prompt;
 }
 
+const COMMUNITY_LOOKUP = {
+  "1531164512441597962": { name: "Tohsaka", owner_username: "xht1lyr", pfp: "https://cdn.discordapp.com/avatars/1531164512441597962/69ff93d530a525e84c47d02f694b14ff.png?size=1024" },
+  "1531586096335552592": { name: "Ruru", owner_username: "vangelise", pfp: "https://cdn.discordapp.com/avatars/1531586096335552592/96c73f915dda6853c34ad0c5aeb1ff91.png?size=1024" },
+  "1532120124369145916": { name: "Maiko", owner_username: "ryl1th", pfp: "https://cdn.discordapp.com/avatars/1532120124369145916/e464c8bcad198305c48b6b060cb8126b.png?size=1024" },
+  "1534513787951124694": { name: "Vladimir Makarov", owner_username: "xht1lyr", pfp: "https://cdn.discordapp.com/avatars/1534513787951124694/2bf0e4aa452cb1017efad0d3ecfbf2f9.png?size=1024" },
+  "1534792431868842126": { name: "Erica the super servant", owner_username: "noble_guava_15530", pfp: "https://cdn.discordapp.com/avatars/1534792431868842126/f8c2e63ad0e77d853eeb119fceae25f0.png?size=1024" },
+  "1535637000722587648": { name: "Test3", owner_username: "xht1lyr", pfp: "https://cdn.discordapp.com/avatars/1535637000722587648/4ebecdb028bcab1ebbc43f019b7d87bc.png?size=1024" },
+  "1535720911804702860": { name: "Leon kennedy", owner_username: "ciliowen", pfp: "https://cdn.discordapp.com/avatars/1535720911804702860/ec89e9fbe54b5dfd464293fe2be1878d.png?size=1024" },
+  "1535906285185138698": { name: "kasane-teto", owner_username: "ryl1th", pfp: "https://cdn.discordapp.com/avatars/1535906285185138698/31206d877e8a38b55928d172e2aaae45.png?size=1024" },
+  "1537190359950430219": { name: "Remiel", owner_username: "vangelise", pfp: "https://cdn.discordapp.com/avatars/1537190359950430219/c0316e680a6e9a7e6ea3ae504d60233b.png?size=1024" },
+  "1539341685711052833": { name: "Tohru", owner_username: "miss_paradoxical", pfp: "https://cdn.discordapp.com/avatars/1539341685711052833/2a1c2ff4fe4a3952f4410a56f345511b.png?size=1024" },
+  "1539760222812250162": { name: "Vegeta", owner_username: "miss_paradoxical", pfp: "https://cdn.discordapp.com/avatars/1539760222812250162/a006dbdc8a0653066d925e0032646d5c.png?size=1024" },
+  "1539771737930072185": { name: "Nene", owner_username: "miss_paradoxical", pfp: "https://cdn.discordapp.com/avatars/1539771737930072185/8ea38a39a250325492a95c96aa01e2c9.png?size=1024" },
+  "1539781239332937808": { name: "Ryuk", owner_username: "miss_paradoxical", pfp: "https://cdn.discordapp.com/avatars/1539781239332937808/32822a106f36402ea3be8b3236e78809.png?size=1024" },
+  "1539975955186061332": { name: "Mr.E", owner_username: "miss_paradoxical", pfp: "https://cdn.discordapp.com/avatars/1539975955186061332/5a1768822002347209e51ea469a5e8fe.png?size=1024" },
+  "1540014046328389752": { name: "Sin", owner_username: "miss_paradoxical", pfp: "https://cdn.discordapp.com/avatars/1540014046328389752/7fa04c636f1c42f022cfdfd81fa7ea6c.png?size=1024" },
+  "1540022174298153081": { name: "Nemo", owner_username: "miss_paradoxical", pfp: "https://cdn.discordapp.com/avatars/1540022174298153081/b1cb8a48ef2e22c954ee21e06c72b217.png?size=1024" },
+  "1540046203310317568": { name: "Uta Kyojin", owner_username: "miss_paradoxical", pfp: "https://cdn.discordapp.com/avatars/1540046203310317568/8863f6a27e7f72eb37f1e721a712f65f.png?size=1024" },
+  "1540055632533790901": { name: "Kurai", owner_username: "miss_paradoxical", pfp: "https://cdn.discordapp.com/avatars/1540055632533790901/70857aa70c918ee9115f5d6f51be8c98.png?size=1024" },
+  "1540081327150334002": { name: "Shinjuro", owner_username: "miss_paradoxical", pfp: "https://cdn.discordapp.com/avatars/1540081327150334002/bf3407e32408c5eec7d98ee100e4fe3a.png?size=1024" },
+  "1173155059207512094": { name: "Noelle", owner_username: "ciliowen", pfp: "" }
+};
+
 /* LOAD BOTS */
 async function loadServerBots(isSilent) {
   const currentUid = getAuthUserId();
@@ -1798,129 +1821,142 @@ async function loadServerBots(isSilent) {
   const myAccessKeys = rawMyBots.map(b => b.access_key).filter(Boolean);
   const myBotIds = rawMyBots.map(b => b.bot_id || b.id).filter(Boolean);
 
+  let rawList = [];
+
+  // 1. Try local /api/bots backend endpoint
   try {
     let url = '/api/bots?scope=all';
-    if (currentUid) {
-      url += '&user_id=' + encodeURIComponent(currentUid);
-    }
-    const headers = {};
-    if (token) {
-      headers['Authorization'] = 'Bearer ' + token;
-    }
-    const res = await fetch(url, { headers });
+    if (currentUid) url += '&user_id=' + encodeURIComponent(currentUid);
+    const res = await fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
     if (res.ok) {
       const d = await res.json();
-      if (d.ok && d.bots) {
-        serverBots = d.bots.map((b, idx) => {
-          const isMine = (b.is_mine === true) || 
-                         (currentUid && b.owner_id && b.owner_id === currentUid) || 
-                         (b.access_key && myAccessKeys.includes(b.access_key)) || 
-                         (b.id && myBotIds.includes(b.id));
-
-          const serverCount = parseInt(b.interactions !== undefined ? b.interactions : (b.message_count !== undefined ? b.message_count : 0), 10) || 0;
-          const localPerm = parseInt(localStorage.getItem('bot_saas_perm_count_' + b.id) || '0', 10) || 0;
-          const totalCount = Math.max(serverCount, localPerm);
-          localStorage.setItem('bot_saas_perm_count_' + b.id, totalCount);
-
-          return {
-            id: String(b.id),
-            name: b.name || ('Bot ' + (idx + 1)),
-            emoji: b.emoji || '✦',
-            role: b.role || (b.provider ? (b.provider.toUpperCase() + ' Persona') : 'Discord Bot'),
-            desc: b.desc || b.personality_preview || b.personality || 'Live Discord AI persona.',
-            personality: b.personality || (b.config && b.config.personality) || '',
-            prompt: b.personality || (b.config && b.config.personality) || '',
-            pfp: b.pfp || b.avatar_url || (b.config && (b.config.avatar_url || b.config.pfp)) || null,
-            provider: b.provider || (b.config && b.config.provider) || 'auto',
-            model: b.model || (b.config && b.config.model) || '',
-            model_slots: b.model_slots || (b.config && b.config.model_slots) || [
-              { provider: b.provider || 'auto', model: b.model || 'gemini-2.0-flash' },
-              { provider: b.fallback_provider || 'auto', model: b.fallback_model || 'llama-3.3-70b-versatile' }
-            ],
-            custom_base_url: b.custom_base_url || (b.config && b.config.custom_base_url) || '',
-            custom_key: b.custom_key || (b.config && b.config.custom_key) || '',
-            custom_model: b.custom_model || (b.config && b.config.custom_model) || '',
-            color: b.is_active ? 'var(--accent)' : '#8a9a8a',
-            is_discord: (b.is_discord !== undefined) ? b.is_discord : true,
-            online: !!b.online,
-            is_active: !!b.is_active,
-            is_mine: isMine,
-            privacy: b.privacy || 'public',
-            owner_id: b.owner_id || '',
-            owner_username: b.owner_username || (b.config && b.config.owner_username) || '',
-            access_key: b.access_key || '',
-            interactions: totalCount,
-            message_count: totalCount,
-            config: b.config || {}
-          };
-        });
+      if (d.ok && Array.isArray(d.bots) && d.bots.length > 0) {
+        rawList = d.bots;
       }
     }
-  } catch (e) {
-    // API not reachable directly (e.g. running on static Vercel host)
-  }
+  } catch (e) {}
 
-  // Direct Supabase fallback (ensures Vercel standalone deployment loads all bots directly from Supabase database)
-  if (!serverBots || serverBots.length === 0) {
+  // 2. Try loading /community_bots.json
+  if (!rawList.length) {
     try {
-      const SUPABASE_URL = "https://tdawmkgedbxbjkctylld.supabase.co";
-      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo";
-      const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/user_bots?select=*&order=created_at.desc`, {
-        headers: {
-          "apikey": SUPABASE_ANON_KEY,
-          "Authorization": `Bearer ${token || SUPABASE_ANON_KEY}`,
-          "Content-Type": "application/json"
-        }
-      });
-      if (sbRes.ok) {
-        const sbBots = await sbRes.json();
-        if (Array.isArray(sbBots) && sbBots.length > 0) {
-          serverBots = sbBots.map((b, idx) => {
-            const cfg = b.settings || {};
-            const isMine = (currentUid && b.user_id && b.user_id === currentUid) || 
-                           (b.access_key && myAccessKeys.includes(b.access_key)) || 
-                           (b.bot_id && myBotIds.includes(b.bot_id));
-            const localPerm = parseInt(localStorage.getItem('bot_saas_perm_count_' + (b.bot_id || b.id)) || '0', 10) || 0;
-            return {
-              id: String(b.bot_id || b.id),
-              name: b.bot_name || ('Bot ' + (idx + 1)),
-              emoji: b.emoji || '✦',
-              role: cfg.role || 'Discord Bot',
-              desc: cfg.desc || (cfg.personality ? cfg.personality.slice(0, 140) : 'Live Discord AI persona.'),
-              personality: cfg.personality || '',
-              prompt: cfg.personality || '',
-              pfp: cfg.avatar_url || cfg.pfp || null,
-              provider: cfg.provider || 'auto',
-              model: cfg.model || '',
-              model_slots: cfg.model_slots || [],
-              custom_base_url: cfg.custom_base_url || '',
-              custom_key: cfg.custom_key || '',
-              custom_model: cfg.custom_model || '',
-              color: b.is_active ? 'var(--accent)' : '#8a9a8a',
-              is_discord: true,
-              online: !!b.is_active,
-              is_active: !!b.is_active,
-              is_mine: isMine,
-              privacy: cfg.privacy || 'public',
-              owner_id: b.user_id || '',
-              owner_username: b.owner_username || cfg.owner_username || '',
-              access_key: b.access_key || b.bot_id || '',
-              interactions: localPerm,
-              message_count: localPerm,
-              config: cfg
-            };
-          });
+      const cRes = await fetch('/community_bots.json');
+      if (cRes.ok) {
+        const cData = await cRes.json();
+        if (Array.isArray(cData) && cData.length > 0) {
+          rawList = cData;
         }
       }
-    } catch (sbErr) {
-      console.warn('Supabase fallback load error:', sbErr);
-    }
+    } catch (e) {}
   }
+
+  // 3. Direct Supabase query to merge user bots & live community configs
+  try {
+    const SUPABASE_URL = "https://tdawmkgedbxbjkctylld.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo";
+    const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/user_bots?select=*&order=created_at.desc`, {
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${token || SUPABASE_ANON_KEY}`,
+        "Content-Type": "application/json"
+      }
+    });
+    if (sbRes.ok) {
+      const sbBots = await sbRes.json();
+      if (Array.isArray(sbBots) && sbBots.length > 0) {
+        for (const sb of sbBots) {
+          const sId = String(sb.bot_id || sb.id);
+          const existingIdx = rawList.findIndex(x => String(x.id || x.bot_id) === sId);
+          const cfg = sb.settings || {};
+          const mappedSb = {
+            id: sId,
+            name: sb.bot_name || cfg.name || 'Bot',
+            role: cfg.role || 'Discord Bot',
+            desc: cfg.desc || (cfg.personality ? cfg.personality.slice(0, 140) : 'Live Discord AI persona.'),
+            personality: cfg.personality || '',
+            prompt: cfg.personality || '',
+            pfp: cfg.avatar_url || cfg.pfp || null,
+            provider: cfg.provider || 'auto',
+            model: cfg.model || '',
+            model_slots: cfg.model_slots || [],
+            custom_base_url: cfg.custom_base_url || '',
+            custom_key: cfg.custom_key || '',
+            custom_model: cfg.custom_model || '',
+            color: sb.is_active ? 'var(--accent)' : '#8a9a8a',
+            is_discord: true,
+            online: !!sb.is_active,
+            is_active: !!sb.is_active,
+            privacy: cfg.privacy || 'public',
+            owner_id: sb.user_id || '',
+            owner_username: cfg.owner_username || sb.owner_username || '',
+            access_key: sb.access_key || sId,
+            config: cfg
+          };
+          if (existingIdx >= 0) {
+            rawList[existingIdx] = { ...rawList[existingIdx], ...mappedSb };
+          } else {
+            rawList.push(mappedSb);
+          }
+        }
+      }
+    }
+  } catch (sbErr) {}
+
+  // Process and enrich serverBots with COMMUNITY_LOOKUP
+  serverBots = rawList.map((b, idx) => {
+    const sId = String(b.id || b.bot_id || ('bot_' + idx));
+    const meta = COMMUNITY_LOOKUP[sId] || {};
+    const cfg = b.config || b.settings || {};
+    const isMine = (b.is_mine === true) || 
+                   (currentUid && (b.owner_id === currentUid || b.user_id === currentUid)) || 
+                   (b.access_key && myAccessKeys.includes(b.access_key)) || 
+                   (sId && myBotIds.includes(sId));
+
+    const serverCount = parseInt(b.interactions !== undefined ? b.interactions : (b.message_count !== undefined ? b.message_count : 0), 10) || 0;
+    const localPerm = parseInt(localStorage.getItem('bot_saas_perm_count_' + sId) || '0', 10) || 0;
+    const totalCount = Math.max(serverCount, localPerm);
+    localStorage.setItem('bot_saas_perm_count_' + sId, totalCount);
+
+    const finalPfp = b.pfp || b.avatar_url || cfg.avatar_url || cfg.pfp || meta.pfp || null;
+    const finalOwner = b.owner_username || cfg.owner_username || meta.owner_username || '';
+
+    return {
+      id: sId,
+      name: b.name || b.bot_name || meta.name || ('Bot ' + (idx + 1)),
+      emoji: b.emoji || '✦',
+      role: b.role || cfg.role || (b.provider ? (b.provider.toUpperCase() + ' Persona') : 'Discord Bot'),
+      desc: b.desc || b.personality_preview || b.personality || cfg.personality || 'Live Discord AI persona.',
+      personality: b.personality || cfg.personality || '',
+      prompt: b.personality || cfg.personality || '',
+      pfp: finalPfp,
+      provider: b.provider || cfg.provider || 'auto',
+      model: b.model || cfg.model || '',
+      model_slots: b.model_slots || cfg.model_slots || [
+        { provider: b.provider || 'auto', model: b.model || 'gemini-2.0-flash' },
+        { provider: b.fallback_provider || 'auto', model: b.fallback_model || 'llama-3.3-70b-versatile' }
+      ],
+      custom_base_url: b.custom_base_url || cfg.custom_base_url || '',
+      custom_key: b.custom_key || cfg.custom_key || '',
+      custom_model: b.custom_model || cfg.custom_model || '',
+      color: b.is_active ? 'var(--accent)' : '#8a9a8a',
+      is_discord: (b.is_discord !== undefined) ? b.is_discord : true,
+      online: (b.online !== undefined) ? !!b.online : true,
+      is_active: (b.is_active !== undefined) ? !!b.is_active : true,
+      is_mine: isMine,
+      privacy: b.privacy || cfg.privacy || 'public',
+      owner_id: b.owner_id || b.user_id || '',
+      owner_username: finalOwner,
+      access_key: b.access_key || sId,
+      interactions: totalCount,
+      message_count: totalCount,
+      config: cfg
+    };
+  });
 
   // Merge any local drafting desk bots
   for (const mb of rawMyBots) {
     const mId = String(mb.bot_id || mb.id || '');
     if (mId && !serverBots.some(x => x.id === mId)) {
+      const meta = COMMUNITY_LOOKUP[mId] || {};
       const localCount = parseInt(localStorage.getItem('bot_saas_perm_count_' + mId) || '0', 10) || 0;
       serverBots.push({
         id: mId,
@@ -1930,17 +1966,17 @@ async function loadServerBots(isSilent) {
         desc: (mb.settings && mb.settings.personality) ? mb.settings.personality.slice(0, 140) : 'Connected Drafting Desk Bot',
         personality: (mb.settings && mb.settings.personality) || '',
         prompt: (mb.settings && mb.settings.personality) || '',
-        pfp: null,
+        pfp: (mb.settings && (mb.settings.avatar_url || mb.settings.pfp)) || meta.pfp || null,
         provider: (mb.settings && mb.settings.provider) || 'auto',
         model: (mb.settings && mb.settings.model) || '',
         model_slots: [],
         is_discord: true,
-        online: false,
+        online: true,
         is_active: true,
         is_mine: true,
-        privacy: 'private',
+        privacy: (mb.settings && mb.settings.privacy) || 'private',
         owner_id: currentUid,
-        owner_username: mb.owner_username || '',
+        owner_username: mb.owner_username || meta.owner_username || '',
         access_key: mb.access_key || mId,
         interactions: localCount,
         message_count: localCount,
