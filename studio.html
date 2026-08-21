@@ -2961,49 +2961,93 @@ async function savePersonaForm(andStartChat) {
   if(editingBotId) {
     localStorage.removeItem(`bot_saas_identity_summary_${editingBotId}`);
     const isServerBot = serverBots.some(b => b.id === editingBotId);
-    if(isServerBot) {
-      try {
-        const token = getAuthToken();
-        const currentUid = getAuthUserId();
-        const headers = {'Content-Type':'application/json'};
-        if (token) headers['Authorization'] = 'Bearer ' + token;
-        let url = '/api/bots/' + encodeURIComponent(editingBotId);
-        if (currentUid) url += '?user_id=' + encodeURIComponent(currentUid);
-        await fetch(url, {
-          method: 'POST',
-          headers: headers,
-          body: JSON.stringify({
+    
+    // Update local community lookup table so the UI reflects changes immediately
+    if (typeof COMMUNITY_LOOKUP !== 'undefined' && COMMUNITY_LOOKUP[editingBotId]) {
+      COMMUNITY_LOOKUP[editingBotId].name = name;
+      if (uploadedPfpData) COMMUNITY_LOOKUP[editingBotId].pfp = uploadedPfpData;
+    }
+
+    const token = getAuthToken();
+    const currentUid = getAuthUserId();
+
+    // 1. Send update to Discord Bot backend API (if server is active)
+    try {
+      const headers = {'Content-Type':'application/json'};
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      let url = '/api/bots/' + encodeURIComponent(editingBotId);
+      if (currentUid) url += '?user_id=' + encodeURIComponent(currentUid);
+      await fetch(url, {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify({
+          name: name,
+          bot_name: name,
+          avatar_url: uploadedPfpData,
+          pfp: uploadedPfpData,
+          personality: prompt,
+          config: {
             name: name,
             avatar_url: uploadedPfpData,
+            pfp: uploadedPfpData,
             personality: prompt,
-            config: {
-              personality: prompt,
-              greeting: greeting,
-              role: role,
-              provider: primarySlot.provider,
-              model: primarySlot.model,
-              custom_model: primarySlot.model,
-              fallback_provider: fallbackSlot.provider,
-              fallback_model: fallbackSlot.model,
-              model_slots: activeModelSlots,
-              privacy: personaPrivacy,
-              temperature: temp,
-              max_tokens: tokens,
-              top_p: topP,
-              max_context: maxCtx,
-              frequency_penalty: freqP,
-              presence_penalty: presP,
-              fish_voice_id: voiceId,
-              auto_search: autoSearch,
-              user_memory_enabled: userMemory,
-              auto_stt: autoStt,
-              vision_provider: visionProv,
-              gemini_vision_model: visionModel
-            }
-          })
-        });
-      } catch(e) {}
-    } else {
+            greeting: greeting,
+            role: role,
+            provider: primarySlot.provider,
+            model: primarySlot.model,
+            custom_model: primarySlot.model,
+            fallback_provider: fallbackSlot.provider,
+            fallback_model: fallbackSlot.model,
+            model_slots: activeModelSlots,
+            privacy: personaPrivacy,
+            temperature: temp,
+            max_tokens: tokens,
+            top_p: topP,
+            max_context: maxCtx,
+            frequency_penalty: freqP,
+            presence_penalty: presP,
+            fish_voice_id: voiceId,
+            auto_search: autoSearch,
+            user_memory_enabled: userMemory,
+            auto_stt: autoStt,
+            vision_provider: visionProv,
+            gemini_vision_model: visionModel
+          }
+        })
+      });
+    } catch(e) {}
+
+    // 2. Direct Supabase update for standalone Vercel deployment
+    try {
+      const SUPABASE_URL = "https://tdawmkgedbxbjkctylld.supabase.co";
+      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo";
+      const sbPatchHeaders = {
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      };
+      await fetch(`${SUPABASE_URL}/rest/v1/user_bots?bot_id=eq.${encodeURIComponent(editingBotId)}`, {
+        method: 'PATCH',
+        headers: sbPatchHeaders,
+        body: JSON.stringify({
+          bot_name: name,
+          settings: {
+            name: name,
+            avatar_url: uploadedPfpData,
+            pfp: uploadedPfpData,
+            personality: prompt,
+            greeting: greeting,
+            role: role,
+            provider: primarySlot.provider,
+            model: primarySlot.model,
+            privacy: personaPrivacy
+          }
+        })
+      });
+    } catch (sbErr) {}
+
+    if(!isServerBot) {
       const idx = customDeck.findIndex(b => b.id === editingBotId);
       const updatedBot = {
         id: editingBotId,
@@ -3049,6 +3093,10 @@ async function savePersonaForm(andStartChat) {
         mb.settings.personality = prompt;
         mb.settings.greeting = greeting;
         mb.settings.role = role;
+        if(uploadedPfpData) {
+          mb.settings.avatar_url = uploadedPfpData;
+          mb.settings.pfp = uploadedPfpData;
+        }
         mbUpdated = true;
       }
     }
@@ -3057,7 +3105,7 @@ async function savePersonaForm(andStartChat) {
     }
 
     await loadServerBots();
-    showToast('Changes saved for "' + name + '"');
+    showToast('Changes applied for "' + name + '"');
 
     if(andStartChat) startChatWith(editingBotId);
     else updateCreatePreview();
