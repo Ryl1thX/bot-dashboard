@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bot SaaS &mdash; Drafting Desk</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+:root {
+  --bg:#e8e8e4; --paper:rgba(252,252,248,0.78); --paper-solid:#fafaf6;
+  --ink:#2a2a2a; --ink-muted:#6b6b6b; --ink-faint:#9a9a9a;
+  --accent-sage:#8a9a8a; --accent-steel:#7a8a9a; --accent-clay:#b8a898;
+  --grid:rgba(100,130,100,0.08); --shadow-soft:rgba(0,0,0,0.06); --shadow-medium:rgba(0,0,0,0.10); --shadow-deep:rgba(0,0,0,0.18);
+  --transition-smooth:cubic-bezier(0.25,0.46,0.45,0.94); --transition-bounce:cubic-bezier(0.34,1.56,0.64,1); --transition-dramatic:cubic-bezier(0.16,1,0.3,1);
+}
+body { width:100vw; height:100vh; overflow:hidden; background:var(--bg); font-family:system-ui,-apple-system,sans-serif; position:relative; touch-action:none; }
+.desk-surface { position:fixed; inset:0; pointer-events:none; z-index:1; opacity:0.4;
+  background-image: linear-gradient(90deg,var(--grid) 1px,transparent 1px), linear-gradient(0deg,var(--grid) 1px,transparent 1px); background-size:40px 40px; }
+.desk-vignette { position:fixed; inset:0; pointer-events:none; background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,0.04) 100%); z-index:2; }
+.backdrop { position:fixed; inset:0; background:rgba(230,230,224,0.5); backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity 0.6s ease; z-index:90; will-change:opacity; }
+.backdrop.active { opacity:1; pointer-events:all; }
+
+#authOverlay { position:fixed; inset:0; z-index:1000; background:var(--bg); display:flex; align-items:center; justify-content:center; }
+.auth-card { background:var(--paper-solid); padding:32px; border-radius:6px; box-shadow:0 16px 48px rgba(0,0,0,0.08); width:min(90vw,360px); border:1px solid rgba(0,0,0,0.06); }
+.auth-card h1 { font-family:Georgia,serif; font-size:24px; color:var(--ink); margin-bottom:4px; }
+.auth-card .sub { font-size:12px; color:var(--ink-muted); margin-bottom:20px; }
+.auth-tabs { display:flex; gap:8px; margin-bottom:16px; }
+.auth-tab { padding:6px 12px; border-radius:4px; font-size:11px; cursor:pointer; color:var(--ink-muted); background:rgba(0,0,0,0.02); transition:all .2s; }
+.auth-tab.active { background:var(--accent-sage); color:#fff; }
+.auth-panel { display:none; }
+.auth-panel.active { display:block; }
+label { font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint); display:block; margin-top:10px; }
+input, textarea, select {
+  width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px;
+  color:var(--ink); padding:8px 10px; font-size:12px; font-family:inherit; outline:none; margin-top:4px; margin-bottom:6px;
+  transform:translateZ(0);
+}
+input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
+.btn { display:inline-block; padding:8px 16px; background:var(--accent-sage); color:#fff; border-radius:4px; font-size:11px; font-weight:600; cursor:pointer; letter-spacing:0.5px; border:none; text-align:center; transition:opacity .2s; }
+.btn:hover { opacity:0.9; }
+.btn-block { width:100%; margin-top:8px; }
+.btn-danger { background:#c06060; }
+.btn-secondary { background:var(--accent-steel); }
+.status { font-size:11px; min-height:16px; margin-top:4px; }
+.status.ok { color:#4a9a4a; } .status.err { color:#c06060; } .status.info { color:var(--accent-steel); }
+.hidden { display:none !important; }
+
+.editor-desk { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:min(82vw,960px); height:min(72vh,640px); background:var(--paper-solid); border-radius:6px; box-shadow:0 1px 2px rgba(0,0,0,0.04),0 4px 12px rgba(0,0,0,0.06),0 16px 48px rgba(0,0,0,0.08); z-index:10; display:flex; flex-direction:column; overflow:hidden; transition:transform 0.7s var(--transition-dramatic),box-shadow 0.7s var(--transition-dramatic); border:1px solid rgba(0,0,0,0.06); }
+.editor-desk.pushed { transform:translate(-50%,-50%) scale(0.94); opacity:0.97; box-shadow:0 1px 2px rgba(0,0,0,0.03),0 2px 6px rgba(0,0,0,0.04); }
+.editor-header { height:44px; background:#f5f5f0; display:flex; align-items:center; padding:0 18px; gap:10px; border-bottom:1px solid rgba(0,0,0,0.06); }
+.editor-dot { width:10px; height:10px; border-radius:50%; }
+.dot-red { background:#d4a5a5; } .dot-yellow { background:#d4c4a5; } .dot-green { background:#a5c4a5; }
+.editor-title { margin-left:10px; color:var(--ink-muted); font-size:12px; font-weight:500; letter-spacing:0.3px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+.editor-body { flex:1; display:flex; overflow:hidden; }
+.editor-sidebar { width:48px; background:#f0f0ea; display:flex; flex-direction:column; align-items:center; padding-top:14px; gap:6px; border-right:1px solid rgba(0,0,0,0.05); }
+.sidebar-icon { width:32px; height:32px; border-radius:7px; display:flex; align-items:center; justify-content:center; color:var(--ink-faint); font-size:14px; cursor:pointer; transition:all 0.35s var(--transition-smooth); position:relative; }
+.sidebar-icon:hover, .sidebar-icon.active { background:rgba(138,154,138,0.15); color:var(--accent-sage); transform:scale(1.08); }
+.sidebar-icon.active::before { content:""; position:absolute; left:-8px; top:50%; transform:translateY(-50%); width:3px; height:16px; background:var(--accent-sage); border-radius:0 2px 2px 0; }
+.editor-code { flex:1; padding:22px 24px; font-size:13px; line-height:1.7; color:var(--ink); overflow-y:auto; background:#fdfdf9; }
+
+.paper { position:fixed; background:var(--paper); backdrop-filter:blur(12px) saturate(1.2); -webkit-backdrop-filter:blur(12px) saturate(1.2); border-radius:5px; transform:translateZ(0); will-change:transform,opacity; backface-visibility:hidden; box-shadow:0 1px 3px var(--shadow-soft),0 4px 16px var(--shadow-medium),inset 0 1px 0 rgba(255,255,255,0.6); cursor:pointer; z-index:20; transition:all 0.55s var(--transition-smooth); overflow:hidden; user-select:none; border:1px solid rgba(0,0,0,0.05); }
+.paper::after { content:""; position:absolute; inset:0; background-image:linear-gradient(90deg,rgba(100,130,100,0.04) 1px,transparent 1px),linear-gradient(0deg,rgba(100,130,100,0.04) 1px,transparent 1px); background-size:20px 20px; pointer-events:none; opacity:0.6; }
+.paper-header { height:38px; background:linear-gradient(180deg,rgba(245,245,240,0.9) 0%,rgba(235,235,228,0.8) 100%); border-bottom:1px solid rgba(0,0,0,0.06); display:flex; align-items:center; padding:0 16px; font-size:11px; font-weight:600; color:var(--ink-muted); text-transform:uppercase; letter-spacing:1.5px; position:relative; z-index:2; }
+.paper-body { padding:18px; opacity:0; transition:opacity 0.4s ease 0.15s; position:relative; z-index:2; height:calc(100% - 38px); overflow-y:auto; overflow-x:hidden; -webkit-overflow-scrolling:touch; transform:translateZ(0); }
+.paper.open { cursor:default; } .paper.open .paper-body { opacity:1; }
+.paper-close { position:absolute; top:10px; right:12px; width:22px; height:22px; border-radius:50%; background:rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:center; font-size:11px; cursor:pointer; opacity:0; transition:all 0.3s ease; color:var(--ink-muted); z-index:10; }
+.paper.open .paper-close { opacity:1; } .paper-close:hover { background:rgba(200,100,100,0.15); color:#a06060; }
+
+.paper-top { top:0; left:50%; transform:translateX(-50%) translateY(-72%) rotateX(6deg); width:300px; height:340px; transform-origin:top center; }
+.paper-top:hover { transform:translateX(-50%) translateY(-50%) rotateX(3deg); box-shadow:0 8px 32px var(--shadow-medium); }
+.paper-top.pulled { transform:translateX(-50%) translateY(-20%) rotateX(0deg) scale(0.97); box-shadow:0 12px 40px var(--shadow-deep); }
+.paper-top.open { transform:translateX(-50%) translateY(24px) rotateX(-6deg) scale(1); box-shadow:0 32px 64px var(--shadow-deep),0 8px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
+
+.paper-bottom { bottom:0; left:50%; transform:translateX(-50%) translateY(88%) rotateX(-6deg); width:340px; height:280px; transform-origin:bottom center; }
+.paper-bottom:hover { transform:translateX(-50%) translateY(65%) rotateX(-3deg); box-shadow:0 -8px 32px var(--shadow-medium); }
+.paper-bottom.pulled { transform:translateX(-50%) translateY(35%) rotateX(0deg) scale(0.97); box-shadow:0 -12px 40px var(--shadow-deep); }
+.paper-bottom.open { transform:translateX(-50%) translateY(-24px) rotateX(6deg) scale(1); box-shadow:0 -32px 64px var(--shadow-deep),0 -8px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
+
+.paper-left { left:0; top:50%; transform:translateY(-50%) translateX(-90%) rotateY(-6deg); width:280px; height:400px; transform-origin:left center; }
+.paper-left:hover { transform:translateY(-50%) translateX(-68%) rotateY(-3deg); box-shadow:8px 4px 32px var(--shadow-medium); }
+.paper-left.pulled { transform:translateY(-50%) translateX(-38%) rotateY(0deg) scale(0.97); box-shadow:12px 4px 40px var(--shadow-deep); }
+.paper-left.open { transform:translateY(-50%) translateX(24px) rotateY(6deg) scale(1); box-shadow:32px 10px 64px var(--shadow-deep),10px 4px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
+
+.paper-right { right:0; top:50%; transform:translateY(-50%) translateX(90%) rotateY(6deg); width:350px; height:540px; transform-origin:right center; }
+.paper-right:hover { transform:translateY(-50%) translateX(68%) rotateY(3deg); box-shadow:-8px 4px 32px var(--shadow-medium); }
+.paper-right.pulled { transform:translateY(-50%) translateX(38%) rotateY(0deg) scale(0.97); box-shadow:-12px 4px 40px var(--shadow-deep); }
+.paper-right.open { transform:translateY(-50%) translateX(-24px) rotateY(-6deg) scale(1); box-shadow:-32px 10px 64px var(--shadow-deep),-10px 4px 24px var(--shadow-medium); z-index:100; background:rgba(252,252,248,0.92); }
+
+.paper-tl { top:0; left:0; transform:translate(-72%,-72%) rotate(-10deg); width:250px; height:250px; transform-origin:top left; }
+.paper-tl:hover { transform:translate(-52%,-52%) rotate(-5deg); box-shadow:8px 8px 32px var(--shadow-medium); }
+.paper-tl.pulled { transform:translate(-32%,-32%) rotate(-3deg) scale(0.97); box-shadow:12px 12px 40px var(--shadow-deep); }
+.paper-tl.open { transform:translate(24px,24px) rotate(2deg) scale(1); box-shadow:24px 24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
+
+.paper-tr { top:0; right:0; transform:translate(72%,-72%) rotate(10deg); width:240px; height:280px; transform-origin:top right; }
+.paper-tr:hover { transform:translate(52%,-52%) rotate(5deg); box-shadow:-8px 8px 32px var(--shadow-medium); }
+.paper-tr.pulled { transform:translate(32%,-32%) rotate(3deg) scale(0.97); box-shadow:-12px 12px 40px var(--shadow-deep); }
+.paper-tr.open { transform:translate(-24px,24px) rotate(-2deg) scale(1); box-shadow:-24px 24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
+
+.paper-bl { bottom:0; left:0; transform:translate(-72%,72%) rotate(10deg); width:260px; height:220px; transform-origin:bottom left; }
+.paper-bl:hover { transform:translate(-52%,52%) rotate(5deg); box-shadow:8px -8px 32px var(--shadow-medium); }
+.paper-bl.pulled { transform:translate(-32%,32%) rotate(3deg) scale(0.97); box-shadow:12px -12px 40px var(--shadow-deep); }
+.paper-bl.open { transform:translate(24px,-24px) rotate(-2deg) scale(1); box-shadow:24px -24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
+
+.paper-br { bottom:0; right:0; transform:translate(72%,72%) rotate(-10deg); width:240px; height:240px; transform-origin:bottom right; }
+.paper-br:hover { transform:translate(52%,52%) rotate(-5deg); box-shadow:-8px -8px 32px var(--shadow-medium); }
+.paper-br.pulled { transform:translate(32%,32%) rotate(-3deg) scale(0.97); box-shadow:-12px -12px 40px var(--shadow-deep); }
+.paper-br.open { transform:translate(-24px,-24px) rotate(2deg) scale(1); box-shadow:-24px -24px 56px var(--shadow-deep); z-index:100; background:rgba(252,252,248,0.92); }
+
+.paper-clip { position:absolute; width:36px; height:10px; border:2px solid #b8b0a0; border-radius:0 0 6px 6px; border-top:none; top:8px; z-index:5; opacity:0.5; }
+.paper-tl .paper-clip { right:28px; transform:rotate(-12deg); } .paper-tr .paper-clip { left:28px; transform:rotate(12deg); }
+.paper-bl .paper-clip { right:28px; transform:rotate(12deg); } .paper-br .paper-clip { left:28px; transform:rotate(-12deg); }
+.paper-top .paper-clip { right:36px; transform:rotate(-8deg); } .paper-bottom .paper-clip { left:36px; transform:rotate(8deg); }
+.paper-left .paper-clip { top:28px; right:8px; transform:rotate(90deg); } .paper-right .paper-clip { top:28px; left:8px; transform:rotate(-90deg); }
+
+.paper-content { padding:14px; font-size:12.5px; color:var(--ink-muted); line-height:1.55; }
+.paper-content h3 { font-size:11px; margin-bottom:14px; color:var(--ink); border-bottom:1.5px solid var(--accent-sage); padding-bottom:6px; display:inline-block; text-transform:uppercase; letter-spacing:1.2px; font-weight:600; }
+.paper-item { padding:8px 12px; margin:5px 0; background:rgba(0,0,0,0.02); border-radius:5px; cursor:pointer; transition:all 0.3s var(--transition-smooth); display:flex; align-items:center; gap:10px; border:1px solid transparent; }
+.paper-item:hover { background:rgba(138,154,138,0.08); border-color:rgba(138,154,138,0.2); transform:translateX(3px); }
+.paper-item .icon { width:22px; height:22px; border-radius:5px; background:rgba(138,154,138,0.12); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--accent-sage); }
+.paper-item.active-bot { background:rgba(138,154,138,0.12); border-color:var(--accent-sage); }
+
+.desk-object { position:fixed; z-index:15; cursor:pointer; transition:all 0.45s var(--transition-bounce); filter:drop-shadow(0 3px 6px rgba(0,0,0,0.08)); }
+.desk-object:hover { transform:scale(1.06) rotate(-1deg); filter:drop-shadow(0 8px 20px rgba(0,0,0,0.14)); z-index:50; }
+.desk-object:active { transform:scale(0.96) rotate(1deg); }
+.compass { top:7%; right:8%; width:70px; height:90px; transform:rotate(25deg); }
+.compass-leg { position:absolute; width:4px; background:linear-gradient(180deg,#888 0%,#666 100%); border-radius:2px; }
+.compass-leg.left { height:70px; left:28px; top:12px; transform:rotate(-8deg); transform-origin:top center; }
+.compass-leg.right { height:70px; left:38px; top:12px; transform:rotate(8deg); transform-origin:top center; }
+.compass-joint { position:absolute; top:6px; left:50%; transform:translateX(-50%); width:14px; height:14px; background:linear-gradient(135deg,#aaa 0%,#888 100%); border-radius:50%; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+.compass-joint::after { content:""; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:6px; height:6px; background:#777; border-radius:50%; }
+.compass-handle { position:absolute; top:0; left:50%; transform:translateX(-50%); width:8px; height:10px; background:linear-gradient(180deg,#999 0%,#777 100%); border-radius:2px 2px 0 0; }
+.compass-point { position:absolute; bottom:0; width:0; height:0; border-left:2px solid transparent; border-right:2px solid transparent; }
+.compass-point.left { left:26px; border-top:8px solid #555; } .compass-point.right { left:40px; border-top:6px solid #555; }
+.pencil { top:14%; left:6%; width:150px; height:12px; transform:rotate(-28deg); }
+.pencil-body { width:130px; height:10px; background:linear-gradient(180deg,#f0e6d0 0%,#d8ccb0 100%); border-radius:2px; position:relative; box-shadow:inset 0 -1px 2px rgba(0,0,0,0.06); }
+.pencil-body::after { content:""; position:absolute; left:-14px; top:0; width:0; height:0; border-top:5px solid transparent; border-bottom:5px solid transparent; border-right:14px solid #e8dcc8; }
+.pencil-body::before { content:""; position:absolute; left:-18px; top:3px; width:0; height:0; border-top:2px solid transparent; border-bottom:2px solid transparent; border-right:5px solid #4a4a4a; }
+.pencil-eraser { position:absolute; right:-14px; top:0; width:14px; height:10px; background:linear-gradient(180deg,#d4b8a8 0%,#c4a898 100%); border-radius:0 3px 3px 0; }
+.pencil-ferrule { position:absolute; right:-3px; top:0; width:3px; height:10px; background:#a0a0a0; }
+.ruler { bottom:8%; left:4%; width:220px; height:36px; transform:rotate(10deg); }
+.ruler-body { width:220px; height:30px; background:linear-gradient(180deg,#e8e4dc 0%,#d8d4cc 100%); border-radius:3px; position:relative; box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),0 2px 6px rgba(0,0,0,0.08); border:1px solid rgba(0,0,0,0.06); }
+.ruler-markings { position:absolute; bottom:5px; left:10px; right:10px; height:16px; background:repeating-linear-gradient(90deg,#888 0px,#888 1px,transparent 1px,transparent 9px); }
+.ruler-markings::after { content:""; position:absolute; bottom:7px; left:0; right:0; height:9px; background:repeating-linear-gradient(90deg,#888 0px,#888 1px,transparent 1px,transparent 49px); }
+.eraser { bottom:18%; right:6%; width:52px; height:28px; transform:rotate(-12deg); }
+.eraser-body { width:52px; height:22px; background:linear-gradient(180deg,#f5f0e8 0%,#e8e0d4 50%,#f0ebe0 50%,#e5ddd0 100%); border-radius:4px; position:relative; box-shadow:inset 0 1px 0 rgba(255,255,255,0.5),0 2px 6px rgba(0,0,0,0.06); border:1px solid rgba(0,0,0,0.05); }
+.eraser-body::after { content:""; position:absolute; top:50%; left:0; right:0; height:1px; background:rgba(0,0,0,0.06); }
+.coffee-cup { top:6%; left:10%; width:52px; height:44px; }
+.cup-body { width:40px; height:36px; background:linear-gradient(135deg,#f5f0e8 0%,#e8e0d4 100%); border-radius:3px 3px 18px 18px; position:relative; box-shadow:inset -3px 0 6px rgba(0,0,0,0.04),0 3px 8px rgba(0,0,0,0.08); border:1px solid rgba(0,0,0,0.05); }
+.cup-handle { position:absolute; right:-12px; top:6px; width:14px; height:18px; border:3px solid #d8d0c4; border-radius:0 10px 10px 0; border-left:none; }
+.coffee-surface { position:absolute; top:3px; left:3px; right:3px; height:6px; background:#5a4a3a; border-radius:50%; opacity:0.85; }
+.steam { position:absolute; top:-8px; left:50%; width:6px; height:16px; background:rgba(180,180,180,0.25); border-radius:50%; filter:blur(5px); animation:steam-rise 3.5s ease-in-out infinite; }
+.steam:nth-child(2) { left:30%; animation-delay:0.6s; height:14px; } .steam:nth-child(3) { left:70%; animation-delay:1.2s; height:15px; }
+@keyframes steam-rise { 0%,100%{transform:translateY(0) scaleX(1); opacity:0;} 50%{transform:translateY(-18px) scaleX(1.4); opacity:0.5;} }
+.toast { position:fixed; bottom:90px; left:50%; transform:translateX(-50%) translateY(16px); background:rgba(42,42,42,0.9); color:#f0f0e8; padding:12px 28px; border-radius:6px; font-size:12px; font-weight:500; box-shadow:0 8px 32px rgba(0,0,0,0.15); z-index:200; opacity:0; transition:all 0.4s var(--transition-smooth); pointer-events:none; white-space:nowrap; letter-spacing:0.3px; }
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+.settings-group { margin-bottom:14px; }
+.settings-group-title { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin-bottom:6px; border-bottom:1px solid rgba(0,0,0,0.06); padding-bottom:4px; }
+.settings-row { display:block; margin-bottom:10px; }
+.settings-row input, .settings-row select { width:100%; margin-bottom:0; }
+.settings-row label { margin-top:0; display:block; margin-bottom:4px; cursor:pointer; font-size:11px; text-transform:none; letter-spacing:0; }
+.settings-row input[type="checkbox"] { width:auto; }
+.settings-col2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.settings-col3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+
+::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.12); border-radius:3px; } ::-webkit-scrollbar-thumb:hover { background:rgba(0,0,0,0.18); }
+@media (max-width:768px) {
+  .editor-desk { width:90vw; height:58vh; }
+  .paper-top,.paper-bottom { width:240px; height:280px; }
+  .paper-left,.paper-right { width:220px; height:340px; }
+  .paper-tl,.paper-tr,.paper-bl,.paper-br { width:160px; height:160px; }
+  .pencil { width:110px; } .pencil-body { width:90px; }
+  .ruler { width:160px; } .ruler-body { width:160px; }
+  .compass { width:55px; height:75px; } .compass-leg { height:55px; }
+}
+</style>
+</head>
+<body>
+
+<!-- AUTH OVERLAY -->
+<div id="authOverlay">
+  <div class="auth-card">
+    <h1>Bot SaaS</h1>
+    <div class="sub">Manage your Discord bots from anywhere.</div>
+    <div class="auth-tabs">
+      <div class="auth-tab active" onclick="switchAuth('login')" id="tab-login">Login</div>
+      <div class="auth-tab" onclick="switchAuth('register')" id="tab-register">Register</div>
+    </div>
+    <div id="panel-login" class="auth-panel active">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="you@example.com">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="password" onkeypress="if(event.key==='Enter')doLogin()">
+      <div class="btn btn-block" onclick="doLogin()">LOGIN</div>
+    </div>
+    <div id="panel-register" class="auth-panel hidden">
+      <label>Email</label>
+      <input type="email" id="regEmail" placeholder="you@example.com">
+      <label>Password</label>
+      <input type="password" id="regPassword" placeholder="password" onkeypress="if(event.key==='Enter')doRegister()">
+      <div class="btn btn-block" onclick="doRegister()">CREATE ACCOUNT</div>
+    </div>
+    <div id="authStatus" class="status"></div>
+  </div>
+</div>
+
+<div class="desk-surface"></div>
+<div class="desk-vignette"></div>
+<div class="backdrop" id="backdrop"></div>
+<div class="toast" id="toast"></div>
+
+<!-- CENTER EDITOR -->
+<div class="editor-desk" id="editorDesk">
+  <div class="editor-header">
+    <div class="editor-dot dot-red"></div>
+    <div class="editor-dot dot-yellow"></div>
+    <div class="editor-dot dot-green"></div>
+    <div class="editor-title" id="editorTitle">Bot SaaS &mdash; Drafting Desk</div>
+    <div style="margin-left:auto; font-size:10px; color:var(--ink-faint); cursor:pointer; padding:4px 8px; border-radius:4px;" onclick="doLogout()" title="Logout">Exit</div>
+  </div>
+  <div class="editor-body">
+    <div class="editor-sidebar">
+      <div class="sidebar-icon active" onclick="openPaperByClass('paper-left')" title="My Bots">&#128193;</div>
+      <div class="sidebar-icon" onclick="openPaperByClass('paper-top')" title="Add Bot">&#10133;</div>
+      <div class="sidebar-icon" onclick="openPaperByClass('paper-right')" title="Settings">&#128295;</div>
+      <div class="sidebar-icon" onclick="openPaperByClass('paper-tr')" title="AI Status">&#9889;</div>
+    </div>
+    <div class="editor-code" id="codeArea">
+      <div id="center-landing" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center;">
+        <div style="font-family:Georgia,serif; font-size:32px; color:var(--ink); margin-bottom:10px; letter-spacing:-0.5px;">Bot SaaS</div>
+        <div style="font-size:13px; color:var(--ink-muted); line-height:1.7; max-width:340px;">
+          Connect your Discord bot to our shared AI backend.<br>
+          Click the <b>Project</b> paper above or the <b>Explorer</b> paper to the left to begin.
+        </div>
+        <div style="margin-top:24px; font-size:11px; color:var(--ink-faint);">
+          Papers on the edges are your menus. Desk objects are shortcuts.
+        </div>
+      </div>
+      <div id="center-dashboard" style="display:none; padding:18px 8px;">
+        <div style="font-family:Georgia,serif; font-size:22px; color:var(--ink); margin-bottom:16px;" id="dashTitle">Dashboard</div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+          <div style="background:rgba(0,0,0,0.02); border-radius:6px; padding:14px; border:1px solid rgba(0,0,0,0.04);">
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin-bottom:4px;">Bot Name</div>
+            <div style="font-size:17px; font-weight:600; color:var(--ink);" id="center-botname">--</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.02); border-radius:6px; padding:14px; border:1px solid rgba(0,0,0,0.04);">
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin-bottom:4px;">Client ID</div>
+            <div style="font-size:13px; font-weight:600; color:var(--ink); font-family:monospace;" id="center-clientid">--</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.02); border-radius:6px; padding:14px; border:1px solid rgba(0,0,0,0.04);">
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin-bottom:4px;">Status</div>
+            <div style="font-size:17px; font-weight:600; color:var(--ink);" id="center-status">--</div>
+          </div>
+          <div style="background:rgba(0,0,0,0.02); border-radius:6px; padding:14px; border:1px solid rgba(0,0,0,0.04); cursor:pointer;" onclick="showInvite()">
+            <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin-bottom:4px;">Invite</div>
+            <div style="font-size:14px; font-weight:600; color:var(--accent-sage);">Click to open &nearr;</div>
+          </div>
+        </div>
+        <div style="margin-top:14px; font-size:12px; color:var(--ink-muted); line-height:1.7;" id="center-hint">
+          Select a bot from the Explorer paper to manage settings.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAPERS -->
+<div class="paper paper-top" data-paper="top">
+  <div class="paper-clip"></div>
+  <div class="paper-close">&#10005;</div>
+  <div class="paper-header">&#128450; Project</div>
+  <div class="paper-body">
+    <div class="paper-content" id="top-landing">
+      <h3>Connect Bot</h3>
+      <label>Discord Bot Token</label>
+      <input type="password" id="tokenInput" placeholder="Paste your Bot Token here">
+      <div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px;">Your token is stored securely in Supabase (RLS-protected).</div>
+      <div class="paper-item" onclick="addBot()" style="justify-content:center; background:var(--accent-sage); color:#fff; border:none;"><span style="font-weight:600; letter-spacing:0.5px; font-size:11px;">CONNECT</span></div>
+      <div id="addBotStatus" class="status" style="font-size:10px; text-align:center; margin-top:4px;"></div>
+      <div style="margin-top:12px; font-size:10px; color:var(--ink-faint); line-height:1.6;">
+        1. Create a bot at Discord Developer Portal<br>
+        2. Copy the Bot Token and paste it above<br>
+        3. Customise personality, AI model, voice, and more<br>
+        4. Invite the bot to your servers and ping it to chat
+      </div>
+    </div>
+    <div class="paper-content" id="top-dashboard" style="display:none;">
+      <h3>Bot Status</h3>
+      <div class="paper-item"><span class="icon" style="background:rgba(138,154,138,0.15);">&#9679;</span><span id="botNameDisplay">--</span></div>
+      <div class="paper-item"><span class="icon">&#127380;</span><span id="botIdDisplay">--</span></div>
+      <div class="paper-item"><span class="icon">&#9889;</span><span id="botActiveDisplay">Connected</span></div>
+      <div style="margin-top:12px; display:flex; gap:6px;">
+        <div class="paper-item" onclick="showInvite()" style="flex:1; justify-content:center; background:rgba(138,154,138,0.12); border-color:rgba(138,154,138,0.25);">Invite</div>
+        <div class="paper-item" onclick="deleteCurrentBot()" style="flex:1; justify-content:center; background:rgba(200,100,100,0.08); color:#a06060; border-color:rgba(200,100,100,0.15);">Delete</div>
+      </div>
+      <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.06);">
+        <div class="paper-item" onclick="showAddForm()" style="justify-content:center; background:rgba(0,0,0,0.02); border-color:rgba(0,0,0,0.08);"><span style="font-size:10px; color:var(--ink-muted);">+ Connect Another Bot</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-bottom" data-paper="bottom">
+  <div class="paper-clip"></div>
+  <div class="paper-close">&#10005;</div>
+  <div class="paper-header">&#128187; Terminal</div>
+  <div class="paper-body">
+    <div class="paper-content">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; line-height:1.9; color:var(--ink-muted);">
+        <div style="color:#6a9a6a;">&#10132;  bot-saas git:(main) python saas_bot.py</div>
+        <div style="margin-top:8px; color:#7a8a9a;" id="term-line-1">Waiting for connection...</div>
+        <div style="color:#a09070;" id="term-line-2">--</div>
+        <div style="color:#8a7a8a;" id="term-line-3">--</div>
+        <div style="margin-top:8px; color:#6a9a6a;">&#10132;  _</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-left" data-paper="left">
+  <div class="paper-clip"></div>
+  <div class="paper-close">&#10005;</div>
+  <div class="paper-header">&#128450; Explorer</div>
+  <div class="paper-body">
+    <div class="paper-content">
+      <h3>My Bots</h3>
+      <div id="botsList">
+        <div style="font-size:11px; color:var(--ink-faint); padding:8px 0;">No bots connected yet.<br>Open the Project paper to connect one.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-right" data-paper="right">
+  <div class="paper-clip"></div>
+  <div class="paper-close">&#10005;</div>
+  <div class="paper-header">&#9881; Settings</div>
+  <div class="paper-body">
+    <div class="paper-content" id="settingsBody">
+      <div style="font-size:12px; color:var(--ink-faint); padding:8px 0;">Select a bot from Explorer to edit settings.</div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-tl" data-paper="tl">
+  <div class="paper-clip"></div>
+  <div class="paper-close">&#10005;</div>
+  <div class="paper-header">&#128221; Notes</div>
+  <div class="paper-body">
+    <div class="paper-content">
+      <div style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11.5px; line-height:1.9; color:var(--ink-muted);">
+        <div style="color:var(--ink); font-weight:600; margin-bottom:6px; font-size:11px; text-transform:uppercase; letter-spacing:1px; border-bottom:1.5px solid var(--accent-sage); padding-bottom:4px; display:inline-block;">Commands</div><br>
+        <span style="color:#7a8a9a;">/ask</span> &lt;prompt&gt; [img]<br>
+        <span style="color:#7a8a9a;">/summarize</span> [amount] [user]<br>
+        <span style="color:#7a8a9a;">/memory</span> &mdash; show profile<br>
+        <span style="color:#7a8a9a;">/persona</span> &lt;notes&gt;<br>
+        <span style="color:#7a8a9a;">/forgetme</span> &mdash; wipe my memory<br>
+        <span style="color:#7a8a9a;">/purgememory</span> &lt;all|self|user|channel&gt;<br>
+        <span style="color:#7a8a9a;">/purgeall</span> &mdash; owner full wipe<br>
+        <span style="color:#7a8a9a;">/reset</span> &mdash; clear channel<br>
+        <span style="color:#7a8a9a;">/search</span> &lt;query&gt;<br>
+        <span style="color:#7a8a9a;">/transcribe</span> &mdash; audio STT<br>
+        <span style="color:#7a8a9a;">!forgetme</span> | <span style="color:#7a8a9a;">!purgeall</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-tr" data-paper="tr">
+  <div class="paper-clip"></div>
+  <div class="paper-close">&#10005;</div>
+  <div class="paper-header">&#128256; AI Status</div>
+  <div class="paper-body">
+    <div class="paper-content">
+      <h3>Active Backends</h3>
+      <div class="paper-item"><span class="icon" style="background:#e8f5e9; color:#4caf50; font-size:10px;">&#9679;</span>Gemini (Text &amp; Vision)</div>
+      <div class="paper-item"><span class="icon" style="background:#f3e5f5; color:#9c27b0; font-size:10px;">&#9679;</span>Groq (LLM &amp; Whisper)</div>
+      <div class="paper-item"><span class="icon" style="background:#fff3e0; color:#ff6f00; font-size:10px;">&#9679;</span>Mistral (Text &amp; Pixtral)</div>
+      <div class="paper-item"><span class="icon" style="background:#e3f2fd; color:#2196f3; font-size:10px;">&#9679;</span>OpenRouter (Vision / LLM)</div>
+      <div class="paper-item"><span class="icon" style="background:#e8f8f5; color:#1abc9c; font-size:10px;">&#9679;</span>Edge Neural TTS (Free)</div>
+      <div class="paper-item"><span class="icon" style="background:#fce4ec; color:#e91e63; font-size:10px;">&#9679;</span>ElevenLabs Studio</div>
+      <div class="paper-item"><span class="icon" style="background:#ede7f6; color:#673ab7; font-size:10px;">&#9679;</span>Cartesia Sonic</div>
+      <div class="paper-item"><span class="icon" style="background:#fffde7; color:#f9a825; font-size:10px;">&#9679;</span>Hugging Face</div>
+      <div style="margin-top:10px; font-size:10px; color:var(--ink-faint); line-height:1.5;">
+        Provider keys are loaded securely on the backend. Multi-tier auto-failover ensures 100% uptime.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-bl" data-paper="bl">
+  <div class="paper-clip"></div>
+  <div class="paper-close">&#10005;</div>
+  <div class="paper-header">&#128030; Memory &amp; Context</div>
+  <div class="paper-body">
+    <div class="paper-content">
+      <h3>Memory Profiling</h3>
+      <div style="font-size:11px; color:var(--ink-muted); line-height:1.6;">
+        User memory is tracked across conversations. The bot remembers:
+        <br>&bull; User facts and preferences
+        <br>&bull; Notable user quotes &amp; inside jokes
+        <br>&bull; Discord activities &amp; guild roles
+        <br>&bull; Scene context in servers &amp; DMs
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="paper paper-br" data-paper="br">
+  <div class="paper-clip"></div>
+  <div class="paper-close">&#10005;</div>
+  <div class="paper-header">&#129513; Extras</div>
+  <div class="paper-body">
+    <div class="paper-content">
+      <h3>Quick Links</h3>
+      <div class="paper-item" onclick="window.open('https://discord.com/developers/applications','_blank')"><span class="icon">&#127918;</span>Discord Dev Portal</div>
+      <div class="paper-item" onclick="window.open('https://console.mistral.ai','_blank')"><span class="icon">&#129302;</span>Mistral Console</div>
+      <div class="paper-item" onclick="window.open('https://groq.com','_blank')"><span class="icon">&#9889;</span>Groq Console</div>
+      <div class="paper-item" onclick="window.open('https://openrouter.ai','_blank')"><span class="icon">&#129504;</span>OpenRouter Models</div>
+      <div class="paper-item" onclick="window.open('https://elevenlabs.io','_blank')"><span class="icon">&#127908;</span>ElevenLabs</div>
+    </div>
+  </div>
+</div>
+
+<!-- DESK OBJECTS -->
+
+<div class="desk-object sticky-note" title="Enter Web Studio" onclick="window.location.href='/studio'" style="cursor:pointer; position:absolute; bottom:24%; left:18%; width:88px; height:88px; background:#fff3a8; transform:rotate(6deg); box-shadow:1px 3px 10px rgba(0,0,0,0.12); padding:8px; display:flex; align-items:center; justify-content:center; z-index:30; border-radius:2px; transition:transform 0.18s ease, box-shadow 0.18s ease;">
+  <div style="font-size:11px; font-weight:700; text-align:center; color:#5a5030; line-height:1.3; user-select:none;">
+    ✦<br>AI Studio<br>↗
+  </div>
+</div>
+
+<div class="desk-object compass" title="Compass" onclick="showToast('Compass points to creativity')">
+  <div class="compass-handle"></div><div class="compass-joint"></div>
+  <div class="compass-leg left"></div><div class="compass-leg right"></div>
+  <div class="compass-point left"></div><div class="compass-point right"></div>
+</div>
+<div class="desk-object coffee-cup" title="Coffee" onclick="showToast('Refreshed'); loadBots();">
+  <div class="steam"></div><div class="steam"></div><div class="steam"></div>
+  <div class="cup-body"><div class="coffee-surface"></div><div class="cup-handle"></div></div>
+</div>
+<div class="desk-object pencil" title="Pencil" onclick="openPaperByClass('paper-right'); showToast('Edit mode')">
+  <div class="pencil-body"><div class="pencil-ferrule"></div><div class="pencil-eraser"></div></div>
+</div>
+<div class="desk-object ruler" title="Ruler" onclick="showToast('Guidelines toggled')">
+  <div class="ruler-body"><div class="ruler-markings"></div></div>
+</div>
+<div class="desk-object eraser" title="Eraser" onclick="showToast('Memory is managed via Discord commands (/memory, /summarize)')">
+  <div class="eraser-body"></div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://tdawmkgedbxbjkctylld.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo";
+
+let currentSession = null;
+let currentBot = null;
+let bots = [];
+let openPaperEl = null;
+
+function $(id){ return document.getElementById(id); }
+function setStatus(id, text, type) {
+  type = type || "info";
+  const el = $(id); if(!el) return;
+  el.textContent = text; el.className = "status " + type;
+}
+function showToast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  setTimeout(function(){ t.classList.remove("show"); }, 2500);
+}
+
+async function sbAuth(path, body, method) {
+  method = method || "POST";
+  const res = await fetch(SUPABASE_URL + "/auth/v1" + path, {
+    method: method,
+    headers: { "apikey": SUPABASE_ANON_KEY, "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await res.json().catch(function(){return {};});
+  if(!res.ok) throw new Error(data.msg || data.message || data.error_description || JSON.stringify(data));
+  return data;
+}
+
+async function refreshSession() {
+  if(!currentSession || !currentSession.refresh_token) return false;
+  try {
+    const data = await sbAuth("/token?grant_type=refresh_token", {
+      refresh_token: currentSession.refresh_token
+    });
+    currentSession = data;
+    localStorage.setItem("sb_session", JSON.stringify(data));
+    return true;
+  } catch(e) {
+    console.error("[AUTH] Refresh failed:", e);
+    return false;
+  }
+}
+async function sbQuery(table, opts) {
+  opts = opts || {};
+  if(!currentSession || !currentSession.access_token) {
+    doLogout();
+    throw new Error("Session expired. Please log in again.");
+  }
+  const method = opts.method || "GET";
+  const match = opts.match;
+  const body = opts.body;
+  const select = opts.select || "*";
+  const order = opts.order;
+  let url = SUPABASE_URL + "/rest/v1/" + table;
+  const headers = {
+    "apikey": SUPABASE_ANON_KEY,
+    "Authorization": "Bearer " + currentSession.access_token,
+    "Content-Type": "application/json"
+  };
+  if(select) headers["Prefer"] = "return=representation";
+  if(match) {
+    const q = new URLSearchParams();
+    for(const k in match) q.append(k, "eq." + match[k]);
+    url += "?" + q.toString();
+  }
+  if(order) url += (url.indexOf("?") !== -1 ? "&" : "?") + "order=" + order;
+  let res = await fetch(url, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined });
+  if(res.status === 401 || res.status === 403) {
+    const refreshed = await refreshSession();
+    if(refreshed) {
+      headers["Authorization"] = "Bearer " + currentSession.access_token;
+      res = await fetch(url, { method: method, headers: headers, body: body ? JSON.stringify(body) : undefined });
+    } else {
+      doLogout();
+      throw new Error("Session expired. Please log in again.");
+    }
+  }
+  const data = await res.json().catch(function(){return {};});
+  if(!res.ok) throw new Error(JSON.stringify(data));
+  return data;
+}
+
+function switchAuth(tab) {
+  $("tab-login").classList.toggle("active", tab === "login");
+  $("tab-register").classList.toggle("active", tab === "register");
+  $("panel-login").classList.toggle("active", tab === "login");
+  $("panel-register").classList.toggle("active", tab === "register");
+  $("panel-login").classList.toggle("hidden", tab !== "login");
+  $("panel-register").classList.toggle("hidden", tab !== "register");
+  setStatus("authStatus", "");
+}
+async function doLogin() {
+  setStatus("authStatus", "Signing in...", "info");
+  try {
+    const data = await sbAuth("/token?grant_type=password", {
+      email: $("loginEmail").value.trim(),
+      password: $("loginPassword").value
+    });
+    currentSession = data;
+    localStorage.setItem("sb_session", JSON.stringify(data));
+    onAuthSuccess();
+  } catch(e) { setStatus("authStatus", e.message, "err"); }
+}
+async function doRegister() {
+  setStatus("authStatus", "Creating account...", "info");
+  try {
+    await sbAuth("/signup", {
+      email: $("regEmail").value.trim(),
+      password: $("regPassword").value
+    });
+    setStatus("authStatus", "Account created! Now log in.", "ok");
+    switchAuth("login");
+  } catch(e) { setStatus("authStatus", e.message, "err"); }
+}
+function doLogout() {
+  currentSession = null; currentBot = null; bots = [];
+  localStorage.removeItem("sb_session");
+  localStorage.removeItem("my_bots");
+  localStorage.removeItem("bot_saas_user_id");
+  localStorage.removeItem("bot_saas_user_email");
+  $("authOverlay").style.display = "flex";
+  renderBotsList();
+  showLanding();
+  setStatus("authStatus", "Logged out", "info");
+}
+function onAuthSuccess() {
+  $("authOverlay").style.display = "none";
+  showToast("Welcome back");
+  if(currentSession && currentSession.user) {
+    localStorage.setItem("bot_saas_user_id", currentSession.user.id);
+    localStorage.setItem("bot_saas_user_email", currentSession.user.email || "");
+  }
+  loadBots();
+}
+
+function extractClientId(token) {
+  try {
+    const parts = token.split(".");
+    if(parts.length >= 2) {
+      let b64 = parts[0].replace(/-/g, "+").replace(/_/g, "/");
+      const pad = (4 - b64.length % 4) % 4;
+      b64 += "=".repeat(pad);
+      const id = atob(b64);
+      if(/^\d+$/.test(id)) return id;
+    }
+  } catch(e){}
+  return null;
+}
+function getInviteUrl(clientId) {
+  return "https://discord.com/oauth2/authorize?client_id=" + clientId + "&permissions=274877910080&scope=bot%20applications.commands";
+}
+
+async function addBot() {
+  const token = $("tokenInput").value.trim();
+  if(!token) { setStatus("addBotStatus", "Paste a token first", "err"); return; }
+  const clientId = extractClientId(token);
+  if(!clientId) { setStatus("addBotStatus", "Invalid token format", "err"); return; }
+  setStatus("addBotStatus", "Saving...", "info");
+  try {
+    let botName = "Bot " + clientId.slice(-4);
+    try {
+      const dres = await fetch("https://discord.com/api/v10/users/@me", { headers:{"Authorization":"Bot "+token} });
+      if(dres.ok) { const d = await dres.json(); botName = d.username || botName; }
+    } catch(e){}
+
+    const existing = await sbQuery("user_bots", { match:{user_id: currentSession.user.id, bot_id: clientId} });
+    if(existing && existing.length > 0) {
+      await sbQuery("user_bots", { method:"PATCH", match:{id: existing[0].id}, body:{
+        discord_token: token, bot_name: botName, is_active: true
+      }});
+      showToast("Token updated for existing bot");
+    } else {
+      await sbQuery("user_bots", { method:"POST", body:{
+        user_id: currentSession.user.id,
+        discord_token: token,
+        bot_id: clientId,
+        bot_name: botName,
+        is_active: true,
+        settings: getDefaultSettings()
+      }});
+      showToast("Bot connected successfully");
+    }
+
+    // Direct backend sync
+    try {
+      const authHdr = currentSession && currentSession.access_token ? { 'Authorization': 'Bearer ' + currentSession.access_token } : {};
+      await fetch('/api/bots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHdr },
+        body: JSON.stringify({
+          id: clientId,
+          token: token,
+          name: botName,
+          owner_id: currentSession.user.id,
+          config: getDefaultSettings()
+        })
+      });
+    } catch(e) {}
+    $("tokenInput").value = "";
+    setStatus("addBotStatus", "", "ok");
+    loadBots();
+    showDashboard(null);
+  } catch(e) {
+    setStatus("addBotStatus", e.message, "err");
+    console.error(e);
+  }
+}
+async function loadBots() {
+  if(!currentSession) return;
+  try {
+    bots = await sbQuery("user_bots", { match:{user_id: currentSession.user.id}, order:"created_at.desc" });
+    if(bots && Array.isArray(bots)) {
+      localStorage.setItem("my_bots", JSON.stringify(bots));
+    }
+    if(currentSession.user) {
+      localStorage.setItem("bot_saas_user_id", currentSession.user.id);
+      localStorage.setItem("bot_saas_user_email", currentSession.user.email || "");
+    }
+    renderBotsList();
+    updateTerminal("Loaded " + bots.length + " bot(s)", "User: " + currentSession.user.email, "Supabase: connected");
+  } catch(e) {
+    updateTerminal("Failed to load bots", e.message, "");
+  }
+}
+function renderBotsList() {
+  const list = $("botsList");
+  if(!bots || bots.length === 0) {
+    list.innerHTML = '<div style="font-size:11px; color:var(--ink-faint); padding:8px 0;">No bots connected yet.<br>Open the Project paper to connect one.</div>';
+    return;
+  }
+  list.innerHTML = bots.map(function(b, i){
+    return '<div class="paper-item ' + (currentBot && currentBot.id === b.id ? "active-bot" : "") + '" onclick="selectBot(' + i + ')">' +
+    '<span class="icon">&#9679;</span><span>' + escapeHtml(b.bot_name || "Unnamed") + '<br><span style="font-size:10px;color:var(--ink-faint)">' + (b.bot_id || "--") + '</span></span></div>';
+  }).join("");
+}
+function selectBot(idx) {
+  currentBot = bots[idx];
+  renderBotsList();
+  showDashboard(currentBot);
+  renderSettings(currentBot);
+  openPaperByClass("paper-top");
+}
+function showLanding() {
+  $("center-landing").style.display = "flex";
+  $("center-dashboard").style.display = "none";
+  $("top-landing").style.display = "block";
+  $("top-dashboard").style.display = "none";
+}
+function showDashboard(bot) {
+  $("center-landing").style.display = "none";
+  $("center-dashboard").style.display = "block";
+  if(bot) {
+    $("center-botname").textContent = bot.bot_name || "Unnamed";
+    $("center-clientid").textContent = bot.bot_id || "--";
+    $("center-status").textContent = bot.is_active ? "Active" : "Paused";
+    $("center-status").style.color = bot.is_active ? "#4a9a4a" : "#c06060";
+    $("botNameDisplay").textContent = bot.bot_name || "Unnamed";
+    $("botIdDisplay").textContent = bot.bot_id || "--";
+    $("botActiveDisplay").textContent = bot.is_active ? "Active" : "Paused";
+    $("top-landing").style.display = "none";
+    $("top-dashboard").style.display = "block";
+  } else {
+    $("center-botname").textContent = "--";
+    $("center-clientid").textContent = "--";
+    $("center-status").textContent = "--";
+    $("center-status").style.color = "var(--ink)";
+  }
+}
+function showAddForm() {
+  currentBot = null;
+  showLanding();
+  renderBotsList();
+  $("tokenInput").value = "";
+  setStatus("addBotStatus", "");
+  openPaperByClass("paper-top");
+}
+function showInvite() {
+  const id = currentBot ? currentBot.bot_id : null;
+  if(!id) { showToast("No bot selected"); return; }
+  const url = getInviteUrl(id);
+  window.open(url, "_blank");
+}
+async function deleteCurrentBot() {
+  if(!currentBot) return;
+  if(!confirm('Delete bot "' + (currentBot.bot_name || "Unnamed") + '"? This cannot be undone.')) return;
+  try {
+    await sbQuery("user_bots", { method:"DELETE", match:{id: currentBot.id} });
+    showToast("Bot deleted");
+    currentBot = null;
+    loadBots();
+    showLanding();
+  } catch(e) { showToast("Error: " + e.message); }
+}
+function updateTerminal(a, b, c) {
+  if(a) $("term-line-1").textContent = a;
+  if(b) $("term-line-2").textContent = b;
+  if(c) $("term-line-3").textContent = c;
+}
+function escapeHtml(t) {
+  const d = document.createElement("div"); d.textContent = t; return d.innerHTML;
+}
+
+/* ---------- SETTINGS (Aligned with saas_bot.py DEFAULT_CONFIG) ---------- */
+function getDefaultSettings() {
+  return {
+    personality: "You are a helpful, friendly, and deeply engaging companion. Speak naturally, express opinions, and remember details about users.",
+    provider: "auto",
+    gemini_model: "gemini-3-flash-preview",
+    groq_model: "openai/gpt-oss-120b",
+    mistral_model: "mistral-small-latest",
+    openai_chat_model: "gpt-4o-mini",
+    openai_key: "",
+    openai_base_url: "",
+    openai_vision_model: "gpt-4o-mini",
+    custom_base_url: "",
+    custom_key: "",
+    custom_model: "",
+    deepseek_model: "deepseek-chat",
+    deepseek_key: "",
+    deepseek_base_url: "",
+    model: "meta-llama/llama-3.3-70b-instruct",
+    use_custom_model: false,
+    custom_model: "",
+    max_tokens: 800,
+    temperature: 0.7,
+    top_p: 1.0,
+    frequency_penalty: 0.0,
+    presence_penalty: 0.0,
+    context_enabled: true,
+    max_context: 10,
+    cooldown_seconds: 10,
+    tts_enabled: false,
+    tts_provider: "auto",
+    elevenlabs_voice_id: "21m00Tcm4TlvDq8ikWAM",
+    elevenlabs_model: "eleven_turbo_v2_5",
+    openai_voice: "nova",
+    openai_model: "tts-1",
+    cartesia_voice_id: "a0e99841-438c-4a64-b679-ae501e7d6091",
+    cartesia_model: "sonic-3.5",
+    groq_tts_voice: "hannah",
+    groq_tts_model: "canopylabs/orpheus-v1-english",
+    edge_tts_voice: "en-US-AvaMultilingualNeural",
+    fish_voice_id: "",
+    fish_model: "s2.1-pro-free",
+    vision_enabled: true,
+    vision_provider: "gemini",
+    vision_model: "meta-llama/llama-3.2-11b-vision-instruct",
+    gemini_vision_model: "gemini-3-flash-preview",
+    auto_search: true,
+    user_memory_enabled: true,
+    open_chat_enabled: false,
+    auto_stt: false,
+    message_split_enabled: false,
+    message_split_min: 1,
+    message_split_max: 3,
+    message_split_delay: 1.0,
+    random_dms_enabled: false,
+    random_dms_interval_minutes: 60,
+    random_dms_prompt: "Send a casual, friendly message to check in.",
+    random_chat_enabled: false,
+    random_chat_chance: 0.05,
+    random_chat_context_limit: 50,
+    bot_name_triggers: "bot",
+    file_reading_enabled: true,
+    video_watching_enabled: true,
+    bot_conversation_enabled: false,
+    bot_conversation_max: 2,
+    huggingface_model: ""
+  };
+}
+
+function renderSettings(bot) {
+  const s = bot.settings || getDefaultSettings();
+  const body = $("settingsBody");
+  const mkRow = function(lbl, inner){ return '<div class="settings-row"><label>' + lbl + '</label>' + inner + '</div>'; };
+  const mkInput = function(k, ph, type, step){
+    type = type || "text";
+    const v = s[k] !== undefined && s[k] !== null ? escapeHtml(String(s[k])) : "";
+    const st = step ? ' step="' + step + '"' : '';
+    return '<input type="' + type + '" id="set_' + k + '" placeholder="' + (ph||"") + '" value="' + v + '"' + st + '>';
+  };
+  const mkSelect = function(k, opts){ 
+    return '<select id="set_' + k + '">' + opts.map(function(o){ return '<option value="' + o.v + '" ' + (s[k] == o.v ? "selected" : "") + '>' + o.l + '</option>'; }).join("") + '</select>'; 
+  };
+  const mkCheck = function(k, labelText){ 
+    return '<div class="settings-row"><label><input type="checkbox" id="set_' + k + '" ' + (s[k] ? "checked" : "") + '> ' + labelText + '</label></div>'; 
+  };
+  const mkArea = function(k, rows, ph){ 
+    rows = rows || 3; 
+    return '<textarea id="set_' + k + '" rows="' + rows + '" placeholder="' + (ph||"") + '">' + escapeHtml(s[k] || "") + '</textarea>'; 
+  };
+
+  body.innerHTML =
+    '<div style="display:flex;gap:8px;margin-bottom:10px;">' +
+    '<div class="btn" onclick="saveSettings()" style="flex:1;">SAVE SETTINGS</div>' +
+    '<div class="btn btn-secondary" onclick="resetSettings()" style="flex:1;">RESET DEFAULTS</div>' +
+    '</div>' +
+    '<div id="settingsStatus" class="status" style="margin-bottom:10px;"></div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Personality</div>' +
+    mkRow("", mkArea("personality", 3, "How should your bot behave?")) +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">AI Provider</div>' +
+    mkRow("Provider", mkSelect("provider",[
+      {v:"auto",l:"Auto (Gemini -> Groq -> Mistral -> OpenAI -> DeepSeek -> OpenRouter -> HF)"},
+      {v:"gemini",l:"Gemini Only"},
+      {v:"groq",l:"Groq Only"},
+      {v:"mistral",l:"Mistral Only"},
+      {v:"openai",l:"OpenAI Only"},
+      {v:"custom",l:"Custom Endpoint (LiteRouter / Local Tunnel / OpenAI Compatible)"},
+      {v:"deepseek",l:"DeepSeek Only"},
+      {v:"openrouter",l:"OpenRouter Only"},
+      {v:"huggingface",l:"Hugging Face Only"}
+    ])) +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Custom Endpoint (LiteRouter / Local Tunnel / Any OpenAI API)</div>' +
+    mkRow("Base URL", mkInput("custom_base_url","https://api.literouter.com/v1 or http://localhost:11434/v1")) +
+    mkRow("API Key / Token", mkInput("custom_key","API key / token (leave blank for local tunnels)","password")) +
+    mkRow("Model Name", mkInput("custom_model","e.g. claude-3-7-sonnet, deepseek-r1, llama-3.3-70b")) +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Standard Models</div>' +
+    mkRow("Gemini Model", mkInput("gemini_model","gemini-3-flash-preview")) +
+    mkRow("Groq Model", mkInput("groq_model","openai/gpt-oss-120b")) +
+    mkRow("Mistral Model", mkInput("mistral_model","mistral-small-latest")) +
+    mkRow("OpenAI Model", mkInput("openai_chat_model","gpt-4o-mini (custom model strings supported)")) +
+    mkRow("OpenAI API Key", mkInput("openai_key","sk-... (leave blank to use owner key)","password")) +
+    mkRow("DeepSeek Model", mkInput("deepseek_model","deepseek-chat / deepseek-reasoner")) +
+    mkRow("DeepSeek API Key", mkInput("deepseek_key","sk-... (leave blank to use owner key)","password")) +
+    mkRow("Hugging Face Model", mkInput("huggingface_model","Qwen/Qwen2.5-72B-Instruct")) +
+    mkRow("OpenRouter Model", mkInput("model","meta-llama/llama-3.3-70b-instruct")) +
+    mkCheck("use_custom_model","Use Custom OpenRouter Model") +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Generation Parameters</div>' +
+    '<div class="settings-col2">' +
+    '<div>' + mkRow("Max Tokens", mkInput("max_tokens","800","number")) + '</div>' +
+    '<div>' + mkRow("Temperature", mkInput("temperature","0.7","number","0.1")) + '</div>' +
+    '<div>' + mkRow("Top P", mkInput("top_p","1.0","number","0.05")) + '</div>' +
+    '<div>' + mkRow("Cooldown (s)", mkInput("cooldown_seconds","10","number")) + '</div>' +
+    '<div>' + mkRow("Freq Penalty", mkInput("frequency_penalty","0.0","number","0.1")) + '</div>' +
+    '<div>' + mkRow("Pres Penalty", mkInput("presence_penalty","0.0","number","0.1")) + '</div>' +
+    '</div>' +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Memory &amp; Profiling</div>' +
+    mkCheck("context_enabled","Context Enabled") +
+    mkRow("Max Context", mkInput("max_context","10","number")) +
+    mkCheck("user_memory_enabled","Track User Memories &amp; Scene Context") +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Voice &amp; Multi-Engine TTS</div>' +
+    mkCheck("tts_enabled","Enable Voice Audio Responses") +
+    mkRow("TTS Engine", mkSelect("tts_provider",[
+      {v:"auto",l:"Auto (ElevenLabs -> OpenAI -> Cartesia -> Groq -> Edge -> Fish)"},
+      {v:"edge",l:"Edge Neural TTS (Free, zero keys)"},
+      {v:"elevenlabs",l:"ElevenLabs Studio"},
+      {v:"openai",l:"OpenAI TTS"},
+      {v:"cartesia",l:"Cartesia Sonic"},
+      {v:"groq",l:"Groq Orpheus"},
+      {v:"fish",l:"Fish Audio"}
+    ])) +
+    mkRow("Edge Voice", mkInput("edge_tts_voice","en-US-AvaMultilingualNeural")) +
+    mkRow("ElevenLabs Voice ID", mkInput("elevenlabs_voice_id","21m00Tcm4TlvDq8ikWAM")) +
+    mkRow("OpenAI Voice", mkInput("openai_voice","nova")) +
+    mkRow("Cartesia Voice ID", mkInput("cartesia_voice_id","a0e99841-438c-4a64-b679-ae501e7d6091")) +
+    mkRow("Fish Audio Voice ID", mkInput("fish_voice_id","paste Fish Audio reference ID")) +
+    mkRow("Fish Model", mkSelect("fish_model",[{v:"s2.1-pro-free",l:"s2.1-pro-free"},{v:"s2-pro",l:"s2-pro"},{v:"s2",l:"s2"}])) +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Vision &amp; Image Understanding</div>' +
+    mkCheck("vision_enabled","Enable Vision") +
+    mkRow("Vision Provider", mkSelect("vision_provider",[
+      {v:"gemini",l:"Gemini Vision (Fast & Accurate)"},
+      {v:"openai",l:"OpenAI Vision (GPT-4o / GPT-4o-mini)"},
+      {v:"mistral",l:"Mistral Pixtral Vision"},
+      {v:"openrouter",l:"OpenRouter Vision"}
+    ])) +
+    mkRow("Gemini Vision Model", mkInput("gemini_vision_model","gemini-3-flash-preview")) +
+    mkRow("OpenAI Vision Model", mkInput("openai_vision_model","gpt-4o-mini")) +
+    mkRow("OpenRouter Vision Model", mkInput("vision_model","meta-llama/llama-3.2-11b-vision-instruct")) +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">File &amp; Video Understanding</div>' +
+    mkCheck("file_reading_enabled","Read PDF/DOCX/CSV document attachments") +
+    mkCheck("video_watching_enabled","Watch and analyze video attachments (ffmpeg frames)") +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Autonomous Features</div>' +
+    mkCheck("auto_search","Proactive web search on real-time queries") +
+    mkCheck("auto_stt","Auto-STT (transcribe audio/voice notes via Whisper)") +
+    mkCheck("open_chat_enabled","Open chat (trigger on bot name mention)") +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Message Splitting</div>' +
+    mkCheck("message_split_enabled","Split long replies into natural separate messages") +
+    '<div class="settings-col3">' +
+    '<div>' + mkRow("Min Msgs", mkInput("message_split_min","1","number")) + '</div>' +
+    '<div>' + mkRow("Max Msgs", mkInput("message_split_max","3","number")) + '</div>' +
+    '<div>' + mkRow("Delay (s)", mkInput("message_split_delay","1.0","number","0.1")) + '</div>' +
+    '</div>' +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Random DMs</div>' +
+    mkCheck("random_dms_enabled","Send casual check-in DMs to past users") +
+    mkRow("Interval (min)", mkInput("random_dms_interval_minutes","60","number")) +
+    mkRow("DM Prompt", mkInput("random_dms_prompt","Send a casual, friendly message to check in.")) +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Random Server Chat</div>' +
+    mkCheck("random_chat_enabled","Randomly participate in server discussions") +
+    '<div class="settings-col2">' +
+    '<div>' + mkRow("Chance (0-1)", mkInput("random_chat_chance","0.05","number","0.01")) + '</div>' +
+    '<div>' + mkRow("Context msgs", mkInput("random_chat_context_limit","50","number")) + '</div>' +
+    '</div>' +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Bot Name Triggers</div>' +
+    mkRow("Triggers (comma-separated)", mkInput("bot_name_triggers","bot, ai, helper")) +
+    '</div>' +
+
+    '<div class="settings-group"><div class="settings-group-title">Bot Conversation</div>' +
+    mkCheck("bot_conversation_enabled","Allow Bot-to-Bot Chat") +
+    mkRow("Max Exchanges (1-3)", mkInput("bot_conversation_max","2","number")) +
+    '<div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px; line-height:1.5;">OFF by default to prevent infinite loops. When ON, bots chat for up to 1-3 messages before stopping.</div>' +
+    '</div>';
+}
+
+async function saveSettings() {
+  if(!currentBot) { setStatus("settingsStatus", "No bot selected", "err"); return; }
+  const keys = Object.keys(getDefaultSettings());
+  const newSettings = {};
+  keys.forEach(function(k){
+    const el = $("set_" + k);
+    if(!el) return;
+    const def = getDefaultSettings()[k];
+    if(typeof def === "boolean") newSettings[k] = el.checked;
+    else if(typeof def === "number") newSettings[k] = parseFloat(el.value) || 0;
+    else newSettings[k] = el.value;
+  });
+  setStatus("settingsStatus", "Saving...", "info");
+  try {
+    if(currentBot.id) {
+      await sbQuery("user_bots", { method:"PATCH", match:{id: currentBot.id}, body:{ settings: newSettings, updated_at: new Date().toISOString() } });
+    }
+    currentBot.settings = newSettings;
+
+    // Direct sync to backend /api/bots/<bot_id>/config
+    const bid = currentBot.bot_id || currentBot.id;
+    if(bid) {
+      try {
+        const token = currentSession ? currentSession.access_token : '';
+        const headers = { 'Content-Type': 'application/json' };
+        if(token) headers['Authorization'] = 'Bearer ' + token;
+        const uid = currentSession && currentSession.user ? currentSession.user.id : '';
+        let url = '/api/bots/' + encodeURIComponent(bid) + '/config';
+        if(uid) url += '?user_id=' + encodeURIComponent(uid);
+        await fetch(url, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            name: currentBot.bot_name || '',
+            personality: newSettings.personality || '',
+            config: newSettings
+          })
+        });
+      } catch(backendErr) {
+        console.warn('[SYNC] Backend sync error:', backendErr);
+      }
+    }
+
+    // Direct sync to localStorage
+    if(bots && Array.isArray(bots)) {
+      localStorage.setItem("my_bots", JSON.stringify(bots));
+    }
+
+    setStatus("settingsStatus", "Saved and synced successfully", "ok");
+    showToast("Settings & Prompt synced");
+  } catch(e) {
+    setStatus("settingsStatus", e.message, "err");
+  }
+}
+
+function resetSettings() {
+  if(!currentBot) return;
+  if(!confirm("Reset all settings to defaults?")) return;
+  currentBot.settings = getDefaultSettings();
+  renderSettings(currentBot);
+  setStatus("settingsStatus", "Defaults loaded. Click SAVE to apply.", "info");
+}
+
+/* ---------- PAPER UI ---------- */
+function openPaperByClass(cls) {
+  const el = document.querySelector("." + cls);
+  if(!el) return;
+  if(openPaperEl && openPaperEl !== el) closePaper(openPaperEl);
+  if(el.classList.contains("open")) return;
+  el.classList.add("open");
+  el.classList.remove("pulled");
+  $("backdrop").classList.add("active");
+  $("editorDesk").classList.add("pushed");
+  openPaperEl = el;
+}
+function closePaper(el) {
+  if(!el) return;
+  el.classList.remove("open");
+  el.classList.add("pulled");
+  setTimeout(function(){ el.classList.remove("pulled"); }, 400);
+}
+function closeAllPapers() {
+  document.querySelectorAll(".paper.open").forEach(function(p){ closePaper(p); });
+  $("backdrop").classList.remove("active");
+  $("editorDesk").classList.remove("pushed");
+  openPaperEl = null;
+}
+
+document.querySelectorAll(".paper").forEach(function(p){
+  p.addEventListener("click", function(e){
+    if(e.target.classList.contains("paper-close") || (e.target.parentElement && e.target.parentElement.classList.contains("paper-close"))) {
+      e.stopPropagation();
+      closePaper(p);
+      if(openPaperEl === p) {
+        openPaperEl = null;
+        $("backdrop").classList.remove("active");
+        $("editorDesk").classList.remove("pushed");
+      }
+      return;
+    }
+    if(p.classList.contains("open")) return;
+    if(openPaperEl && openPaperEl !== p) closePaper(openPaperEl);
+    p.classList.add("open");
+    p.classList.remove("pulled");
+    $("backdrop").classList.add("active");
+    $("editorDesk").classList.add("pushed");
+    openPaperEl = p;
+  });
+});
+$("backdrop").addEventListener("click", closeAllPapers);
+document.addEventListener("keydown", function(e){
+  if(e.key === "Escape" && openPaperEl) {
+    closePaper(openPaperEl);
+    openPaperEl = null;
+    $("backdrop").classList.remove("active");
+    $("editorDesk").classList.remove("pushed");
+  }
+});
+
+/* ---------- INIT ---------- */
+(function init(){
+  const savedSession = localStorage.getItem("sb_session");
+  if(savedSession) {
+    try {
+      currentSession = JSON.parse(savedSession);
+      $("authOverlay").style.display = "none";
+      loadBots();
+    } catch(e) { localStorage.removeItem("sb_session"); }
+  }
+})();
+</script>
+</body>
+</html>
