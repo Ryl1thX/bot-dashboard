@@ -1952,6 +1952,30 @@ async function loadServerBots(isSilent) {
     };
   });
 
+  // Apply local custom overrides (e.g. privacy, edited name, pfp, prompt)
+  const localOverrides = JSON.parse(localStorage.getItem('bot_custom_overrides') || '{}');
+  for (const b of serverBots) {
+    if (localOverrides[b.id]) {
+      const ovr = localOverrides[b.id];
+      if (ovr.name) b.name = ovr.name;
+      if (ovr.role) b.role = ovr.role;
+      if (ovr.desc) b.desc = ovr.desc;
+      if (ovr.personality) b.personality = ovr.personality;
+      if (ovr.prompt) b.prompt = ovr.prompt;
+      if (ovr.pfp) b.pfp = ovr.pfp;
+      if (ovr.privacy) b.privacy = ovr.privacy;
+      if (b.config) {
+        if (ovr.name) b.config.name = ovr.name;
+        if (ovr.personality) b.config.personality = ovr.personality;
+        if (ovr.privacy) b.config.privacy = ovr.privacy;
+        if (ovr.pfp) {
+          b.config.avatar_url = ovr.pfp;
+          b.config.pfp = ovr.pfp;
+        }
+      }
+    }
+  }
+
   // Merge any local drafting desk bots
   for (const mb of rawMyBots) {
     const mId = String(mb.bot_id || mb.id || '');
@@ -1990,7 +2014,11 @@ async function loadServerBots(isSilent) {
   // Merge server bots and custom local deck without duplicate IDs
   const merged = [...serverBots];
   for (const c of customDeck) {
-    if (!merged.some(x => x.id === c.id)) {
+    const existingIdx = merged.findIndex(x => x.id === c.id);
+    if (existingIdx >= 0) {
+      // Overlay custom deck edits
+      merged[existingIdx] = { ...merged[existingIdx], ...c };
+    } else {
       c.interactions = getBotInteractionCount(c.id);
       c.message_count = c.interactions;
       merged.push(c);
@@ -2072,10 +2100,11 @@ function renderGrid(filterText) {
   const searchInput = $('characterSearch');
   const query = (filterText !== undefined ? filterText : (searchInput ? searchInput.value : '')).toLowerCase().trim();
 
-  // CHARACTERS TAB: Show ALL existing characters (all public bots from all users + user's private bots)
+  // CHARACTERS TAB: Show all public characters + user's own private bots (other users' private bots are hidden)
   let charsToShow = allBotsList.filter(bot => {
-    if (bot.privacy === 'private') {
-      return bot.is_mine === true || (currentUid && bot.owner_id === currentUid);
+    const isPrivate = (bot.privacy === 'private' || (bot.config && bot.config.privacy === 'private'));
+    if (isPrivate) {
+      return bot.is_mine === true || (currentUid && (bot.owner_id === currentUid || bot.user_id === currentUid));
     }
     return true; // Show all public characters from all users
   });
@@ -2938,32 +2967,96 @@ async function savePersonaForm(andStartChat) {
 
   if(editingBotId) {
     localStorage.removeItem(`bot_saas_identity_summary_${editingBotId}`);
-    const isServerBot = serverBots.some(b => b.id === editingBotId);
     
-    // Update local community lookup table so the UI reflects changes immediately
+    // 1. Save local overrides immediately so changes never revert on reload
+    const savedOverrides = JSON.parse(localStorage.getItem('bot_custom_overrides') || '{}');
+    savedOverrides[editingBotId] = {
+      name: name,
+      role: role,
+      desc: desc,
+      greeting: greeting,
+      prompt: prompt,
+      personality: prompt,
+      provider: primarySlot.provider,
+      model: primarySlot.model,
+      privacy: personaPrivacy,
+      pfp: uploadedPfpData,
+      temp: temp,
+      tokens: tokens,
+      updated_at: Date.now()
+    };
+    localStorage.setItem('bot_custom_overrides', JSON.stringify(savedOverrides));
+
+    // 2. Update local community lookup table so the UI reflects changes immediately
     if (typeof COMMUNITY_LOOKUP !== 'undefined' && COMMUNITY_LOOKUP[editingBotId]) {
       COMMUNITY_LOOKUP[editingBotId].name = name;
+      COMMUNITY_LOOKUP[editingBotId].privacy = personaPrivacy;
       if (uploadedPfpData) COMMUNITY_LOOKUP[editingBotId].pfp = uploadedPfpData;
     }
 
+    // 3. Update in-memory custom deck
+    const idx = customDeck.findIndex(b => b.id === editingBotId);
+    const updatedBot = {
+      id: editingBotId,
+      name: name,
+      role: role,
+      desc: desc,
+      greeting: greeting,
+      prompt: prompt,
+      personality: prompt,
+      provider: primarySlot.provider,
+      model: primarySlot.model,
+      fallback_provider: fallbackSlot.provider,
+      fallback_model: fallbackSlot.model,
+      model_slots: activeModelSlots,
+      privacy: personaPrivacy,
+      pfp: uploadedPfpData,
+      color: 'var(--accent)',
+      temp: temp,
+      tokens: tokens,
+      top_p: topP,
+      frequency_penalty: freqP,
+      presence_penalty: presP,
+      voice_id: voiceId,
+      auto_search: autoSearch,
+      user_memory_enabled: userMemory,
+      auto_stt: autoStt,
+      vision_provider: visionProv,
+      vision_model: visionModel
+    };
+    if(idx >= 0) customDeck[idx] = updatedBot;
+    else customDeck.push(updatedBot);
+    localStorage.setItem('bot_saas_deck', JSON.stringify(customDeck));
+
+    // 4. Update in-memory serverBots list if present
+    const sbIdx = serverBots.findIndex(b => b.id === editingBotId);
+    if(sbIdx >= 0) {
+      serverBots[sbIdx].name = name;
+      serverBots[sbIdx].role = role;
+      serverBots[sbIdx].personality = prompt;
+      serverBots[sbIdx].prompt = prompt;
+      serverBots[sbIdx].privacy = personaPrivacy;
+      if(uploadedPfpData) serverBots[sbIdx].pfp = uploadedPfpData;
+    }
+
+    // 5. Direct sync to /api/bots (works with Vercel serverless function & backend Python server)
     const token = getAuthToken();
     const currentUid = getAuthUserId();
-
-    // 1. Send update to Discord Bot backend API (if server is active)
     try {
       const headers = {'Content-Type':'application/json'};
       if (token) headers['Authorization'] = 'Bearer ' + token;
-      let url = '/api/bots/' + encodeURIComponent(editingBotId);
-      if (currentUid) url += '?user_id=' + encodeURIComponent(currentUid);
-      await fetch(url, {
+      await fetch('/api/bots', {
         method: 'POST',
         headers: headers,
         body: JSON.stringify({
+          id: editingBotId,
+          bot_id: editingBotId,
           name: name,
           bot_name: name,
           avatar_url: uploadedPfpData,
           pfp: uploadedPfpData,
           personality: prompt,
+          privacy: personaPrivacy,
           config: {
             name: name,
             avatar_url: uploadedPfpData,
@@ -2995,73 +3088,7 @@ async function savePersonaForm(andStartChat) {
       });
     } catch(e) {}
 
-    // 2. Direct Supabase update for standalone Vercel deployment
-    try {
-      const SUPABASE_URL = "https://tdawmkgedbxbjkctylld.supabase.co";
-      const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo";
-      const sbPatchHeaders = {
-        'apikey': SUPABASE_ANON_KEY,
-        'Authorization': `Bearer ${token || SUPABASE_ANON_KEY}`,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      };
-      await fetch(`${SUPABASE_URL}/rest/v1/user_bots?bot_id=eq.${encodeURIComponent(editingBotId)}`, {
-        method: 'PATCH',
-        headers: sbPatchHeaders,
-        body: JSON.stringify({
-          bot_name: name,
-          settings: {
-            name: name,
-            avatar_url: uploadedPfpData,
-            pfp: uploadedPfpData,
-            personality: prompt,
-            greeting: greeting,
-            role: role,
-            provider: primarySlot.provider,
-            model: primarySlot.model,
-            privacy: personaPrivacy
-          }
-        })
-      });
-    } catch (sbErr) {}
-
-    if(!isServerBot) {
-      const idx = customDeck.findIndex(b => b.id === editingBotId);
-      const updatedBot = {
-        id: editingBotId,
-        name: name,
-        role: role,
-        desc: desc,
-        greeting: greeting,
-        prompt: prompt,
-        personality: prompt,
-        provider: primarySlot.provider,
-        model: primarySlot.model,
-        fallback_provider: fallbackSlot.provider,
-        fallback_model: fallbackSlot.model,
-        model_slots: activeModelSlots,
-        privacy: personaPrivacy,
-        pfp: uploadedPfpData,
-        color: 'var(--accent)',
-        temp: temp,
-        tokens: tokens,
-        top_p: topP,
-        frequency_penalty: freqP,
-        presence_penalty: presP,
-        voice_id: voiceId,
-        auto_search: autoSearch,
-        user_memory_enabled: userMemory,
-        auto_stt: autoStt,
-        vision_provider: visionProv,
-        vision_model: visionModel
-      };
-
-      if(idx >= 0) customDeck[idx] = updatedBot;
-      else customDeck.push(updatedBot);
-      localStorage.setItem('bot_saas_deck', JSON.stringify(customDeck));
-    }
-
-    // Also sync my_bots in localStorage if editing a connected drafting desk bot
+    // 6. Also sync my_bots in localStorage if editing a connected drafting desk bot
     const rawMyBots = JSON.parse(localStorage.getItem('my_bots') || '[]');
     let mbUpdated = false;
     for(const mb of rawMyBots) {
@@ -3071,6 +3098,7 @@ async function savePersonaForm(andStartChat) {
         mb.settings.personality = prompt;
         mb.settings.greeting = greeting;
         mb.settings.role = role;
+        mb.settings.privacy = personaPrivacy;
         if(uploadedPfpData) {
           mb.settings.avatar_url = uploadedPfpData;
           mb.settings.pfp = uploadedPfpData;
@@ -3083,7 +3111,7 @@ async function savePersonaForm(andStartChat) {
     }
 
     await loadServerBots();
-    showToast('Changes applied for "' + name + '"');
+    showToast('Changes saved for "' + name + '" (' + personaPrivacy + ')');
 
     if(andStartChat) startChatWith(editingBotId);
     else updateCreatePreview();
