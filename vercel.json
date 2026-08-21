@@ -2,9 +2,10 @@
   "version": 2,
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/", "destination": "/index.html" },
-    { "source": "/studio", "destination": "/index.html" },
     { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/drafting", "destination": "/dashboard.html" },
+    { "source": "/desk", "destination": "/dashboard.html" },
+    { "source": "/studio", "destination": "/index.html" },
     { "source": "/chat", "destination": "/index.html" }
   ]
 }

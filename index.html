@@ -1021,7 +1021,7 @@ body.sidebar-hidden .sidebar {
 
       <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
         <button class="btn-primary" onclick="clearStudioChatHistory()" style="background:rgba(200,100,100,0.15); color:#e06c75; border:1px solid rgba(200,100,100,0.3); font-size:11.5px; padding:8px 12px;">Clear Current Chat Log</button>
-        <a href="/" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; font-size:11.5px; padding:8px 12px; background:transparent; border:1px solid var(--card-border); color:var(--text-primary);">Drafting Desk ↗</a>
+        <a href="/dashboard" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; font-size:11.5px; padding:8px 12px; background:transparent; border:1px solid var(--card-border); color:var(--text-primary);">Drafting Desk ↗</a>
       </div>
     </div>
   </div>
@@ -1064,6 +1064,13 @@ body.sidebar-hidden .sidebar {
     <span class="sidebar-label">Create</span>
   </div>
 
+  <a href="/dashboard" class="sidebar-item" id="nav-desk" style="text-decoration:none;" title="Open Drafting Desk">
+    <div class="sidebar-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+    </div>
+    <span class="sidebar-label">Drafting ↗</span>
+  </a>
+
   <div class="sidebar-spacer"></div>
 
   <div class="sidebar-bottom-group">
@@ -1104,9 +1111,9 @@ body.sidebar-hidden .sidebar {
       </div>
       
       <div style="display:flex; align-items:center; gap:8px;">
-        <a href="/" class="back-to-desk-link" title="Return to Drafting Desk">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-          <span>Drafting Desk</span>
+        <a href="/dashboard" class="back-to-desk-link" title="Open Drafting Desk">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
+          <span>Drafting Desk ↗</span>
         </a>
 
         <div class="quick-theme-bar" title="Quick Theme Switcher">
@@ -1138,6 +1145,7 @@ body.sidebar-hidden .sidebar {
       </div>
       <div style="display:flex; align-items:center; gap:8px;">
         <button class="btn-primary" onclick="openCreateTabForNew()">+ New Bot</button>
+        <a href="/dashboard" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.08); border:1px solid var(--card-border); color:var(--text-primary);">Drafting Desk ↗</a>
       </div>
     </div>
 
