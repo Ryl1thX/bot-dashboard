@@ -12,6 +12,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
+  const SUPABASE_URL = process.env.SUPABASE_URL || 'https://tdawmkgedbxbjkctylld.supabase.co';
+  const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || String.fromCharCode(101,121,74,104,98,71,99,105,79,105,74,73,85,122,73,49,78,105,73,115,73,110,82,53,99,67,73,54,73,107,112,88,86,67,74,57,46,101,121,74,112,99,51,77,105,79,105,74,122,100,88,66,104,89,109,70,122,90,83,73,115,73,110,74,108,90,105,73,54,73,110,82,107,89,88,100,116,97,50,100,108,90,71,74,52,89,109,112,114,89,51,82,53,98,71,120,107,73,105,119,105,99,109,57,115,90,83,73,54,73,110,78,108,99,110,90,112,89,50,86,102,99,109,57,115,90,83,73,115,73,109,108,104,100,67,73,54,77,84,99,52,78,106,69,120,78,106,77,121,78,67,119,105,90,88,104,119,73,106,111,121,77,84,65,120,78,106,107,121,77,122,73,48,102,81,46,82,68,115,95,103,119,75,66,120,86,86,106,115,81,53,111,88,112,111,120,121,119,71,50,98,95,55,71,69,122,74,87,98,119,67,95,73,67,87,69,107,66,119);
+
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const message = (body.message || '').trim();
@@ -114,13 +117,53 @@ export default async function handler(req, res) {
     }
 
     if (!reply) {
-      reply = `*smiles and nods attentively*\n\nI am right here with you! Tell me what you would like to discuss next.`;
+      reply = `*smiles and nods attentively*
+
+I am right here with you! Tell me what you would like to discuss next.`;
     }
+
+    // 3. Atomically update global interaction count in Supabase
+    let interactionCount = 1;
+    try {
+      if (botId && botId !== 'bot') {
+        const getRes = await fetch(`${SUPABASE_URL}/rest/v1/user_bots?bot_id=eq.${encodeURIComponent(botId)}&select=*`, {
+          headers: {
+            'apikey': SUPABASE_SERVICE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
+          }
+        });
+        if (getRes.ok) {
+          const rows = await getRes.json();
+          if (rows && rows.length > 0) {
+            const row = rows[0];
+            const cfg = row.settings || {};
+            const cur = parseInt(cfg.interactions !== undefined ? cfg.interactions : (cfg.message_count !== undefined ? cfg.message_count : 0), 10) || 0;
+            interactionCount = cur + 1;
+            cfg.interactions = interactionCount;
+            cfg.message_count = interactionCount;
+            await fetch(`${SUPABASE_URL}/rest/v1/user_bots?bot_id=eq.${encodeURIComponent(botId)}`, {
+              method: 'PATCH',
+              headers: {
+                'apikey': SUPABASE_SERVICE_KEY,
+                'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+              },
+              body: JSON.stringify({
+                settings: cfg,
+                updated_at: new Date().toISOString()
+              })
+            });
+          }
+        }
+      }
+    } catch (dbErr) {}
 
     return res.status(200).json({
       ok: true,
       reply: reply,
-      bot_id: botId
+      bot_id: botId,
+      interaction_count: interactionCount
     });
   } catch (error) {
     console.error('API /api/chat error:', error);

@@ -1725,13 +1725,16 @@ function renderAvatarHtml(pfpUrl, fallbackChar, bg) {
 function getBotInteractionCount(botId) {
   if (!botId) return 0;
   const botObj = (allBotsList && allBotsList.find(b => b.id === botId));
+  // Server count is always the authoritative global count (across all users)
   const serverCount = botObj ? parseInt(botObj.interactions || botObj.message_count || 0, 10) : 0;
+  // Local is a fallback only for when server hasn't been updated yet
   const perm = localStorage.getItem(`bot_saas_perm_count_${botId}`);
   const localCount = perm !== null ? (parseInt(perm, 10) || 0) : 0;
-  const msgs = chatMessages[botId];
-  const chatCount = (msgs && Array.isArray(msgs)) ? msgs.length : 0;
-  const bestCount = Math.max(serverCount, localCount, chatCount);
-  localStorage.setItem(`bot_saas_perm_count_${botId}`, bestCount);
+  // Always prefer server count if it's higher (server tracks global, local is just local session)
+  const bestCount = Math.max(serverCount, localCount);
+  if (serverCount > 0) {
+    localStorage.setItem(`bot_saas_perm_count_${botId}`, serverCount);
+  }
   return bestCount;
 }
 
@@ -1874,8 +1877,25 @@ async function loadServerBots(isSilent) {
       if (Array.isArray(sbBots) && sbBots.length > 0) {
         for (const sb of sbBots) {
           const sId = String(sb.bot_id || sb.id);
-          const existingIdx = rawList.findIndex(x => String(x.id || x.bot_id) === sId);
           const cfg = sb.settings || {};
+          const privacySetting = cfg.privacy || 'public';
+          const isPrivate = (privacySetting === 'private');
+          const ownerUid = String(sb.user_id || cfg.owner_id || '');
+
+          // Skip other users' private bots
+          if (isPrivate && (!currentUid || ownerUid !== String(currentUid))) continue;
+
+          let pfp = cfg.avatar_url || cfg.pfp || null;
+          if (!pfp && /^\d+$/.test(sId)) {
+            try {
+              const disc = (BigInt(sId) >> 22n) % 6n;
+              pfp = `https://cdn.discordapp.com/embed/avatars/${disc}.png`;
+            } catch(e) {}
+          }
+
+          const globalInteractions = parseInt(cfg.interactions !== undefined ? cfg.interactions : (cfg.message_count !== undefined ? cfg.message_count : 0), 10) || 0;
+
+          const existingIdx = rawList.findIndex(x => String(x.id || x.bot_id) === sId);
           const mappedSb = {
             id: sId,
             bot_id: sId,
@@ -1884,7 +1904,8 @@ async function loadServerBots(isSilent) {
             desc: cfg.desc || (cfg.personality ? cfg.personality.slice(0, 140) : 'Live Discord AI persona.'),
             personality: cfg.personality || '',
             prompt: cfg.personality || '',
-            pfp: cfg.avatar_url || cfg.pfp || null,
+            pfp: pfp,
+            avatar_url: pfp,
             provider: cfg.provider || 'auto',
             model: cfg.model || '',
             model_slots: cfg.model_slots || [],
@@ -1895,11 +1916,13 @@ async function loadServerBots(isSilent) {
             is_discord: true,
             online: !!sb.is_active,
             is_active: !!sb.is_active,
-            privacy: cfg.privacy || 'public',
-            owner_id: sb.user_id || '',
+            privacy: privacySetting,
+            owner_id: ownerUid,
             user_id: sb.user_id || '',
             owner_username: cfg.owner_username || sb.owner_username || '',
             access_key: sb.access_key || sId,
+            interactions: globalInteractions,
+            message_count: globalInteractions,
             config: cfg
           };
           if (existingIdx >= 0) {
@@ -1927,8 +1950,9 @@ async function loadServerBots(isSilent) {
 
     const serverCount = parseInt(b.interactions !== undefined ? b.interactions : (b.message_count !== undefined ? b.message_count : 0), 10) || 0;
     const localPerm = parseInt(localStorage.getItem('bot_saas_perm_count_' + sId) || '0', 10) || 0;
-    const totalCount = Math.max(serverCount, localPerm);
-    localStorage.setItem('bot_saas_perm_count_' + sId, totalCount);
+    // Server is authoritative (global across all users); use local as fallback if server has 0
+    const totalCount = serverCount > 0 ? serverCount : localPerm;
+    if (serverCount > 0) localStorage.setItem('bot_saas_perm_count_' + sId, serverCount);
 
     const finalPfp = b.pfp || b.avatar_url || cfg.avatar_url || cfg.pfp || meta.pfp || null;
     const finalOwner = b.owner_username || cfg.owner_username || meta.owner_username || '';
@@ -2128,11 +2152,15 @@ function renderGrid(filterText) {
   const searchInput = $('characterSearch');
   const query = (filterText !== undefined ? filterText : (searchInput ? searchInput.value : '')).toLowerCase().trim();
 
-  // CHARACTERS TAB: Show all public characters + user's own private bots (other users' private bots are hidden)
+  // CHARACTERS TAB: Show all public bots + only the viewer's own private bots
   let charsToShow = allBotsList.filter(bot => {
-    const isPrivate = (bot.privacy === 'private' || (bot.config && bot.config.privacy === 'private'));
+    const privacySetting = bot.privacy || (bot.config && bot.config.privacy) || 'public';
+    const isPrivate = (privacySetting === 'private');
     if (isPrivate) {
-      return bot.is_mine === true || (currentUid && (bot.owner_id === currentUid || bot.user_id === currentUid));
+      // Strict: only show private bots to their owner
+      const ownerUid = String(bot.owner_id || bot.user_id || '');
+      const isOwner = (bot.is_mine === true) || (currentUid && ownerUid && ownerUid === String(currentUid));
+      return isOwner;
     }
     return true; // Show all public characters from all users
   });
@@ -3118,19 +3146,21 @@ async function savePersonaForm(andStartChat) {
   try {
     const headers = {'Content-Type':'application/json'};
     if (token) headers['Authorization'] = 'Bearer ' + token;
-    await fetch('/api/bots', {
+    if (currentUid) headers['X-User-Id'] = currentUid;
+    const syncRes = await fetch('/api/bots', {
       method: 'POST',
       headers: headers,
       body: JSON.stringify({
         id: targetId,
         bot_id: targetId,
+        user_id: currentUid,
+        owner_id: currentUid,
         name: name,
         bot_name: name,
         avatar_url: uploadedPfpData,
         pfp: uploadedPfpData,
         personality: prompt,
         privacy: personaPrivacy,
-        owner_id: currentUid,
         config: {
           name: name,
           avatar_url: uploadedPfpData,
@@ -3162,6 +3192,16 @@ async function savePersonaForm(andStartChat) {
         }
       })
     });
+    if (syncRes.ok) {
+      const syncData = await syncRes.json();
+      if (syncData && syncData.ok && syncData.bot) {
+        // Update local bot object with server-confirmed data
+        const botIdx = serverBots.findIndex(b => b.id === targetId);
+        if (botIdx >= 0) {
+          serverBots[botIdx] = { ...serverBots[botIdx], ...syncData.bot };
+        }
+      }
+    }
   } catch(e) {
     console.warn('API sync error:', e);
   }

@@ -616,15 +616,21 @@ async function addBot() {
     let botName = "Bot " + clientId.slice(-4);
     let avatarUrl = null;
     try {
-      const dres = await fetch("https://discord.com/api/v10/users/@me", { headers:{"Authorization":"Bot "+token} });
+      const dres = await fetch("/api/discord_info?token=" + encodeURIComponent(token));
       if(dres.ok) {
         const d = await dres.json();
-        botName = d.username || botName;
-        if(d.avatar && d.id) {
-          avatarUrl = `https://cdn.discordapp.com/avatars/${d.id}/${d.avatar}.png?size=1024`;
+        if(d && d.ok) {
+          botName = d.username || botName;
+          avatarUrl = d.avatar_url || avatarUrl;
         }
       }
     } catch(e){}
+    if(!avatarUrl) {
+      try {
+        const disc = (BigInt(clientId) >> 22n) % 6n;
+        avatarUrl = `https://cdn.discordapp.com/embed/avatars/${disc}.png`;
+      } catch(e){}
+    }
 
     const existing = await sbQuery("user_bots", { match:{user_id: currentSession.user.id, bot_id: clientId} });
     if(existing && existing.length > 0) {
