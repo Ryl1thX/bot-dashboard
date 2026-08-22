@@ -42,6 +42,44 @@ export default async function handler(req, res) {
           }
 
           let pfp = cfg.avatar_url || cfg.pfp || null;
+
+          // Auto-fetch real Discord avatar if bot has a token but no pfp saved yet
+          if (!pfp && sb.discord_token) {
+            try {
+              const dRes = await fetch('https://discord.com/api/v10/users/@me', {
+                headers: { 'Authorization': `Bot ${sb.discord_token}` }
+              });
+              if (dRes.ok) {
+                const d = await dRes.json();
+                if (d.avatar && d.id) {
+                  pfp = `https://cdn.discordapp.com/avatars/${d.id}/${d.avatar}.png?size=1024`;
+                } else if (d.id) {
+                  try {
+                    const disc = (BigInt(d.id) >> 22n) % 6n;
+                    pfp = `https://cdn.discordapp.com/embed/avatars/${disc}.png`;
+                  } catch (e) {}
+                }
+                // Patch it back to Supabase so it's saved for future requests
+                if (pfp) {
+                  cfg.avatar_url = pfp;
+                  cfg.pfp = pfp;
+                  fetch(`${SUPABASE_URL}/rest/v1/user_bots?bot_id=eq.${encodeURIComponent(sId)}`, {
+                    method: 'PATCH',
+                    headers: {
+                      'apikey': SUPABASE_SERVICE_KEY,
+                      'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+                      'Content-Type': 'application/json',
+                      'Prefer': 'return=minimal'
+                    },
+                    body: JSON.stringify({ settings: cfg, updated_at: new Date().toISOString() })
+                  }).catch(() => {});
+                }
+              }
+              // If 401/403 (token revoked), pfp stays null — snowflake fallback below will handle it
+            } catch (e) {}
+          }
+
+          // Fallback: default Discord colored avatar from snowflake
           if (!pfp && /^\d+$/.test(sId)) {
             try {
               const disc = (BigInt(sId) >> 22n) % 6n;
