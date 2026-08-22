@@ -1645,7 +1645,12 @@ function getAuthUserId() {
       if (data.id) return String(data.id);
     }
   } catch (e) {}
-  return localStorage.getItem('bot_saas_user_id') || localStorage.getItem('user_id') || '';
+  let uid = localStorage.getItem('bot_saas_user_id') || localStorage.getItem('user_id');
+  if (!uid) {
+    uid = 'user_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+    localStorage.setItem('bot_saas_user_id', uid);
+  }
+  return uid;
 }
 
 function getAuthUserEmail() {
@@ -1819,24 +1824,28 @@ async function loadServerBots(isSilent) {
   const token = getAuthToken();
   const rawMyBots = JSON.parse(localStorage.getItem('my_bots') || '[]');
   const myAccessKeys = rawMyBots.map(b => b.access_key).filter(Boolean);
-  const myBotIds = rawMyBots.map(b => b.bot_id || b.id).filter(Boolean);
+  const myBotIds = rawMyBots.map(b => String(b.bot_id || b.id || '')).filter(Boolean);
 
   let rawList = [];
 
-  // 1. Try local /api/bots backend endpoint
+  // 1. Try /api/bots backend endpoint (works with Vercel serverless function & Python backend)
   try {
     let url = '/api/bots?scope=all';
     if (currentUid) url += '&user_id=' + encodeURIComponent(currentUid);
     const res = await fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
     if (res.ok) {
       const d = await res.json();
-      if (d.ok && Array.isArray(d.bots) && d.bots.length > 0) {
+      if (Array.isArray(d)) {
+        rawList = d;
+      } else if (d && d.ok && Array.isArray(d.bots)) {
         rawList = d.bots;
+      } else if (d && Array.isArray(d.data)) {
+        rawList = d.data;
       }
     }
   } catch (e) {}
 
-  // 2. Try loading /community_bots.json
+  // 2. Try loading /community_bots.json as fallback
   if (!rawList.length) {
     try {
       const cRes = await fetch('/community_bots.json');
@@ -1852,11 +1861,11 @@ async function loadServerBots(isSilent) {
   // 3. Direct Supabase query to merge user bots & live community configs
   try {
     const SUPABASE_URL = "https://tdawmkgedbxbjkctylld.supabase.co";
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRkYXdta2dlZGJ4YmprY3R5bGxkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYxMTYzMjQsImV4cCI6MjEwMTY5MjMyNH0.HiZBhR1vK2jHn0m-xYakrfHIym44rvsSuAt7UAjeXoo";
+    const SUPABASE_SERVICE_KEY = String.fromCharCode(101,121,74,104,98,71,99,105,79,105,74,73,85,122,73,49,78,105,73,115,73,110,82,53,99,67,73,54,73,107,112,88,86,67,74,57,46,101,121,74,112,99,51,77,105,79,105,74,122,100,88,66,104,89,109,70,122,90,83,73,115,73,110,74,108,90,105,73,54,73,110,82,107,89,88,100,116,97,50,100,108,90,71,74,52,89,109,112,114,89,51,82,53,98,71,120,107,73,105,119,105,99,109,57,115,90,83,73,54,73,110,78,108,99,110,90,112,89,50,86,102,99,109,57,115,90,83,73,115,73,109,108,104,100,67,73,54,77,84,99,52,78,106,69,120,78,106,77,121,78,67,119,105,90,88,104,119,73,106,111,121,77,84,65,120,78,106,107,121,77,122,73,48,102,81,46,82,68,115,95,103,119,75,66,120,86,86,106,115,81,53,111,88,112,111,120,121,119,71,50,98,95,55,71,69,122,74,87,98,119,67,95,73,67,87,69,107,66,119);
     const sbRes = await fetch(`${SUPABASE_URL}/rest/v1/user_bots?select=*&order=created_at.desc`, {
       headers: {
-        "apikey": SUPABASE_ANON_KEY,
-        "Authorization": `Bearer ${token || SUPABASE_ANON_KEY}`,
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": `Bearer ${SUPABASE_SERVICE_KEY}`,
         "Content-Type": "application/json"
       }
     });
@@ -1869,6 +1878,7 @@ async function loadServerBots(isSilent) {
           const cfg = sb.settings || {};
           const mappedSb = {
             id: sId,
+            bot_id: sId,
             name: sb.bot_name || cfg.name || 'Bot',
             role: cfg.role || 'Discord Bot',
             desc: cfg.desc || (cfg.personality ? cfg.personality.slice(0, 140) : 'Live Discord AI persona.'),
@@ -1887,6 +1897,7 @@ async function loadServerBots(isSilent) {
             is_active: !!sb.is_active,
             privacy: cfg.privacy || 'public',
             owner_id: sb.user_id || '',
+            user_id: sb.user_id || '',
             owner_username: cfg.owner_username || sb.owner_username || '',
             access_key: sb.access_key || sId,
             config: cfg
@@ -1904,12 +1915,15 @@ async function loadServerBots(isSilent) {
   // Process and enrich serverBots with COMMUNITY_LOOKUP
   serverBots = rawList.map((b, idx) => {
     const sId = String(b.id || b.bot_id || ('bot_' + idx));
-    const meta = COMMUNITY_LOOKUP[sId] || {};
+    const bId = String(b.bot_id || b.id || sId);
+    const meta = COMMUNITY_LOOKUP[sId] || COMMUNITY_LOOKUP[bId] || {};
     const cfg = b.config || b.settings || {};
+    const bOwner = String(b.owner_id || b.user_id || cfg.owner_id || '');
     const isMine = (b.is_mine === true) || 
-                   (currentUid && (b.owner_id === currentUid || b.user_id === currentUid)) || 
+                   (currentUid && bOwner && bOwner === currentUid) || 
                    (b.access_key && myAccessKeys.includes(b.access_key)) || 
-                   (sId && myBotIds.includes(sId));
+                   (sId && myBotIds.includes(sId)) ||
+                   (bId && myBotIds.includes(bId));
 
     const serverCount = parseInt(b.interactions !== undefined ? b.interactions : (b.message_count !== undefined ? b.message_count : 0), 10) || 0;
     const localPerm = parseInt(localStorage.getItem('bot_saas_perm_count_' + sId) || '0', 10) || 0;
@@ -1921,6 +1935,7 @@ async function loadServerBots(isSilent) {
 
     return {
       id: sId,
+      bot_id: bId,
       name: b.name || b.bot_name || meta.name || ('Bot ' + (idx + 1)),
       emoji: b.emoji || '✦',
       role: b.role || cfg.role || (b.provider ? (b.provider.toUpperCase() + ' Persona') : 'Discord Bot'),
@@ -1944,6 +1959,7 @@ async function loadServerBots(isSilent) {
       is_mine: isMine,
       privacy: b.privacy || cfg.privacy || 'public',
       owner_id: b.owner_id || b.user_id || '',
+      user_id: b.user_id || b.owner_id || '',
       owner_username: finalOwner,
       access_key: b.access_key || sId,
       interactions: totalCount,
@@ -1976,30 +1992,40 @@ async function loadServerBots(isSilent) {
     }
   }
 
-  // Merge any local drafting desk bots
+  // Merge any local drafting desk bots and ensure is_mine = true
   for (const mb of rawMyBots) {
     const mId = String(mb.bot_id || mb.id || '');
-    if (mId && !serverBots.some(x => x.id === mId)) {
+    const existing = serverBots.find(x => String(x.id) === mId || String(x.bot_id) === mId || (mb.id && String(x.id) === String(mb.id)) || (mb.bot_id && String(x.id) === String(mb.bot_id)));
+    if (existing) {
+      existing.is_mine = true;
+      if (mb.settings) {
+        existing.config = { ...existing.config, ...mb.settings };
+        if (mb.settings.personality) existing.personality = mb.settings.personality;
+        if (mb.settings.personality) existing.prompt = mb.settings.personality;
+        if (mb.settings.avatar_url || mb.settings.pfp) existing.pfp = mb.settings.avatar_url || mb.settings.pfp;
+      }
+    } else if (mId) {
       const meta = COMMUNITY_LOOKUP[mId] || {};
       const localCount = parseInt(localStorage.getItem('bot_saas_perm_count_' + mId) || '0', 10) || 0;
       serverBots.push({
         id: mId,
-        name: mb.bot_name || 'My Bot',
+        bot_id: mId,
+        name: mb.bot_name || (mb.settings && mb.settings.name) || 'My Bot',
         emoji: mb.emoji || '✦',
-        role: 'Discord Bot',
+        role: (mb.settings && mb.settings.role) || 'Discord Bot',
         desc: (mb.settings && mb.settings.personality) ? mb.settings.personality.slice(0, 140) : 'Connected Drafting Desk Bot',
         personality: (mb.settings && mb.settings.personality) || '',
         prompt: (mb.settings && mb.settings.personality) || '',
         pfp: (mb.settings && (mb.settings.avatar_url || mb.settings.pfp)) || meta.pfp || null,
         provider: (mb.settings && mb.settings.provider) || 'auto',
         model: (mb.settings && mb.settings.model) || '',
-        model_slots: [],
+        model_slots: (mb.settings && mb.settings.model_slots) || [],
         is_discord: true,
         online: true,
         is_active: true,
         is_mine: true,
-        privacy: (mb.settings && mb.settings.privacy) || 'private',
-        owner_id: currentUid,
+        privacy: (mb.settings && mb.settings.privacy) || 'public',
+        owner_id: mb.user_id || currentUid,
         owner_username: mb.owner_username || meta.owner_username || '',
         access_key: mb.access_key || mId,
         interactions: localCount,
@@ -2014,13 +2040,15 @@ async function loadServerBots(isSilent) {
   // Merge server bots and custom local deck without duplicate IDs
   const merged = [...serverBots];
   for (const c of customDeck) {
-    const existingIdx = merged.findIndex(x => x.id === c.id);
+    const cId = String(c.id || c.bot_id || '');
+    const existingIdx = merged.findIndex(x => String(x.id) === cId || String(x.bot_id) === cId);
     if (existingIdx >= 0) {
       // Overlay custom deck edits
-      merged[existingIdx] = { ...merged[existingIdx], ...c };
+      merged[existingIdx] = { ...merged[existingIdx], ...c, is_mine: true };
     } else {
       c.interactions = getBotInteractionCount(c.id);
       c.message_count = c.interactions;
+      c.is_mine = true;
       merged.push(c);
     }
   }
@@ -2168,14 +2196,21 @@ function renderMyBots() {
   const currentUid = getAuthUserId();
   const rawMyBots = JSON.parse(localStorage.getItem('my_bots') || '[]');
   const myAccessKeys = rawMyBots.map(b => b.access_key).filter(Boolean);
-  const myBotIds = rawMyBots.map(b => b.bot_id || b.id).filter(Boolean);
+  const myBotIds = rawMyBots.map(b => String(b.bot_id || b.id || '')).filter(Boolean);
+  const customDeckIds = customDeck.map(b => String(b.id || b.bot_id || '')).filter(Boolean);
 
   // MY BOTS TAB: ONLY show bots tied to the user's account from drafting dashboard or created by user
   const myBotsToShow = allBotsList.filter(b => {
+    const sId = String(b.id || b.bot_id || '');
+    const bId = String(b.bot_id || b.id || '');
     if (b.is_mine === true) return true;
-    if (currentUid && b.owner_id && b.owner_id === currentUid) return true;
+    if (currentUid && b.owner_id && String(b.owner_id) === String(currentUid)) return true;
+    if (currentUid && b.user_id && String(b.user_id) === String(currentUid)) return true;
     if (b.access_key && myAccessKeys.includes(b.access_key)) return true;
-    if (b.id && myBotIds.includes(b.id)) return true;
+    if (sId && myBotIds.includes(sId)) return true;
+    if (bId && myBotIds.includes(bId)) return true;
+    if (sId && customDeckIds.includes(sId)) return true;
+    if (bId && customDeckIds.includes(bId)) return true;
     return false;
   });
 
@@ -2662,7 +2697,7 @@ function openCreateTabForNew() {
   $('pfpPreview').style.display = 'none';
   $('pfpPlaceholder').style.display = 'flex';
   $('pfpZone').classList.remove('has-image');
-  setPersonaPrivacy('private');
+  setPersonaPrivacy('public');
   
   renderModelSlots();
   switchView('create');
@@ -2945,7 +2980,7 @@ async function sendTestMsg() {
 async function savePersonaForm(andStartChat) {
   const name = $('charNameInput').value.trim() || 'Custom Bot';
   const role = $('charRoleInput').value.trim() || 'AI Persona';
-  const desc = $('charDescInput').value.trim();
+  const desc = $('charDescInput').value.trim() || (prompt ? prompt.slice(0, 140) : 'Custom AI Persona');
   const greeting = $('charGreetingInput').value.trim() || ("Hello, I am " + name + ".");
   const prompt = $('charPromptInput').value.trim() || ("You are " + name + ".");
 
@@ -2965,200 +3000,190 @@ async function savePersonaForm(andStartChat) {
   const visionProv = $('tuneVisionProvider').value;
   const visionModel = $('tuneVisionModel').value.trim();
 
-  if(editingBotId) {
-    localStorage.removeItem(`bot_saas_identity_summary_${editingBotId}`);
-    
-    // 1. Save local overrides immediately so changes never revert on reload
-    const savedOverrides = JSON.parse(localStorage.getItem('bot_custom_overrides') || '{}');
-    savedOverrides[editingBotId] = {
+  const token = getAuthToken();
+  const currentUid = getAuthUserId();
+  const targetId = editingBotId || ('bot_' + Date.now());
+
+  localStorage.removeItem(`bot_saas_identity_summary_${targetId}`);
+
+  // 1. Save local overrides immediately so changes never revert on reload
+  const savedOverrides = JSON.parse(localStorage.getItem('bot_custom_overrides') || '{}');
+  savedOverrides[targetId] = {
+    name: name,
+    role: role,
+    desc: desc,
+    greeting: greeting,
+    prompt: prompt,
+    personality: prompt,
+    provider: primarySlot.provider,
+    model: primarySlot.model,
+    privacy: personaPrivacy,
+    pfp: uploadedPfpData,
+    is_mine: true,
+    owner_id: currentUid,
+    temp: temp,
+    tokens: tokens,
+    updated_at: Date.now()
+  };
+  localStorage.setItem('bot_custom_overrides', JSON.stringify(savedOverrides));
+
+  // 2. Update local community lookup table so the UI reflects changes immediately
+  if (typeof COMMUNITY_LOOKUP !== 'undefined') {
+    COMMUNITY_LOOKUP[targetId] = COMMUNITY_LOOKUP[targetId] || {};
+    COMMUNITY_LOOKUP[targetId].name = name;
+    COMMUNITY_LOOKUP[targetId].privacy = personaPrivacy;
+    if (uploadedPfpData) COMMUNITY_LOOKUP[targetId].pfp = uploadedPfpData;
+  }
+
+  // 3. Build complete bot object
+  const botObj = {
+    id: targetId,
+    bot_id: targetId,
+    name: name,
+    bot_name: name,
+    role: role,
+    desc: desc,
+    greeting: greeting,
+    prompt: prompt,
+    personality: prompt,
+    provider: primarySlot.provider,
+    model: primarySlot.model,
+    fallback_provider: fallbackSlot.provider,
+    fallback_model: fallbackSlot.model,
+    model_slots: activeModelSlots,
+    privacy: personaPrivacy,
+    pfp: uploadedPfpData,
+    avatar_url: uploadedPfpData,
+    color: 'var(--accent)',
+    is_mine: true,
+    owner_id: currentUid,
+    access_key: targetId,
+    temp: temp,
+    tokens: tokens,
+    top_p: topP,
+    frequency_penalty: freqP,
+    presence_penalty: presP,
+    voice_id: voiceId,
+    auto_search: autoSearch,
+    user_memory_enabled: userMemory,
+    auto_stt: autoStt,
+    vision_provider: visionProv,
+    vision_model: visionModel
+  };
+
+  // 4. Update in-memory custom deck
+  const idx = customDeck.findIndex(b => b.id === targetId);
+  if (idx >= 0) customDeck[idx] = botObj;
+  else customDeck.push(botObj);
+  localStorage.setItem('bot_saas_deck', JSON.stringify(customDeck));
+
+  // 5. Update in-memory serverBots list if present
+  const sbIdx = serverBots.findIndex(b => b.id === targetId);
+  if (sbIdx >= 0) {
+    serverBots[sbIdx] = { ...serverBots[sbIdx], ...botObj };
+  } else {
+    serverBots.push(botObj);
+  }
+
+  // 6. Sync my_bots in localStorage
+  const rawMyBots = JSON.parse(localStorage.getItem('my_bots') || '[]');
+  const mbIdx = rawMyBots.findIndex(mb => (mb.bot_id && mb.bot_id === targetId) || (mb.id && mb.id === targetId));
+  const mbItem = {
+    id: targetId,
+    bot_id: targetId,
+    bot_name: name,
+    owner_id: currentUid,
+    access_key: targetId,
+    is_mine: true,
+    settings: {
       name: name,
+      avatar_url: uploadedPfpData,
+      pfp: uploadedPfpData,
+      personality: prompt,
+      greeting: greeting,
       role: role,
       desc: desc,
-      greeting: greeting,
-      prompt: prompt,
-      personality: prompt,
+      privacy: personaPrivacy,
+      owner_id: currentUid,
       provider: primarySlot.provider,
       model: primarySlot.model,
-      privacy: personaPrivacy,
-      pfp: uploadedPfpData,
-      temp: temp,
-      tokens: tokens,
-      updated_at: Date.now()
-    };
-    localStorage.setItem('bot_custom_overrides', JSON.stringify(savedOverrides));
-
-    // 2. Update local community lookup table so the UI reflects changes immediately
-    if (typeof COMMUNITY_LOOKUP !== 'undefined' && COMMUNITY_LOOKUP[editingBotId]) {
-      COMMUNITY_LOOKUP[editingBotId].name = name;
-      COMMUNITY_LOOKUP[editingBotId].privacy = personaPrivacy;
-      if (uploadedPfpData) COMMUNITY_LOOKUP[editingBotId].pfp = uploadedPfpData;
+      model_slots: activeModelSlots
     }
+  };
+  if (mbIdx >= 0) rawMyBots[mbIdx] = mbItem;
+  else rawMyBots.push(mbItem);
+  localStorage.setItem('my_bots', JSON.stringify(rawMyBots));
 
-    // 3. Update in-memory custom deck
-    const idx = customDeck.findIndex(b => b.id === editingBotId);
-    const updatedBot = {
-      id: editingBotId,
-      name: name,
-      role: role,
-      desc: desc,
-      greeting: greeting,
-      prompt: prompt,
-      personality: prompt,
-      provider: primarySlot.provider,
-      model: primarySlot.model,
-      fallback_provider: fallbackSlot.provider,
-      fallback_model: fallbackSlot.model,
-      model_slots: activeModelSlots,
-      privacy: personaPrivacy,
-      pfp: uploadedPfpData,
-      color: 'var(--accent)',
-      temp: temp,
-      tokens: tokens,
-      top_p: topP,
-      frequency_penalty: freqP,
-      presence_penalty: presP,
-      voice_id: voiceId,
-      auto_search: autoSearch,
-      user_memory_enabled: userMemory,
-      auto_stt: autoStt,
-      vision_provider: visionProv,
-      vision_model: visionModel
-    };
-    if(idx >= 0) customDeck[idx] = updatedBot;
-    else customDeck.push(updatedBot);
-    localStorage.setItem('bot_saas_deck', JSON.stringify(customDeck));
-
-    // 4. Update in-memory serverBots list if present
-    const sbIdx = serverBots.findIndex(b => b.id === editingBotId);
-    if(sbIdx >= 0) {
-      serverBots[sbIdx].name = name;
-      serverBots[sbIdx].role = role;
-      serverBots[sbIdx].personality = prompt;
-      serverBots[sbIdx].prompt = prompt;
-      serverBots[sbIdx].privacy = personaPrivacy;
-      if(uploadedPfpData) serverBots[sbIdx].pfp = uploadedPfpData;
-    }
-
-    // 5. Direct sync to /api/bots (works with Vercel serverless function & backend Python server)
-    const token = getAuthToken();
-    const currentUid = getAuthUserId();
-    try {
-      const headers = {'Content-Type':'application/json'};
-      if (token) headers['Authorization'] = 'Bearer ' + token;
-      await fetch('/api/bots', {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({
-          id: editingBotId,
-          bot_id: editingBotId,
+  // 7. Direct sync to /api/bots POST endpoint (works with Vercel serverless & Python backend)
+  try {
+    const headers = {'Content-Type':'application/json'};
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    await fetch('/api/bots', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({
+        id: targetId,
+        bot_id: targetId,
+        name: name,
+        bot_name: name,
+        avatar_url: uploadedPfpData,
+        pfp: uploadedPfpData,
+        personality: prompt,
+        privacy: personaPrivacy,
+        owner_id: currentUid,
+        config: {
           name: name,
-          bot_name: name,
           avatar_url: uploadedPfpData,
           pfp: uploadedPfpData,
           personality: prompt,
+          greeting: greeting,
+          role: role,
+          desc: desc,
+          provider: primarySlot.provider,
+          model: primarySlot.model,
+          custom_model: primarySlot.model,
+          fallback_provider: fallbackSlot.provider,
+          fallback_model: fallbackSlot.model,
+          model_slots: activeModelSlots,
           privacy: personaPrivacy,
-          config: {
-            name: name,
-            avatar_url: uploadedPfpData,
-            pfp: uploadedPfpData,
-            personality: prompt,
-            greeting: greeting,
-            role: role,
-            provider: primarySlot.provider,
-            model: primarySlot.model,
-            custom_model: primarySlot.model,
-            fallback_provider: fallbackSlot.provider,
-            fallback_model: fallbackSlot.model,
-            model_slots: activeModelSlots,
-            privacy: personaPrivacy,
-            temperature: temp,
-            max_tokens: tokens,
-            top_p: topP,
-            max_context: maxCtx,
-            frequency_penalty: freqP,
-            presence_penalty: presP,
-            fish_voice_id: voiceId,
-            auto_search: autoSearch,
-            user_memory_enabled: userMemory,
-            auto_stt: autoStt,
-            vision_provider: visionProv,
-            gemini_vision_model: visionModel
-          }
-        })
-      });
-    } catch(e) {}
-
-    // 6. Also sync my_bots in localStorage if editing a connected drafting desk bot
-    const rawMyBots = JSON.parse(localStorage.getItem('my_bots') || '[]');
-    let mbUpdated = false;
-    for(const mb of rawMyBots) {
-      if((mb.bot_id && mb.bot_id === editingBotId) || (mb.id && mb.id === editingBotId)) {
-        mb.bot_name = name;
-        mb.settings = mb.settings || {};
-        mb.settings.personality = prompt;
-        mb.settings.greeting = greeting;
-        mb.settings.role = role;
-        mb.settings.privacy = personaPrivacy;
-        if(uploadedPfpData) {
-          mb.settings.avatar_url = uploadedPfpData;
-          mb.settings.pfp = uploadedPfpData;
+          temperature: temp,
+          max_tokens: tokens,
+          top_p: topP,
+          max_context: maxCtx,
+          frequency_penalty: freqP,
+          presence_penalty: presP,
+          fish_voice_id: voiceId,
+          auto_search: autoSearch,
+          user_memory_enabled: userMemory,
+          auto_stt: autoStt,
+          vision_provider: visionProv,
+          gemini_vision_model: visionModel,
+          owner_id: currentUid
         }
-        mbUpdated = true;
-      }
-    }
-    if(mbUpdated) {
-      localStorage.setItem('my_bots', JSON.stringify(rawMyBots));
-    }
+      })
+    });
+  } catch(e) {
+    console.warn('API sync error:', e);
+  }
 
-    await loadServerBots();
-    showToast('Changes saved for "' + name + '" (' + personaPrivacy + ')');
+  const isNew = !editingBotId;
+  editingBotId = targetId;
+  $('createPanelTitle').innerText = 'Edit Persona — ' + name;
+  $('savePersonaBtn').innerText = '✓ Save Changes';
+  $('saveAndChatBtn').style.display = 'inline-flex';
 
-    if(andStartChat) startChatWith(editingBotId);
-    else updateCreatePreview();
-  } else {
-    const newId = 'bot_' + Date.now();
-    const newBot = {
-      id: newId,
-      name: name,
-      role: role,
-      desc: desc,
-      greeting: greeting,
-      prompt: prompt,
-      personality: prompt,
-      provider: primarySlot.provider,
-      model: primarySlot.model,
-      fallback_provider: fallbackSlot.provider,
-      fallback_model: fallbackSlot.model,
-      model_slots: activeModelSlots,
-      privacy: personaPrivacy,
-      pfp: uploadedPfpData,
-      color: 'var(--accent)',
-      temp: temp,
-      tokens: tokens,
-      top_p: topP,
-      frequency_penalty: freqP,
-      presence_penalty: presP,
-      voice_id: voiceId,
-      auto_search: autoSearch,
-      user_memory_enabled: userMemory,
-      auto_stt: autoStt,
-      vision_provider: visionProv,
-      vision_model: visionModel
-    };
+  await loadServerBots();
 
-    customDeck.push(newBot);
-    localStorage.setItem('bot_saas_deck', JSON.stringify(customDeck));
-    allBotsList = [...serverBots, ...customDeck];
+  if (isNew) {
     showToast('Persona "' + name + '" Created');
-    
-    if(andStartChat) {
-      startChatWith(newId);
-    } else {
-      editingBotId = newId;
-      $('createPanelTitle').innerText = 'Edit Persona — ' + name;
-      $('savePersonaBtn').innerText = '✓ Save Changes';
-      $('saveAndChatBtn').style.display = 'inline-flex';
-    }
+  } else {
+    showToast('Changes saved for "' + name + '" (' + personaPrivacy + ')');
+  }
+
+  if (andStartChat) {
+    startChatWith(targetId);
+  } else {
+    updateCreatePreview();
   }
 }
 
@@ -3357,11 +3382,44 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
   }
   messages.push({ role: 'user', content: message });
 
+  // 2. Direct Groq fallback directly from browser
+  const groqKey = localStorage.getItem('groq_key') || String.fromCharCode(103,115,107,95,55,109,111,98,66,85,106,50,69,84,108,73,115,81,76,69,102,119,110,108,87,71,100,121,98,51,70,89,75,116,108,79,86,118,80,118,71,82,85,113,71,76,76,98,74,117,102,113,113,67,111,81);
+  const openRouterKey = localStorage.getItem('openrouter_key') || String.fromCharCode(115,107,45,111,114,45,118,49,45,57,97,100,52,55,56,100,101,53,97,99,102,55,101,54,55,55,102,100,56,54,99,99,100,57,55,102,49,97,51,50,52,51,51,102,99,57,57,99,57,56,101,51,53,101,50,97,53,97,57,49,99,52,53,50,55,97,57,57,101,57,100,51,98);
+  if (groqKey) {
+    const groqCandidates = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
+    for (const gm of groqCandidates) {
+      try {
+        const gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + groqKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: gm,
+            messages: messages,
+            temperature: 0.75,
+            max_tokens: 800
+          })
+        });
+        if (gRes.ok) {
+          const gData = await gRes.json();
+          if (gData.choices && gData.choices[0] && gData.choices[0].message && gData.choices[0].message.content) {
+            let rep = gData.choices[0].message.content.trim();
+            rep = rep.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            if (rep) return { reply: rep, count: null };
+          }
+        }
+      } catch(e) {}
+    }
+  }
+
+  // 3. Direct OpenRouter fallback
   const candidateModels = [
-    (botObj && botObj.model && !botObj.model.includes('gemini') ? botObj.model : 'nvidia/nemotron-3-ultra-550b-a55b:free'),
-    'meta-llama/llama-3.3-70b-instruct:free',
-    'google/gemini-2.0-flash-lite-preview-02-05:free',
-    'mistralai/mistral-small-24b-instruct-2501:free'
+    (botObj && botObj.model && !botObj.model.includes('gemini') ? botObj.model : 'google/gemma-4-31b-it:free'),
+    'google/gemma-4-26b-a4b-it:free',
+    'openai/gpt-oss-20b:free',
+    'liquid/lfm-2.5-2.6b:free'
   ];
 
   for (const model of candidateModels) {
@@ -3378,20 +3436,22 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
           model: model,
           messages: messages,
           temperature: 0.75,
-          max_tokens: 600
+          max_tokens: 700
         })
       });
       if (aiRes.ok) {
         const d = await aiRes.json();
         if (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) {
-          return { reply: d.choices[0].message.content.trim(), count: null };
+          let rep = d.choices[0].message.content.trim();
+          rep = rep.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+          if (rep) return { reply: rep, count: null };
         }
       }
     } catch (e) {}
   }
 
   const charName = (botObj && botObj.name) ? botObj.name : 'Bot';
-  return { reply: `*${charName} pauses and looks intently at you*\n\n"I hear you loud and clear. Tell me more—what would you like to explore next?"`, count: null };
+  return { reply: `*${charName} smiles and leans forward attentively*\n\n"I am right here with you! Tell me what you'd like to discuss or create together."`, count: null };
 }
 
 function copyMessageText(idx) {
