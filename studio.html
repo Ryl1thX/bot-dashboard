@@ -3365,8 +3365,6 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
     }
   } catch (apiErr) {}
 
-  // 2. Direct OpenRouter / LLM fallback directly from browser
-  const openRouterKey = localStorage.getItem('openrouter_key') || ['sk', 'or', 'v1', '9ad478de5acf7e677fd86ccd97f1a32433fc99c98e35e2a5a91c4527a99e9d3b'].join('-');
   const messages = [
     { role: 'system', content: systemPrompt }
   ];
