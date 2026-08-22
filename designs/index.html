@@ -1600,8 +1600,9 @@ body.sidebar-hidden .sidebar {
           </div>
         </div>
 
-        <div style="display:flex; gap:10px;">
+        <div style="display:flex; gap:10px; align-items:center;">
           <button class="btn-primary" onclick="saveUserProfile()">✓ Save Profile &amp; Themes</button>
+          <button class="btn-primary" onclick="userLogout()" style="background:rgba(224, 108, 117, 0.15); color:#e06c75; border:1px solid rgba(224, 108, 117, 0.3);">⎋ Log Out</button>
         </div>
       </div>
 
@@ -2432,6 +2433,16 @@ function saveUserProfile() {
   showToast('Profile and chat themes saved');
 }
 
+function userLogout() {
+  localStorage.removeItem('sb_session');
+  localStorage.removeItem('bot_saas_user_id');
+  localStorage.removeItem('bot_saas_user_email');
+  localStorage.removeItem('supabase.auth.token');
+  showToast('Logged out successfully');
+  setTimeout(() => { window.location.href = '/dashboard.html'; }, 500);
+}
+window.userLogout = userLogout;
+
 /* ==========================================================================
    CHAT SETTINGS & MULTI-PANEL CONTROLS (ROBUST OPENING & CLOSING)
    ========================================================================== */
@@ -3006,30 +3017,31 @@ async function sendTestMsg() {
 }
 
 async function savePersonaForm(andStartChat) {
-  const name = $('charNameInput').value.trim() || 'Custom Bot';
-  const role = $('charRoleInput').value.trim() || 'AI Persona';
-  const desc = $('charDescInput').value.trim() || (prompt ? prompt.slice(0, 140) : 'Custom AI Persona');
-  const greeting = $('charGreetingInput').value.trim() || ("Hello, I am " + name + ".");
-  const prompt = $('charPromptInput').value.trim() || ("You are " + name + ".");
+  const name = ($('charNameInput') ? $('charNameInput').value.trim() : '') || 'Custom Bot';
+  const role = ($('charRoleInput') ? $('charRoleInput').value.trim() : '') || 'AI Persona';
+  const prompt = ($('charPromptInput') ? $('charPromptInput').value.trim() : '') || ("You are " + name + ".");
+  const desc = ($('charDescInput') ? $('charDescInput').value.trim() : '') || (prompt ? prompt.slice(0, 140) : 'Custom AI Persona');
+  const greeting = ($('charGreetingInput') ? $('charGreetingInput').value.trim() : '') || ("Hello, I am " + name + ".");
 
   const primarySlot = activeModelSlots[0] || { provider: 'auto', model: 'gemini-2.0-flash' };
   const fallbackSlot = activeModelSlots[1] || { provider: 'groq', model: 'llama-3.3-70b-versatile' };
 
-  const temp = parseFloat($('tuneTemp').value) || 0.7;
-  const tokens = parseInt($('tuneTokens').value) || 800;
-  const topP = parseFloat($('tuneTopP').value) || 1.0;
-  const maxCtx = parseInt($('tuneCtx').value) || 20;
-  const freqP = parseFloat($('tuneFreqPenalty').value) || 0.0;
-  const presP = parseFloat($('tunePresPenalty').value) || 0.0;
-  const voiceId = $('tuneVoiceId').value.trim();
-  const autoSearch = $('tuneAutoSearch').checked;
-  const userMemory = $('tuneUserMemory').checked;
-  const autoStt = $('tuneAutoStt').checked;
-  const visionProv = $('tuneVisionProvider').value;
-  const visionModel = $('tuneVisionModel').value.trim();
+  const temp = parseFloat($('tuneTemp') ? $('tuneTemp').value : 0.7) || 0.7;
+  const tokens = parseInt($('tuneTokens') ? $('tuneTokens').value : 800) || 800;
+  const topP = parseFloat($('tuneTopP') ? $('tuneTopP').value : 1.0) || 1.0;
+  const maxCtx = parseInt($('tuneCtx') ? $('tuneCtx').value : 20) || 20;
+  const freqP = parseFloat($('tuneFreqPenalty') ? $('tuneFreqPenalty').value : 0.0) || 0.0;
+  const presP = parseFloat($('tunePresPenalty') ? $('tunePresPenalty').value : 0.0) || 0.0;
+  const voiceId = ($('tuneVoiceId') ? $('tuneVoiceId').value.trim() : '');
+  const autoSearch = $('tuneAutoSearch') ? $('tuneAutoSearch').checked : true;
+  const userMemory = $('tuneUserMemory') ? $('tuneUserMemory').checked : true;
+  const autoStt = $('tuneAutoStt') ? $('tuneAutoStt').checked : true;
+  const visionProv = $('tuneVisionProvider') ? $('tuneVisionProvider').value : 'auto';
+  const visionModel = ($('tuneVisionModel') ? $('tuneVisionModel').value.trim() : '');
 
   const token = getAuthToken();
   const currentUid = getAuthUserId();
+  const uName = localStorage.getItem('bot_saas_user_name') || userName || 'User';
   const targetId = editingBotId || ('bot_' + Date.now());
 
   localStorage.removeItem(`bot_saas_identity_summary_${targetId}`);
@@ -3045,10 +3057,12 @@ async function savePersonaForm(andStartChat) {
     personality: prompt,
     provider: primarySlot.provider,
     model: primarySlot.model,
+    custom_model: primarySlot.model,
     privacy: personaPrivacy,
     pfp: uploadedPfpData,
     is_mine: true,
     owner_id: currentUid,
+    owner_username: uName,
     temp: temp,
     tokens: tokens,
     updated_at: Date.now()
@@ -3060,6 +3074,7 @@ async function savePersonaForm(andStartChat) {
     COMMUNITY_LOOKUP[targetId] = COMMUNITY_LOOKUP[targetId] || {};
     COMMUNITY_LOOKUP[targetId].name = name;
     COMMUNITY_LOOKUP[targetId].privacy = personaPrivacy;
+    COMMUNITY_LOOKUP[targetId].owner_username = uName;
     if (uploadedPfpData) COMMUNITY_LOOKUP[targetId].pfp = uploadedPfpData;
   }
 
@@ -3076,6 +3091,7 @@ async function savePersonaForm(andStartChat) {
     personality: prompt,
     provider: primarySlot.provider,
     model: primarySlot.model,
+    custom_model: primarySlot.model,
     fallback_provider: fallbackSlot.provider,
     fallback_model: fallbackSlot.model,
     model_slots: activeModelSlots,
@@ -3085,6 +3101,7 @@ async function savePersonaForm(andStartChat) {
     color: 'var(--accent)',
     is_mine: true,
     owner_id: currentUid,
+    owner_username: uName,
     access_key: targetId,
     temp: temp,
     tokens: tokens,
@@ -3121,6 +3138,7 @@ async function savePersonaForm(andStartChat) {
     bot_id: targetId,
     bot_name: name,
     owner_id: currentUid,
+    owner_username: uName,
     access_key: targetId,
     is_mine: true,
     settings: {
@@ -3133,8 +3151,10 @@ async function savePersonaForm(andStartChat) {
       desc: desc,
       privacy: personaPrivacy,
       owner_id: currentUid,
+      owner_username: uName,
       provider: primarySlot.provider,
       model: primarySlot.model,
+      custom_model: primarySlot.model,
       model_slots: activeModelSlots
     }
   };
@@ -3155,6 +3175,7 @@ async function savePersonaForm(andStartChat) {
         bot_id: targetId,
         user_id: currentUid,
         owner_id: currentUid,
+        owner_username: uName,
         name: name,
         bot_name: name,
         avatar_url: uploadedPfpData,
@@ -3379,9 +3400,36 @@ async function regenerateLatest() {
   showToast('Regenerated latest response');
 }
 
+function cleanLlmReply(rawText) {
+  if (!rawText || typeof rawText !== 'string') return '';
+  let text = rawText.trim();
+  // 1. Strip XML-style reasoning tags (<think>, <thought>, <reasoning>)
+  text = text.replace(/<(think|thought|reasoning)>[\s\S]*?<\/\1>/gi, '');
+  text = text.replace(/<(think|thought|reasoning)>[\s\S]*$/gi, '');
+  // 2. Check for explicit 'Thinking Process' blocks
+  const draftMatch = text.match(/(?:Here'?s\s+(?:a\s+)?thinking\s+process|Thinking\s+Process)[\s\S]*?(?:Draft|Final\s+(?:Response|Reply|Answer)):\s*\n*([\s\S]+)/i);
+  if (draftMatch && draftMatch[1]) {
+    let cand = draftMatch[1].trim();
+    const splitParts = cand.split(/\n+(?:\d+[\.\)]|\*+|-+)?\s*(?:\*\*)?(?:Self-Correction|Verification|Evaluation|Final Check)/i);
+    cand = splitParts[0].trim();
+    if (cand.length > 5) text = cand;
+  } else {
+    text = text.replace(/^(?:Here'?s\s+(?:a\s+)?thinking\s+process|Thinking\s+Process|\*Thinking Process\*|\[Thinking Process\])[\s\S]*?(?=\n\n(?:[A-Z*\"\'\u201c\u2018]|[\u4e00-\u9fa5]|$))/i, '');
+    text = text.replace(/^(?:\d+\.\s+\*\*[A-Za-z\s]+:\*\*|\d+\.\s+Analyze User Input)[\s\S]*?(?=\n\n(?:[A-Z*\"\'\u201c\u2018]|[\u4e00-\u9fa5]|$))/i, '');
+  }
+  // 3. Clean any leftover Draft: / Response: markers
+  text = text.replace(/^(?:Draft|Response|Reply|Assistant):\s*/i, '');
+  return text.trim();
+}
+
 async function executeAiChatRequest(message, systemPrompt, botObj, historyList, imgData) {
   const bId = (botObj && botObj.id) ? botObj.id : 'bot';
   const uName = userName || 'User';
+  const botCfg = (botObj && (botObj.config || botObj.settings)) || {};
+  const customBaseUrl = (botObj && botObj.custom_base_url) || botCfg.custom_base_url || '';
+  const customKey = (botObj && botObj.custom_key) || botCfg.custom_key || '';
+  const customModel = (botObj && (botObj.custom_model || botObj.model)) || botCfg.custom_model || botCfg.model || '';
+  const provider = (botObj && botObj.provider) || botCfg.provider || 'auto';
 
   // 1. Try /api/chat (works with local backend or Vercel serverless function)
   try {
@@ -3394,13 +3442,19 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
         bot_id: bId,
         user_name: uName,
         system_prompt: systemPrompt,
-        history: historyList || []
+        history: historyList || [],
+        provider: provider,
+        model: customModel,
+        custom_base_url: customBaseUrl,
+        custom_key: customKey,
+        custom_model: customModel
       })
     });
     if (res.ok) {
       const data = await res.json();
       if (data && data.ok && data.reply && !data.reply.startsWith('Got it:')) {
-        return { reply: data.reply, count: data.interaction_count };
+        const cleaned = cleanLlmReply(data.reply);
+        return { reply: cleaned || data.reply, count: data.interaction_count };
       }
     }
   } catch (apiErr) {}
@@ -3420,7 +3474,38 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
   }
   messages.push({ role: 'user', content: message });
 
-  // 2. Direct Groq fallback directly from browser
+  // 2. Direct custom endpoint call from browser if configured
+  if (customBaseUrl || provider === 'custom') {
+    let ep = customBaseUrl.trim();
+    if (ep) {
+      if (!ep.endsWith('/chat/completions')) {
+        ep = ep.endsWith('/') ? (ep + 'chat/completions') : (ep + '/chat/completions');
+      }
+      try {
+        const cHeaders = { 'Content-Type': 'application/json' };
+        if (customKey) cHeaders['Authorization'] = 'Bearer ' + customKey;
+        const cRes = await fetch(ep, {
+          method: 'POST',
+          headers: cHeaders,
+          body: JSON.stringify({
+            model: customModel || 'gpt-3.5-turbo',
+            messages: messages,
+            temperature: 0.75,
+            max_tokens: 1000
+          })
+        });
+        if (cRes.ok) {
+          const cData = await cRes.json();
+          if (cData.choices && cData.choices[0] && cData.choices[0].message && cData.choices[0].message.content) {
+            const cleaned = cleanLlmReply(cData.choices[0].message.content);
+            if (cleaned) return { reply: cleaned, count: null };
+          }
+        }
+      } catch (cErr) {}
+    }
+  }
+
+  // 3. Direct Groq fallback directly from browser
   const groqKey = localStorage.getItem('groq_key') || String.fromCharCode(103,115,107,95,55,109,111,98,66,85,106,50,69,84,108,73,115,81,76,69,102,119,110,108,87,71,100,121,98,51,70,89,75,116,108,79,86,118,80,118,71,82,85,113,71,76,76,98,74,117,102,113,113,67,111,81);
   const openRouterKey = localStorage.getItem('openrouter_key') || String.fromCharCode(115,107,45,111,114,45,118,49,45,57,97,100,52,55,56,100,101,53,97,99,102,55,101,54,55,55,102,100,56,54,99,99,100,57,55,102,49,97,51,50,52,51,51,102,99,57,57,99,57,56,101,51,53,101,50,97,53,97,57,49,99,52,53,50,55,97,57,57,101,57,100,51,98);
   if (groqKey) {
@@ -3443,8 +3528,7 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
         if (gRes.ok) {
           const gData = await gRes.json();
           if (gData.choices && gData.choices[0] && gData.choices[0].message && gData.choices[0].message.content) {
-            let rep = gData.choices[0].message.content.trim();
-            rep = rep.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+            let rep = cleanLlmReply(gData.choices[0].message.content);
             if (rep) return { reply: rep, count: null };
           }
         }
@@ -3452,7 +3536,7 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
     }
   }
 
-  // 3. Direct OpenRouter fallback
+  // 4. Direct OpenRouter fallback
   const candidateModels = [
     (botObj && botObj.model && !botObj.model.includes('gemini') ? botObj.model : 'google/gemma-4-31b-it:free'),
     'google/gemma-4-26b-a4b-it:free',
@@ -3478,18 +3562,19 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
         })
       });
       if (aiRes.ok) {
-        const d = await aiRes.json();
-        if (d.choices && d.choices[0] && d.choices[0].message && d.choices[0].message.content) {
-          let rep = d.choices[0].message.content.trim();
-          rep = rep.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+        const aiData = await aiRes.json();
+        if (aiData.choices && aiData.choices[0] && aiData.choices[0].message && aiData.choices[0].message.content) {
+          let rep = cleanLlmReply(aiData.choices[0].message.content);
           if (rep) return { reply: rep, count: null };
         }
       }
-    } catch (e) {}
+    } catch (err) {}
   }
 
-  const charName = (botObj && botObj.name) ? botObj.name : 'Bot';
-  return { reply: `*${charName} smiles and leans forward attentively*\n\n"I am right here with you! Tell me what you'd like to discuss or create together."`, count: null };
+  return {
+    reply: `*smiles and nods attentively*\n\nI am right here with you! Tell me what you would like to explore next.`,
+    count: null
+  };
 }
 
 function copyMessageText(idx) {

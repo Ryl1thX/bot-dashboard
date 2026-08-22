@@ -53,14 +53,6 @@ export default async function handler(req, res) {
                 const d = await dRes.json();
                 if (d.avatar && d.id) {
                   pfp = `https://cdn.discordapp.com/avatars/${d.id}/${d.avatar}.png?size=1024`;
-                } else if (d.id) {
-                  try {
-                    const disc = (BigInt(d.id) >> 22n) % 6n;
-                    pfp = `https://cdn.discordapp.com/embed/avatars/${disc}.png`;
-                  } catch (e) {}
-                }
-                // Patch it back to Supabase so it's saved for future requests
-                if (pfp) {
                   cfg.avatar_url = pfp;
                   cfg.pfp = pfp;
                   fetch(`${SUPABASE_URL}/rest/v1/user_bots?bot_id=eq.${encodeURIComponent(sId)}`, {
@@ -75,11 +67,10 @@ export default async function handler(req, res) {
                   }).catch(() => {});
                 }
               }
-              // If 401/403 (token revoked), pfp stays null — snowflake fallback below will handle it
             } catch (e) {}
           }
 
-          // Fallback: default Discord colored avatar from snowflake
+          // Fallback: default Discord colored avatar from snowflake (in memory only, do not corrupt custom pfp)
           if (!pfp && /^\d+$/.test(sId)) {
             try {
               const disc = (BigInt(sId) >> 22n) % 6n;
@@ -92,6 +83,7 @@ export default async function handler(req, res) {
           const desc = cfg.desc || (cfg.personality ? cfg.personality.slice(0, 140) : 'Live Discord AI persona.');
           const personality = cfg.personality || '';
           const globalInteractions = parseInt(cfg.interactions !== undefined ? cfg.interactions : (cfg.message_count !== undefined ? cfg.message_count : 0), 10) || 0;
+          const ownerUsername = cfg.owner_username || sb.owner_username || '';
 
           bots.push({
             id: sId,
@@ -117,7 +109,7 @@ export default async function handler(req, res) {
             privacy: privacy,
             owner_id: ownerUid,
             user_id: sb.user_id || '',
-            owner_username: cfg.owner_username || sb.owner_username || '',
+            owner_username: ownerUsername,
             access_key: sb.access_key || sId,
             interactions: globalInteractions,
             message_count: globalInteractions,
@@ -139,6 +131,7 @@ export default async function handler(req, res) {
       const avatarUrl = body.avatar_url || body.pfp || config.avatar_url || config.pfp || null;
       const personality = body.personality || config.personality || '';
       const ownerId = body.owner_id || config.owner_id || body.user_id || '';
+      const ownerUsername = body.owner_username || config.owner_username || '';
 
       if (!botId) {
         return res.status(400).json({ ok: false, error: 'Missing bot_id' });
@@ -164,7 +157,8 @@ export default async function handler(req, res) {
         name: botName || existingSettings.name || 'Bot',
         personality: personality || existingSettings.personality || '',
         privacy: privacy,
-        owner_id: ownerId || existingSettings.owner_id || (existing.length > 0 ? existing[0].user_id : '')
+        owner_id: ownerId || existingSettings.owner_id || (existing.length > 0 ? existing[0].user_id : ''),
+        owner_username: ownerUsername || existingSettings.owner_username || ''
       };
       if (avatarUrl) {
         mergedSettings.avatar_url = avatarUrl;
@@ -218,10 +212,11 @@ export default async function handler(req, res) {
           bot_id: botId,
           name: botName || mergedSettings.name || 'Bot',
           bot_name: botName || mergedSettings.name || 'Bot',
-          pfp: avatarUrl,
-          avatar_url: avatarUrl,
+          pfp: avatarUrl || mergedSettings.avatar_url || mergedSettings.pfp || null,
+          avatar_url: avatarUrl || mergedSettings.avatar_url || mergedSettings.pfp || null,
           privacy: privacy,
           owner_id: ownerId,
+          owner_username: ownerUsername || mergedSettings.owner_username || '',
           config: mergedSettings,
           settings: mergedSettings
         }

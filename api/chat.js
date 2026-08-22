@@ -15,12 +15,59 @@ export default async function handler(req, res) {
   const SUPABASE_URL = process.env.SUPABASE_URL || 'https://tdawmkgedbxbjkctylld.supabase.co';
   const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || String.fromCharCode(101,121,74,104,98,71,99,105,79,105,74,73,85,122,73,49,78,105,73,115,73,110,82,53,99,67,73,54,73,107,112,88,86,67,74,57,46,101,121,74,112,99,51,77,105,79,105,74,122,100,88,66,104,89,109,70,122,90,83,73,115,73,110,74,108,90,105,73,54,73,110,82,107,89,88,100,116,97,50,100,108,90,71,74,52,89,109,112,114,89,51,82,53,98,71,120,107,73,105,119,105,99,109,57,115,90,83,73,54,73,110,78,108,99,110,90,112,89,50,86,102,99,109,57,115,90,83,73,115,73,109,108,104,100,67,73,54,77,84,99,52,78,106,69,120,78,106,77,121,78,67,119,105,90,88,104,119,73,106,111,121,77,84,65,120,78,106,107,121,77,122,73,48,102,81,46,82,68,115,95,103,119,75,66,120,86,86,106,115,81,53,111,88,112,111,120,121,119,71,50,98,95,55,71,69,122,74,87,98,119,67,95,73,67,87,69,107,66,119);
 
+  function cleanLlmReply(rawText) {
+    if (!rawText || typeof rawText !== 'string') return '';
+    let text = rawText.trim();
+
+    // 1. Strip XML-style reasoning tags (<think>, <thought>, <reasoning>)
+    text = text.replace(/<(think|thought|reasoning)>[\s\S]*?<\/>/gi, '');
+    text = text.replace(/<(think|thought|reasoning)>[\s\S]*$/gi, '');
+
+    // 2. Check for explicit 'Thinking Process' blocks
+    const draftMatch = text.match(/(?:Here'?s\s+(?:a\s+)?thinking\s+process|Thinking\s+Process)[\s\S]*?(?:Draft|Final\s+(?:Response|Reply|Answer)):\s*
+*([\s\S]+)/i);
+    if (draftMatch && draftMatch[1]) {
+      let cand = draftMatch[1].trim();
+      const splitParts = cand.split(/
++(?:\d+[\.\)]|\*+|-+)?\s*(?:\*\*)?(?:Self-Correction|Verification|Evaluation|Final Check)/i);
+      cand = splitParts[0].trim();
+      if (cand.length > 5) {
+        text = cand;
+      }
+    } else {
+      text = text.replace(/^(?:Here'?s\s+(?:a\s+)?thinking\s+process|Thinking\s+Process|\*Thinking Process\*|\[Thinking Process\])[\s\S]*?(?=
+
+(?:[A-Z*"'“‘]|[一-龥]|$))/i, '');
+      text = text.replace(/^(?:\d+\.\s+\*\*[A-Za-z\s]+:\*\*|\d+\.\s+Analyze User Input)[\s\S]*?(?=
+
+(?:[A-Z*"'“‘]|[一-龥]|$))/i, '');
+    }
+
+    // 3. Clean any leftover Draft: / Response: markers
+    text = text.replace(/^(?:Draft|Response|Reply|Assistant):\s*/i, '');
+    return text.trim();
+  }
+
+  function normalizeEndpoint(rawUrl) {
+    let u = (rawUrl || '').trim();
+    if (!u) return '';
+    if (u.endsWith('/chat/completions')) return u;
+    if (u.endsWith('/v1')) return u + '/chat/completions';
+    if (u.endsWith('/v1/')) return u + 'chat/completions';
+    if (u.endsWith('/')) return u + 'chat/completions';
+    return u + '/chat/completions';
+  }
+
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const message = (body.message || '').trim();
     const systemPrompt = body.system_prompt || 'You are a helpful and engaging AI character.';
     const botId = body.bot_id || 'bot';
     const history = Array.isArray(body.history) ? body.history : [];
+    const provider = (body.provider || '').toLowerCase();
+    const customBaseUrl = body.custom_base_url || (body.config && body.config.custom_base_url) || '';
+    const customKey = body.custom_key || (body.config && body.config.custom_key) || '';
+    const customModel = body.custom_model || body.model || (body.config && body.config.custom_model) || 'gpt-3.5-turbo';
 
     if (!message) {
       return res.status(400).json({ ok: false, error: 'Message cannot be empty' });
@@ -42,14 +89,43 @@ export default async function handler(req, res) {
 
     messages.push({ role: 'user', content: message });
 
+    let reply = '';
+
+    // 1. Try Custom API endpoint if provided
+    if (customBaseUrl || provider === 'custom') {
+      const endpoint = normalizeEndpoint(customBaseUrl);
+      if (endpoint) {
+        try {
+          const headers = { 'Content-Type': 'application/json' };
+          if (customKey) headers['Authorization'] = 'Bearer ' + customKey;
+          const cRes = await fetch(endpoint, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+              model: customModel || 'gpt-3.5-turbo',
+              messages: messages,
+              temperature: 0.75,
+              max_tokens: 1000
+            })
+          });
+          if (cRes.ok) {
+            const cData = await cRes.json();
+            if (cData.choices && cData.choices[0] && cData.choices[0].message && cData.choices[0].message.content) {
+              reply = cleanLlmReply(cData.choices[0].message.content);
+            }
+          }
+        } catch (cErr) {
+          console.warn('Custom endpoint error:', cErr.message);
+        }
+      }
+    }
+
     const groqKey = process.env.GROQ_KEY || String.fromCharCode(103,115,107,95,55,109,111,98,66,85,106,50,69,84,108,73,115,81,76,69,102,119,110,108,87,71,100,121,98,51,70,89,75,116,108,79,86,118,80,118,71,82,85,113,71,76,76,98,74,117,102,113,113,67,111,81);
     const openRouterKey = process.env.OPENROUTER_KEY || String.fromCharCode(115,107,45,111,114,45,118,49,45,57,97,100,52,55,56,100,101,53,97,99,102,55,101,54,55,55,102,100,56,54,99,99,100,57,55,102,49,97,51,50,52,51,51,102,99,57,57,99,57,56,101,51,53,101,50,97,53,97,57,49,99,52,53,50,55,97,57,57,101,57,100,51,98);
 
-    let reply = '';
-
-    // 1. Try high-speed Groq models
-    const groqModels = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
-    if (groqKey) {
+    // 2. Try Groq high-speed models
+    if (!reply && groqKey) {
+      const groqModels = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
       for (const gm of groqModels) {
         try {
           const gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -68,16 +144,18 @@ export default async function handler(req, res) {
           if (gRes.ok) {
             const gData = await gRes.json();
             if (gData.choices && gData.choices[0] && gData.choices[0].message && gData.choices[0].message.content) {
-              reply = gData.choices[0].message.content.trim();
-              reply = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-              if (reply) break;
+              const cleaned = cleanLlmReply(gData.choices[0].message.content);
+              if (cleaned) {
+                reply = cleaned;
+                break;
+              }
             }
           }
         } catch (e) {}
       }
     }
 
-    // 2. Fallback to OpenRouter free models
+    // 3. Fallback to OpenRouter free models
     if (!reply && openRouterKey) {
       const openRouterModels = [
         'google/gemma-4-31b-it:free',
@@ -107,9 +185,11 @@ export default async function handler(req, res) {
           if (aiRes.ok) {
             const aiData = await aiRes.json();
             if (aiData.choices && aiData.choices[0] && aiData.choices[0].message && aiData.choices[0].message.content) {
-              reply = aiData.choices[0].message.content.trim();
-              reply = reply.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-              if (reply) break;
+              const cleaned = cleanLlmReply(aiData.choices[0].message.content);
+              if (cleaned) {
+                reply = cleaned;
+                break;
+              }
             }
           }
         } catch (err) {}
@@ -117,12 +197,12 @@ export default async function handler(req, res) {
     }
 
     if (!reply) {
-      reply = `*smiles and nods attentively*
+      reply = `*smiles warmly and listens attentively*
 
-I am right here with you! Tell me what you would like to discuss next.`;
+I hear you! What would you like to explore next?`;
     }
 
-    // 3. Atomically update global interaction count in Supabase
+    // 4. Atomically update global interaction count in Supabase
     let interactionCount = 1;
     try {
       if (botId && botId !== 'bot') {

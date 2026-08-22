@@ -635,7 +635,11 @@ async function addBot() {
     const existing = await sbQuery("user_bots", { match:{user_id: currentSession.user.id, bot_id: clientId} });
     if(existing && existing.length > 0) {
       const exSettings = existing[0].settings || {};
-      if(avatarUrl) {
+      // If we got a real custom avatar from Discord API, update it. If it's just a fallback embed avatar, preserve existing custom avatar!
+      if (avatarUrl && !avatarUrl.includes('/embed/avatars/')) {
+        exSettings.avatar_url = avatarUrl;
+        exSettings.pfp = avatarUrl;
+      } else if (!exSettings.avatar_url && !exSettings.pfp && avatarUrl) {
         exSettings.avatar_url = avatarUrl;
         exSettings.pfp = avatarUrl;
       }
