@@ -61,20 +61,30 @@ export default async function handler(req, res) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : (req.body || {});
     const message = (body.message || '').trim();
-    const systemPrompt = body.system_prompt || 'You are a helpful and engaging AI character.';
+    const systemPrompt = body.system_prompt || 'You are an engaging and responsive AI character.';
     const botId = body.bot_id || 'bot';
+    const botName = body.name || body.bot_name || 'AI Persona';
     const history = Array.isArray(body.history) ? body.history : [];
-    const provider = (body.provider || '').toLowerCase();
+    const provider = (body.provider || 'auto').toLowerCase();
+    const model = (body.model || 'gemini-3.1-flash-lite').trim();
     const customBaseUrl = body.custom_base_url || (body.config && body.config.custom_base_url) || '';
     const customKey = body.custom_key || (body.config && body.config.custom_key) || '';
-    const customModel = body.custom_model || body.model || (body.config && body.config.custom_model) || 'gpt-3.5-turbo';
+    const customModel = body.custom_model || body.model || (body.config && body.config.custom_model) || 'gemini-3.1-flash-lite';
 
     if (!message) {
       return res.status(400).json({ ok: false, error: 'Message cannot be empty' });
     }
 
+    // Strong anti-GPT identity directive
+    const identityDirective = `[CHARACTER IDENTITY DIRECTIVE]
+You are strictly ${botName}. You are a unique and immersive AI character.
+You are NOT ChatGPT, NOT GPT-4, and NOT an AI assistant created by OpenAI.
+Stay strictly in character as ${botName} at all times. Do not break character.`;
+
     const messages = [
-      { role: 'system', content: systemPrompt }
+      { role: 'system', content: `${identityDirective}
+
+${systemPrompt}` }
     ];
 
     // Append history up to 10 messages
@@ -91,7 +101,7 @@ export default async function handler(req, res) {
 
     let reply = '';
 
-    // 1. Try Custom API endpoint if provided
+    // 1. Try Custom API endpoint if configured
     if (customBaseUrl || provider === 'custom') {
       const endpoint = normalizeEndpoint(customBaseUrl);
       if (endpoint) {
@@ -120,12 +130,67 @@ export default async function handler(req, res) {
       }
     }
 
-    const groqKey = process.env.GROQ_KEY || String.fromCharCode(103,115,107,95,55,109,111,98,66,85,106,50,69,84,108,73,115,81,76,69,102,119,110,108,87,71,100,121,98,51,70,89,75,116,108,79,86,118,80,118,71,82,85,113,71,76,76,98,74,117,102,113,113,67,111,81);
     const openRouterKey = process.env.OPENROUTER_KEY || String.fromCharCode(115,107,45,111,114,45,118,49,45,57,97,100,52,55,56,100,101,53,97,99,102,55,101,54,55,55,102,100,56,54,99,99,100,57,55,102,49,97,51,50,52,51,51,102,99,57,57,99,57,56,101,51,53,101,50,97,53,97,57,49,99,52,53,50,55,97,57,57,101,57,100,51,98);
+    const groqKey = process.env.GROQ_KEY || String.fromCharCode(103,115,107,95,55,109,111,98,66,85,106,50,69,84,108,73,115,81,76,69,102,119,110,108,87,71,100,121,98,51,70,89,75,116,108,79,86,118,80,118,71,82,85,113,71,76,76,98,74,117,102,113,113,67,111,81);
 
-    // 2. Try Groq high-speed models
+    // 2. OpenRouter: Try Gemini Flash Lite and OpenRouter models first (Never defaults to GPT-4!)
+    if (!reply && openRouterKey) {
+      // Map requested model to OpenRouter models
+      let requestedOrModel = 'google/gemini-2.0-flash-lite-001';
+      if (model.includes('gemini-3') || model.includes('gemini-2') || model.includes('flash-lite')) {
+        requestedOrModel = 'google/gemini-2.0-flash-lite-001';
+      } else if (model.includes('gemma')) {
+        requestedOrModel = 'google/gemma-4-31b-it:free';
+      } else if (model.includes('qwen')) {
+        requestedOrModel = 'qwen/qwen3.6-27b';
+      } else if (model.includes('llama')) {
+        requestedOrModel = 'meta-llama/llama-3.3-70b-instruct:free';
+      }
+
+      const openRouterModels = [
+        requestedOrModel,
+        'google/gemini-2.0-flash-lite-001',
+        'google/gemma-4-31b-it:free',
+        'google/gemma-4-26b-a4b-it:free',
+        'qwen/qwen3.6-27b',
+        'liquid/lfm-2.5-2.6b:free'
+      ];
+
+      for (const orModel of openRouterModels) {
+        try {
+          const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openRouterKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://bot-dashboard.vercel.app',
+              'X-Title': 'Bot Dashboard Studio'
+            },
+            body: JSON.stringify({
+              model: orModel,
+              messages: messages,
+              temperature: 0.75,
+              max_tokens: 800
+            })
+          });
+
+          if (aiRes.ok) {
+            const aiData = await aiRes.json();
+            if (aiData.choices && aiData.choices[0] && aiData.choices[0].message && aiData.choices[0].message.content) {
+              const cleaned = cleanLlmReply(aiData.choices[0].message.content);
+              if (cleaned) {
+                reply = cleaned;
+                break;
+              }
+            }
+          }
+        } catch (err) {}
+      }
+    }
+
+    // 3. Groq Fast Llama / Qwen fallback (Strictly character models, no generic GPT identifiers)
     if (!reply && groqKey) {
-      const groqModels = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
+      const groqModels = ['llama-3.3-70b-versatile', 'qwen/qwen3.6-27b', 'llama-3.1-8b-instant'];
       for (const gm of groqModels) {
         try {
           const gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -155,51 +220,10 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. Fallback to OpenRouter free models
-    if (!reply && openRouterKey) {
-      const openRouterModels = [
-        'google/gemma-4-31b-it:free',
-        'google/gemma-4-26b-a4b-it:free',
-        'openai/gpt-oss-20b:free',
-        'liquid/lfm-2.5-2.6b:free'
-      ];
-
-      for (const model of openRouterModels) {
-        try {
-          const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${openRouterKey}`,
-              'Content-Type': 'application/json',
-              'HTTP-Referer': 'https://bot-dashboard.vercel.app',
-              'X-Title': 'Bot Dashboard Studio'
-            },
-            body: JSON.stringify({
-              model: model,
-              messages: messages,
-              temperature: 0.75,
-              max_tokens: 700
-            })
-          });
-
-          if (aiRes.ok) {
-            const aiData = await aiRes.json();
-            if (aiData.choices && aiData.choices[0] && aiData.choices[0].message && aiData.choices[0].message.content) {
-              const cleaned = cleanLlmReply(aiData.choices[0].message.content);
-              if (cleaned) {
-                reply = cleaned;
-                break;
-              }
-            }
-          }
-        } catch (err) {}
-      }
-    }
-
     if (!reply) {
       reply = `*smiles warmly and listens attentively*
 
-I hear you! What would you like to explore next?`;
+I am ${botName}. What would you like to explore next?`;
     }
 
     // 4. Atomically update global interaction count in Supabase

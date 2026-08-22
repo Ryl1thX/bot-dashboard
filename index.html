@@ -1825,6 +1825,7 @@ const COMMUNITY_LOOKUP = {
 /* LOAD BOTS */
 async function loadServerBots(isSilent) {
   const currentUid = getAuthUserId();
+  const currentEmail = getAuthUserEmail();
   const token = getAuthToken();
   const rawMyBots = JSON.parse(localStorage.getItem('my_bots') || '[]');
   const myAccessKeys = rawMyBots.map(b => b.access_key).filter(Boolean);
@@ -1836,13 +1837,18 @@ async function loadServerBots(isSilent) {
   try {
     let url = '/api/bots?scope=all';
     if (currentUid) url += '&user_id=' + encodeURIComponent(currentUid);
-    const res = await fetch(url, { headers: token ? { 'Authorization': 'Bearer ' + token } : {} });
+    if (currentEmail) url += '&user_email=' + encodeURIComponent(currentEmail);
+    const hdrs = { 'X-User-Id': currentUid || '', 'X-User-Email': currentEmail || '' };
+    if (token) hdrs['Authorization'] = 'Bearer ' + token;
+    const res = await fetch(url, { headers: hdrs });
     if (res.ok) {
       const d = await res.json();
       if (Array.isArray(d)) {
         rawList = d;
       } else if (d && d.ok && Array.isArray(d.bots)) {
         rawList = d.bots;
+        // Store superadmin flag if returned by API
+        if (d.is_admin) window._isSuperAdmin = true;
       } else if (d && Array.isArray(d.data)) {
         rawList = d.data;
       }
@@ -2190,6 +2196,7 @@ function renderGrid(filterText) {
     const count = getBotInteractionCount(bot.id);
     const badgeType = (bot.privacy === 'private') ? 'Private' : 'Public';
     const ownerName = bot.owner_username || (bot.config && bot.config.owner_username) || '';
+    const canManage = window._isSuperAdmin || bot.is_mine || bot.can_edit;
 
     return `
       <div class="char-card" onclick="startChatWith('${bot.id}')">
@@ -2204,6 +2211,10 @@ function renderGrid(filterText) {
             </div>
             <div class="char-role">${bot.role || 'Active Persona'}</div>
           </div>
+          ${canManage ? `<div style="display:flex; flex-direction:column; gap:3px; margin-left:auto; flex-shrink:0;" onclick="event.stopPropagation()">
+            <button style="padding:3px 8px; font-size:10px; border-radius:4px; background:rgba(255,255,255,0.08); border:1px solid var(--card-border); color:var(--text-primary); cursor:pointer;" onclick="editBot('${bot.id}')">Edit</button>
+            <button style="padding:3px 8px; font-size:10px; border-radius:4px; background:rgba(200,100,100,0.12); border:1px solid rgba(200,100,100,0.25); color:#e06c75; cursor:pointer;" onclick="deleteBot('${bot.id}')">Del</button>
+          </div>` : ''}
         </div>
         <div class="char-desc">${bot.desc || ''}</div>
         <div class="char-footer">
@@ -2719,7 +2730,7 @@ function openCreateTabForNew() {
   setCustomEndpointConfig({});
   uploadedPfpData = null;
   activeModelSlots = [
-    { provider: 'auto', model: 'gemini-2.0-flash' },
+    { provider: 'auto', model: 'gemini-3.1-flash-lite' },
     { provider: 'groq', model: 'llama-3.3-70b-versatile' }
   ];
 
@@ -2891,11 +2902,19 @@ async function deleteBot(botId) {
   if(!bot) return;
   if(!confirm('Are you sure you want to delete "' + bot.name + '"?')) return;
 
-  if(bot.is_discord) {
-    try {
-      await fetch('/api/bots/' + encodeURIComponent(botId), { method: 'DELETE' });
-    } catch(e) {}
-  }
+  const currentUid = getAuthUserId();
+  const currentEmail = getAuthUserEmail();
+  const token = getAuthToken();
+  const hdrs = { 'Content-Type': 'application/json', 'X-User-Id': currentUid || '', 'X-User-Email': currentEmail || '' };
+  if (token) hdrs['Authorization'] = 'Bearer ' + token;
+
+  // Delete from backend (superadmin can delete any, owner can delete their own)
+  try {
+    await fetch('/api/bots?id=' + encodeURIComponent(botId) + '&user_id=' + encodeURIComponent(currentUid) + '&user_email=' + encodeURIComponent(currentEmail), {
+      method: 'DELETE',
+      headers: hdrs
+    });
+  } catch(e) {}
 
   customDeck = customDeck.filter(b => b.id !== botId);
   localStorage.setItem('bot_saas_deck', JSON.stringify(customDeck));
@@ -3430,6 +3449,7 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
   const customKey = (botObj && botObj.custom_key) || botCfg.custom_key || '';
   const customModel = (botObj && (botObj.custom_model || botObj.model)) || botCfg.custom_model || botCfg.model || '';
   const provider = (botObj && botObj.provider) || botCfg.provider || 'auto';
+  const botName = (botObj && botObj.name) || botCfg.name || 'AI Persona';
 
   // 1. Try /api/chat (works with local backend or Vercel serverless function)
   try {
@@ -3440,11 +3460,12 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
         message: message,
         image_data: imgData,
         bot_id: bId,
+        name: botName,
         user_name: uName,
         system_prompt: systemPrompt,
         history: historyList || [],
         provider: provider,
-        model: customModel,
+        model: customModel || 'gemini-3.1-flash-lite',
         custom_base_url: customBaseUrl,
         custom_key: customKey,
         custom_model: customModel
