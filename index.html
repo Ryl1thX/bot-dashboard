@@ -3812,6 +3812,9 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
           }
         }
       } catch (err) {}
+    }
+  }
+
   // 6. Direct Mistral AI call from browser (with active working key)
   const sharedMistralKey = userMistralKey || localStorage.getItem('mistral_key') || '6vKz8Uz2pHtXmcsCy7XfbD9Gw66vyOpn';
   if (sharedMistralKey) {
