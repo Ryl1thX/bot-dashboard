@@ -2875,6 +2875,7 @@ async function editBot(botId) {
   $('tuneAutoStt').checked = botConfig.auto_stt !== false;
 
   setPersonaPrivacy(botConfig.privacy || 'private');
+  setCustomEndpointConfig(botConfig);
   
   if(botAvatar) {
     uploadedPfpData = botAvatar;
@@ -3065,6 +3066,17 @@ async function savePersonaForm(andStartChat) {
 
   localStorage.removeItem(`bot_saas_identity_summary_${targetId}`);
 
+  const customCfg = getCustomEndpointConfig();
+  if (customCfg.custom_base_url) localStorage.setItem('custom_base_url', customCfg.custom_base_url);
+  if (customCfg.custom_key) localStorage.setItem('custom_key', customCfg.custom_key);
+  if (customCfg.custom_model) localStorage.setItem('custom_model', customCfg.custom_model);
+  if (customCfg.gemini_key) localStorage.setItem('gemini_key', customCfg.gemini_key);
+  if (customCfg.groq_key) localStorage.setItem('groq_key', customCfg.groq_key);
+  if (customCfg.mistral_key) localStorage.setItem('mistral_key', customCfg.mistral_key);
+  if (customCfg.openai_key) localStorage.setItem('openai_key', customCfg.openai_key);
+  if (customCfg.deepseek_key) localStorage.setItem('deepseek_key', customCfg.deepseek_key);
+  if (customCfg.openrouter_key) localStorage.setItem('openrouter_key', customCfg.openrouter_key);
+
   // 1. Save local overrides immediately so changes never revert on reload
   const savedOverrides = JSON.parse(localStorage.getItem('bot_custom_overrides') || '{}');
   savedOverrides[targetId] = {
@@ -3084,6 +3096,7 @@ async function savePersonaForm(andStartChat) {
     owner_username: uName,
     temp: temp,
     tokens: tokens,
+    ...customCfg,
     updated_at: Date.now()
   };
   localStorage.setItem('bot_custom_overrides', JSON.stringify(savedOverrides));
@@ -3132,7 +3145,38 @@ async function savePersonaForm(andStartChat) {
     user_memory_enabled: userMemory,
     auto_stt: autoStt,
     vision_provider: visionProv,
-    vision_model: visionModel
+    vision_model: visionModel,
+    ...customCfg,
+    config: {
+      name: name,
+      avatar_url: uploadedPfpData,
+      pfp: uploadedPfpData,
+      personality: prompt,
+      greeting: greeting,
+      role: role,
+      desc: desc,
+      provider: primarySlot.provider,
+      model: primarySlot.model,
+      custom_model: primarySlot.model,
+      fallback_provider: fallbackSlot.provider,
+      fallback_model: fallbackSlot.model,
+      model_slots: activeModelSlots,
+      privacy: personaPrivacy,
+      temperature: temp,
+      max_tokens: tokens,
+      top_p: topP,
+      max_context: maxCtx,
+      frequency_penalty: freqP,
+      presence_penalty: presP,
+      fish_voice_id: voiceId,
+      auto_search: autoSearch,
+      user_memory_enabled: userMemory,
+      auto_stt: autoStt,
+      vision_provider: visionProv,
+      gemini_vision_model: visionModel,
+      owner_id: currentUid,
+      ...customCfg
+    }
   };
 
   // 4. Update in-memory custom deck
@@ -3174,7 +3218,8 @@ async function savePersonaForm(andStartChat) {
       provider: primarySlot.provider,
       model: primarySlot.model,
       custom_model: primarySlot.model,
-      model_slots: activeModelSlots
+      model_slots: activeModelSlots,
+      ...customCfg
     }
   };
   if (mbIdx >= 0) rawMyBots[mbIdx] = mbItem;
@@ -3228,7 +3273,8 @@ async function savePersonaForm(andStartChat) {
           auto_stt: autoStt,
           vision_provider: visionProv,
           gemini_vision_model: visionModel,
-          owner_id: currentUid
+          owner_id: currentUid,
+          ...customCfg
         }
       })
     });
@@ -3445,11 +3491,19 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
   const bId = (botObj && botObj.id) ? botObj.id : 'bot';
   const uName = userName || 'User';
   const botCfg = (botObj && (botObj.config || botObj.settings)) || {};
-  const customBaseUrl = (botObj && botObj.custom_base_url) || botCfg.custom_base_url || '';
-  const customKey = (botObj && botObj.custom_key) || botCfg.custom_key || '';
-  const customModel = (botObj && (botObj.custom_model || botObj.model)) || botCfg.custom_model || botCfg.model || '';
+  const customBaseUrl = (botObj && botObj.custom_base_url) || botCfg.custom_base_url || localStorage.getItem('custom_base_url') || '';
+  const customKey = (botObj && botObj.custom_key) || botCfg.custom_key || localStorage.getItem('custom_key') || '';
+  const customModel = (botObj && (botObj.custom_model || botObj.model)) || botCfg.custom_model || botCfg.model || localStorage.getItem('custom_model') || '';
   const provider = (botObj && botObj.provider) || botCfg.provider || 'auto';
   const botName = (botObj && botObj.name) || botCfg.name || 'AI Persona';
+  const modelSlots = (botObj && botObj.model_slots) || botCfg.model_slots || activeModelSlots || [];
+
+  const userGeminiKey = (botObj && botObj.gemini_key) || botCfg.gemini_key || localStorage.getItem('gemini_key') || '';
+  const userGroqKey = (botObj && botObj.groq_key) || botCfg.groq_key || localStorage.getItem('groq_key') || '';
+  const userMistralKey = (botObj && botObj.mistral_key) || botCfg.mistral_key || localStorage.getItem('mistral_key') || '';
+  const userOpenAiKey = (botObj && botObj.openai_key) || botCfg.openai_key || localStorage.getItem('openai_key') || '';
+  const userDeepSeekKey = (botObj && botObj.deepseek_key) || botCfg.deepseek_key || localStorage.getItem('deepseek_key') || '';
+  const userOpenRouterKey = (botObj && botObj.openrouter_key) || botCfg.openrouter_key || localStorage.getItem('openrouter_key') || '';
 
   // 1. Try /api/chat (works with local backend or Vercel serverless function)
   try {
@@ -3466,9 +3520,16 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
         history: historyList || [],
         provider: provider,
         model: customModel || 'gemini-3.1-flash-lite',
+        model_slots: modelSlots,
         custom_base_url: customBaseUrl,
         custom_key: customKey,
-        custom_model: customModel
+        custom_model: customModel,
+        gemini_key: userGeminiKey,
+        groq_key: userGroqKey,
+        mistral_key: userMistralKey,
+        openai_key: userOpenAiKey,
+        deepseek_key: userDeepSeekKey,
+        openrouter_key: userOpenRouterKey
       })
     });
     if (res.ok) {
@@ -3481,10 +3542,10 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
   } catch (apiErr) {}
 
   const messages = [
-    { role: 'system', content: systemPrompt }
+    { role: 'system', content: `[CHARACTER IDENTITY DIRECTIVE]\nYou are strictly ${botName}. You are a unique and immersive AI character.\nYou are NOT ChatGPT, NOT GPT-4, and NOT an AI assistant created by OpenAI.\nStay strictly in character as ${botName} at all times. Do not break character.\n\n${systemPrompt}` }
   ];
   if (Array.isArray(historyList)) {
-    for (const h of historyList.slice(-8)) {
+    for (const h of historyList.slice(-10)) {
       if (h.text) {
         messages.push({
           role: h.role === 'user' ? 'user' : 'assistant',
@@ -3526,12 +3587,60 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
     }
   }
 
-  // 3. Direct Groq fallback directly from browser
-  const groqKey = localStorage.getItem('groq_key') || String.fromCharCode(103,115,107,95,55,109,111,98,66,85,106,50,69,84,108,73,115,81,76,69,102,119,110,108,87,71,100,121,98,51,70,89,75,116,108,79,86,118,80,118,71,82,85,113,71,76,76,98,74,117,102,113,113,67,111,81);
-  const openRouterKey = localStorage.getItem('openrouter_key') || String.fromCharCode(115,107,45,111,114,45,118,49,45,57,97,100,52,55,56,100,101,53,97,99,102,55,101,54,55,55,102,100,56,54,99,99,100,57,55,102,49,97,51,50,52,51,51,102,99,57,57,99,57,56,101,51,53,101,50,97,53,97,57,49,99,52,53,50,55,97,57,57,101,57,100,51,98);
+  // 3. Direct Mistral call from browser
+  if ((provider === 'mistral' || userMistralKey) && userMistralKey) {
+    try {
+      const mRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + userMistralKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: customModel || 'mistral-large-latest',
+          messages: messages,
+          temperature: 0.75,
+          max_tokens: 1000
+        })
+      });
+      if (mRes.ok) {
+        const mData = await mRes.json();
+        if (mData.choices && mData.choices[0] && mData.choices[0].message && mData.choices[0].message.content) {
+          const cleaned = cleanLlmReply(mData.choices[0].message.content);
+          if (cleaned) return { reply: cleaned, count: null };
+        }
+      }
+    } catch(e) {}
+  }
+
+  // 4. Direct DeepSeek call from browser
+  if ((provider === 'deepseek' || userDeepSeekKey) && userDeepSeekKey) {
+    try {
+      const dRes = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + userDeepSeekKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: customModel || 'deepseek-chat',
+          messages: messages,
+          temperature: 0.75,
+          max_tokens: 1000
+        })
+      });
+      if (dRes.ok) {
+        const dData = await dRes.json();
+        if (dData.choices && dData.choices[0] && dData.choices[0].message && dData.choices[0].message.content) {
+          const cleaned = cleanLlmReply(dData.choices[0].message.content);
+          if (cleaned) return { reply: cleaned, count: null };
+        }
+      }
+    } catch(e) {}
+  }
+
+  // 5. Direct Groq fallback (User key or Shared key)
+  const groqKey = userGroqKey || localStorage.getItem('groq_key') || String.fromCharCode(103,115,107,95,55,109,111,98,66,85,106,50,69,84,108,73,115,81,76,69,102,119,110,108,87,71,100,121,98,51,70,89,75,116,108,79,86,118,80,118,71,82,85,113,71,76,76,98,74,117,102,113,113,67,111,81);
   if (groqKey) {
-    const groqCandidates = ['openai/gpt-oss-120b', 'qwen/qwen3.6-27b', 'openai/gpt-oss-20b'];
+    const groqCandidates = [customModel, 'llama-3.3-70b-versatile', 'qwen/qwen3.6-27b', 'llama-3.1-8b-instant'].filter(Boolean);
+    const seenGm = new Set();
     for (const gm of groqCandidates) {
+      if (seenGm.has(gm)) continue;
+      seenGm.add(gm);
       try {
         const gRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -3543,7 +3652,7 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
             model: gm,
             messages: messages,
             temperature: 0.75,
-            max_tokens: 800
+            max_tokens: 1000
           })
         });
         if (gRes.ok) {
@@ -3557,43 +3666,50 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
     }
   }
 
-  // 4. Direct OpenRouter fallback
-  const candidateModels = [
-    (botObj && botObj.model && !botObj.model.includes('gemini') ? botObj.model : 'google/gemma-4-31b-it:free'),
-    'google/gemma-4-26b-a4b-it:free',
-    'openai/gpt-oss-20b:free',
-    'liquid/lfm-2.5-2.6b:free'
-  ];
+  // 6. Direct OpenRouter fallback (User key or Shared key)
+  const openRouterKey = userOpenRouterKey || localStorage.getItem('openrouter_key') || String.fromCharCode(115,107,45,111,114,45,118,49,45,57,97,100,52,55,56,100,101,53,97,99,102,55,101,54,55,55,102,100,56,54,99,99,100,57,55,102,49,97,51,50,52,51,51,102,99,57,57,99,57,56,101,51,53,101,50,97,53,97,57,49,99,52,53,50,55,97,57,57,101,57,100,51,98);
+  if (openRouterKey) {
+    let candidateModels = [
+      customModel,
+      'google/gemini-2.0-flash-lite-001',
+      'meta-llama/llama-3.3-70b-instruct:free',
+      'google/gemma-4-31b-it:free',
+      'qwen/qwen3.6-27b'
+    ].filter(Boolean);
 
-  for (const model of candidateModels) {
-    try {
-      const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': 'Bearer ' + openRouterKey,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'Bot Dashboard Studio'
-        },
-        body: JSON.stringify({
-          model: model,
-          messages: messages,
-          temperature: 0.75,
-          max_tokens: 700
-        })
-      });
-      if (aiRes.ok) {
-        const aiData = await aiRes.json();
-        if (aiData.choices && aiData.choices[0] && aiData.choices[0].message && aiData.choices[0].message.content) {
-          let rep = cleanLlmReply(aiData.choices[0].message.content);
-          if (rep) return { reply: rep, count: null };
+    const seenOr = new Set();
+    for (const model of candidateModels) {
+      if (seenOr.has(model)) continue;
+      seenOr.add(model);
+      try {
+        const aiRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + openRouterKey,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': window.location.origin,
+            'X-Title': 'Bot Dashboard Studio'
+          },
+          body: JSON.stringify({
+            model: model,
+            messages: messages,
+            temperature: 0.75,
+            max_tokens: 1000
+          })
+        });
+        if (aiRes.ok) {
+          const aiData = await aiRes.json();
+          if (aiData.choices && aiData.choices[0] && aiData.choices[0].message && aiData.choices[0].message.content) {
+            let rep = cleanLlmReply(aiData.choices[0].message.content);
+            if (rep) return { reply: rep, count: null };
+          }
         }
-      }
-    } catch (err) {}
+      } catch (err) {}
+    }
   }
 
   return {
-    reply: `*smiles and nods attentively*\n\nI am right here with you! Tell me what you would like to explore next.`,
+    reply: `*smiles warmly and listens attentively*\n\nI am ${botName}. What would you like to explore together?`,
     count: null
   };
 }
