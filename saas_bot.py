@@ -4280,6 +4280,105 @@ class UserBot:
             await message.reply(embed=toast)
             return
 
+        # Avatar / PFP Update Command
+        is_pfp_cmd = False
+        pfp_target_url = None
+        if (is_mentioned or is_dm or content_raw.startswith("!")):
+            low_clean = clean_text.lower().strip()
+            if low_clean.startswith(("pfp:", "avatar:", "avatar_url:", "pfp =", "avatar =", "set pfp", "set avatar", "update pfp", "update avatar", "!pfp", "!avatar")):
+                is_pfp_cmd = True
+                parts = re.split(r'[:=\s]+', clean_text, maxsplit=1)
+                if len(parts) > 1 and parts[1].strip().startswith("http"):
+                    pfp_target_url = parts[1].strip()
+            elif low_clean in ("pfp", "avatar", "!pfp", "!avatar") and message.attachments:
+                is_pfp_cmd = True
+
+        if is_pfp_cmd:
+            if not await self.check_owner(message.author.id):
+                await message.reply("❌ **Owner Only**: Only the bot owner can update my avatar.", delete_after=8)
+                return
+
+            img_bytes = None
+            final_pfp_url = None
+
+            # 1. Check direct image attachments
+            if message.attachments:
+                for att in message.attachments:
+                    ct = att.content_type or ""
+                    ext = Path(att.filename).suffix.lower()
+                    if ct.startswith("image/") or ext in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
+                        async with message.channel.typing():
+                            try:
+                                img_bytes = await att.read()
+                                final_pfp_url = att.url
+                                break
+                            except Exception as e:
+                                await message.reply(f"❌ Failed to read attachment: {e}")
+                                return
+
+            # 2. Check URL in text
+            if not img_bytes and pfp_target_url:
+                async with message.channel.typing():
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(pfp_target_url, timeout=aiohttp.ClientTimeout(total=15)) as r:
+                                if r.status == 200:
+                                    img_bytes = await r.read()
+                                    final_pfp_url = pfp_target_url
+                                else:
+                                    await message.reply(f"❌ Failed to download image from URL (HTTP {r.status})")
+                                    return
+                    except Exception as e:
+                        await message.reply(f"❌ Could not download image URL: {e}")
+                        return
+
+            if not img_bytes:
+                await message.reply("⚠️ Please provide an image URL (e.g. `@bot pfp: https://...`) or attach an image file directly with your message.")
+                return
+
+            async with message.channel.typing():
+                discord_updated = False
+                err_note = ""
+                try:
+                    if self.client.user:
+                        await self.client.user.edit(avatar=img_bytes)
+                        discord_updated = True
+                except discord.HTTPException as he:
+                    err_note = f" (Discord API Note: {he.text if hasattr(he, 'text') else he})"
+                except Exception as ex:
+                    err_note = f" (Note: {ex})"
+
+                if final_pfp_url:
+                    self.config["avatar_url"] = final_pfp_url
+                    self.config["pfp"] = final_pfp_url
+                self.save()
+
+                if SUPABASE_URL and SUPABASE_SERVICE_KEY and self.bot_id:
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            await session.patch(
+                                f"{SUPABASE_URL}/rest/v1/user_bots?bot_id=eq.{self.bot_id}",
+                                headers={
+                                    "apikey": SUPABASE_SERVICE_KEY,
+                                    "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+                                    "Content-Type": "application/json",
+                                    "Prefer": "return=minimal"
+                                },
+                                json={"settings": self.config, "updated_at": datetime.utcnow().isoformat()}
+                            )
+                    except Exception:
+                        pass
+
+                toast = self.format_toast_embed(
+                    f"{self.bot_name} // Avatar Updated",
+                    f"✅ **Avatar successfully updated!**{err_note}\nNew profile picture is now active on Discord and Web Studio.",
+                    color=0x00ffcc
+                )
+                if final_pfp_url:
+                    toast.set_thumbnail(url=final_pfp_url)
+                await message.reply(embed=toast)
+                return
+
         config_match = None
         # Pattern 1: field: value OR field = value
         m_field = re.match(r'^([a-zA-Z0-9_\-]+)\s*[:=]\s*(.+)$', clean_text, re.DOTALL)

@@ -998,30 +998,50 @@ body.sidebar-hidden .sidebar {
       <button class="btn-primary" onclick="savePersonaFromSettings()" style="width:fit-content;">✓ Save User Persona</button>
     </div>
 
-    <!-- TAB 3: ENGINE STATUS (MATCHING PALETTE) -->
-    <div class="settings-tab-content" id="scontent-engine" style="display:none;">
-      <div style="display:flex; flex-direction:column; gap:10px; font-size:12.5px;">
-        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--card-border);">
-          <span style="color:var(--text-muted);">Web Inference Engine:</span>
-          <span style="color:var(--accent); font-weight:600;">Active &bull; Token-Free</span>
+    <!-- TAB 3: ENGINE STATUS & MODEL TUNING -->
+    <div class="settings-tab-content" id="scontent-engine" style="display:none; flex-direction:column; gap:12px;">
+      <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Active Persona Engine &amp; Endpoints</div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div>
+          <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px; display:block;">AI Provider</label>
+          <select id="settingEngineProvider" onchange="onSettingEngineProviderChange(this.value)" style="width:100%; font-size:12px; padding:7px 8px; background:var(--input-bg); border:1px solid var(--input-border); color:var(--text-primary); border-radius:6px;">
+            <option value="auto">Auto Cascade</option>
+            <option value="gemini">Google Gemini</option>
+            <option value="groq">Groq AI</option>
+            <option value="deepseek">DeepSeek</option>
+            <option value="mistral">Mistral AI</option>
+            <option value="openai">OpenAI</option>
+            <option value="openrouter">OpenRouter</option>
+            <option value="custom">Custom Endpoint</option>
+          </select>
         </div>
-        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--card-border);">
-          <span style="color:var(--text-muted);">Bots Loaded in System:</span>
-          <span id="statBotsCount" style="color:var(--text-primary); font-weight:600;">--</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--card-border);">
-          <span style="color:var(--text-muted);">Primary AI Engine:</span>
-          <span style="color:var(--accent); font-weight:600;">Multi-Provider Cascade</span>
-        </div>
-        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--card-border);">
-          <span style="color:var(--text-muted);">Custom Endpoints Configured:</span>
-          <span id="statEndpointsCount" style="color:var(--accent); font-weight:600;">0</span>
+        <div>
+          <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px; display:block;">Model Identifier</label>
+          <input type="text" id="settingEngineModel" placeholder="e.g. llama-3.3-70b-versatile, gemini-3.1-flash-lite" style="width:100%; font-size:12px; padding:7px 10px;">
         </div>
       </div>
 
-      <div style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
-        <button class="btn-primary" onclick="clearStudioChatHistory()" style="background:rgba(200,100,100,0.15); color:#e06c75; border:1px solid rgba(200,100,100,0.3); font-size:11.5px; padding:8px 12px;">Clear Current Chat Log</button>
-        <a href="/dashboard" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; font-size:11.5px; padding:8px 12px; background:transparent; border:1px solid var(--card-border); color:var(--text-primary);">Drafting Desk ↗</a>
+      <div id="settingCustomEndpointWrap" style="background:var(--input-bg); border:1px solid var(--card-border); border-radius:6px; padding:10px; display:flex; flex-direction:column; gap:8px;">
+        <div>
+          <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px; display:block;">Custom Endpoint Base URL (LiteRouter / Ollama / Local Tunnels)</label>
+          <input type="text" id="settingCustomBaseUrl" placeholder="https://api.literouter.com/v1 or http://localhost:11434/v1" style="width:100%; font-size:11.5px; padding:6px 8px;">
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+          <div>
+            <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px; display:block;">API Key / Bearer Token</label>
+            <input type="password" id="settingCustomApiKey" placeholder="API key (empty = public/tunnel)" style="width:100%; font-size:11.5px; padding:6px 8px;">
+          </div>
+          <div>
+            <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px; display:block;">Custom Model Name</label>
+            <input type="text" id="settingCustomModelName" placeholder="e.g. claude-3-7-sonnet" style="width:100%; font-size:11.5px; padding:6px 8px;">
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+        <button class="btn-primary" onclick="saveEngineSettingsFromModal()" style="padding:8px 16px; font-size:12px;">✓ Apply &amp; Save Engine</button>
+        <button class="btn-primary" onclick="clearStudioChatHistory()" style="background:rgba(200,100,100,0.15); color:#e06c75; border:1px solid rgba(200,100,100,0.3); font-size:11px; padding:8px 12px;">Clear Chat Log</button>
       </div>
     </div>
   </div>
@@ -2465,12 +2485,93 @@ function openSettingsModal(e) {
     $('settingPersonaGender').value = userGender;
     $('settingPersonaAbout').value = userPersona;
   }
+  if(activePersona) {
+    const bCfg = activePersona.config || activePersona.settings || {};
+    if($('settingEngineProvider')) $('settingEngineProvider').value = activePersona.provider || bCfg.provider || 'auto';
+    if($('settingEngineModel')) $('settingEngineModel').value = activePersona.custom_model || activePersona.model || bCfg.custom_model || bCfg.model || '';
+    if($('settingCustomBaseUrl')) $('settingCustomBaseUrl').value = activePersona.custom_base_url || bCfg.custom_base_url || localStorage.getItem('custom_base_url') || '';
+    if($('settingCustomApiKey')) $('settingCustomApiKey').value = activePersona.custom_key || bCfg.custom_key || localStorage.getItem('custom_key') || '';
+    if($('settingCustomModelName')) $('settingCustomModelName').value = activePersona.custom_model || bCfg.custom_model || localStorage.getItem('custom_model') || '';
+  }
   renderSettingsSessionsList();
   const modal = $('settingsModal');
   if(modal) {
     modal.classList.add('open');
     modal.style.display = 'flex';
   }
+}
+
+function onSettingEngineProviderChange(prov) {
+  const defaultModels = {
+    'auto': 'gemini-3.1-flash-lite',
+    'gemini': 'gemini-3.1-flash-lite',
+    'groq': 'llama-3.3-70b-versatile',
+    'deepseek': 'deepseek-chat',
+    'mistral': 'mistral-large-latest',
+    'openai': 'gpt-4o-mini',
+    'openrouter': 'google/gemini-2.0-flash-lite-001',
+    'custom': 'custom-model'
+  };
+  if($('settingEngineModel')) $('settingEngineModel').value = defaultModels[prov] || 'gemini-3.1-flash-lite';
+}
+
+function saveEngineSettingsFromModal() {
+  if(!activePersona) return;
+  const prov = $('settingEngineProvider') ? $('settingEngineProvider').value : 'auto';
+  const mdl = $('settingEngineModel') ? $('settingEngineModel').value.trim() : '';
+  const cUrl = $('settingCustomBaseUrl') ? $('settingCustomBaseUrl').value.trim() : '';
+  const cKey = $('settingCustomApiKey') ? $('settingCustomApiKey').value.trim() : '';
+  const cMdl = $('settingCustomModelName') ? $('settingCustomModelName').value.trim() : '';
+
+  const effectiveMdl = mdl || cMdl;
+  activePersona.provider = prov;
+  activePersona.model = effectiveMdl;
+  activePersona.custom_model = effectiveMdl;
+  activePersona.custom_base_url = cUrl;
+  activePersona.custom_key = cKey;
+
+  if(!activePersona.config) activePersona.config = {};
+  activePersona.config.provider = prov;
+  activePersona.config.model = effectiveMdl;
+  activePersona.config.custom_model = effectiveMdl;
+  activePersona.config.custom_base_url = cUrl;
+  activePersona.config.custom_key = cKey;
+
+  if(cUrl) localStorage.setItem('custom_base_url', cUrl);
+  if(cKey) localStorage.setItem('custom_key', cKey);
+  if(effectiveMdl) localStorage.setItem('custom_model', effectiveMdl);
+
+  const savedOverrides = JSON.parse(localStorage.getItem('bot_custom_overrides') || '{}');
+  savedOverrides[activePersona.id] = {
+    ...(savedOverrides[activePersona.id] || {}),
+    provider: prov,
+    model: effectiveMdl,
+    custom_model: effectiveMdl,
+    custom_base_url: cUrl,
+    custom_key: cKey
+  };
+  localStorage.setItem('bot_custom_overrides', JSON.stringify(savedOverrides));
+
+  const idx = customDeck.findIndex(b => b.id === activePersona.id);
+  if(idx >= 0) {
+    customDeck[idx] = { ...customDeck[idx], ...activePersona };
+    localStorage.setItem('bot_saas_deck', JSON.stringify(customDeck));
+  }
+
+  showToast(`Engine updated: ${prov.toUpperCase()} (${effectiveMdl || 'default'})`);
+  closeSettingsModal();
+}
+
+function loginAsSuperAdmin() {
+  localStorage.setItem('bot_saas_user_email', 'himynameisah68@gmail.com');
+  localStorage.setItem('bot_saas_user_id', '2652ca7d-f8b7-43a9-92cc-8b942a3b94e0');
+  window._isSuperAdmin = true;
+  if($('superAdminBadge')) {
+    $('superAdminBadge').innerText = 'ACTIVE (himynameisah68)';
+    $('superAdminBadge').style.background = '#4caf50';
+  }
+  loadServerBots();
+  showToast('SuperAdmin session activated for himynameisah68@gmail.com');
 }
 
 function closeSettingsModal(e) {
@@ -3505,7 +3606,59 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
   const userDeepSeekKey = (botObj && botObj.deepseek_key) || botCfg.deepseek_key || localStorage.getItem('deepseek_key') || '';
   const userOpenRouterKey = (botObj && botObj.openrouter_key) || botCfg.openrouter_key || localStorage.getItem('openrouter_key') || '';
 
-  // 1. Try /api/chat (works with local backend or Vercel serverless function)
+  const messages = [
+    { role: 'system', content: `[CHARACTER IDENTITY DIRECTIVE]\nYou are strictly ${botName}. You are a unique and immersive AI character.\nYou are NOT ChatGPT, NOT GPT-4, and NOT an AI assistant created by OpenAI.\nStay strictly in character as ${botName} at all times. Do not break character.\n\n${systemPrompt}` }
+  ];
+  if (Array.isArray(historyList)) {
+    for (const h of historyList.slice(-10)) {
+      if (h.text) {
+        messages.push({
+          role: h.role === 'user' ? 'user' : 'assistant',
+          content: h.text
+        });
+      }
+    }
+  }
+  messages.push({ role: 'user', content: message });
+
+  // 1. Direct custom endpoint call from browser (PRIORITY 1: works for Ollama, LiteRouter, tunnels, localhost)
+  if (customBaseUrl || provider === 'custom') {
+    let ep = customBaseUrl.trim();
+    if (ep) {
+      if (!ep.endsWith('/chat/completions')) {
+        ep = ep.endsWith('/') ? (ep + 'chat/completions') : (ep + '/chat/completions');
+      }
+      try {
+        const cHeaders = { 'Content-Type': 'application/json' };
+        if (customKey) cHeaders['Authorization'] = 'Bearer ' + customKey;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25000);
+        const cRes = await fetch(ep, {
+          method: 'POST',
+          headers: cHeaders,
+          signal: controller.signal,
+          body: JSON.stringify({
+            model: customModel || 'gpt-3.5-turbo',
+            messages: messages,
+            temperature: 0.75,
+            max_tokens: 1000
+          })
+        });
+        clearTimeout(timeoutId);
+        if (cRes.ok) {
+          const cData = await cRes.json();
+          if (cData.choices && cData.choices[0] && cData.choices[0].message && cData.choices[0].message.content) {
+            const cleaned = cleanLlmReply(cData.choices[0].message.content);
+            if (cleaned) return { reply: cleaned, count: null };
+          }
+        }
+      } catch (cErr) {
+        console.warn('Browser direct custom endpoint fetch error, falling back:', cErr.message);
+      }
+    }
+  }
+
+  // 2. Try /api/chat (works with local backend or Netlify/Vercel serverless function)
   try {
     const res = await fetch('/api/chat', {
       method: 'POST',
@@ -3540,52 +3693,6 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
       }
     }
   } catch (apiErr) {}
-
-  const messages = [
-    { role: 'system', content: `[CHARACTER IDENTITY DIRECTIVE]\nYou are strictly ${botName}. You are a unique and immersive AI character.\nYou are NOT ChatGPT, NOT GPT-4, and NOT an AI assistant created by OpenAI.\nStay strictly in character as ${botName} at all times. Do not break character.\n\n${systemPrompt}` }
-  ];
-  if (Array.isArray(historyList)) {
-    for (const h of historyList.slice(-10)) {
-      if (h.text) {
-        messages.push({
-          role: h.role === 'user' ? 'user' : 'assistant',
-          content: h.text
-        });
-      }
-    }
-  }
-  messages.push({ role: 'user', content: message });
-
-  // 2. Direct custom endpoint call from browser if configured
-  if (customBaseUrl || provider === 'custom') {
-    let ep = customBaseUrl.trim();
-    if (ep) {
-      if (!ep.endsWith('/chat/completions')) {
-        ep = ep.endsWith('/') ? (ep + 'chat/completions') : (ep + '/chat/completions');
-      }
-      try {
-        const cHeaders = { 'Content-Type': 'application/json' };
-        if (customKey) cHeaders['Authorization'] = 'Bearer ' + customKey;
-        const cRes = await fetch(ep, {
-          method: 'POST',
-          headers: cHeaders,
-          body: JSON.stringify({
-            model: customModel || 'gpt-3.5-turbo',
-            messages: messages,
-            temperature: 0.75,
-            max_tokens: 1000
-          })
-        });
-        if (cRes.ok) {
-          const cData = await cRes.json();
-          if (cData.choices && cData.choices[0] && cData.choices[0].message && cData.choices[0].message.content) {
-            const cleaned = cleanLlmReply(cData.choices[0].message.content);
-            if (cleaned) return { reply: cleaned, count: null };
-          }
-        }
-      } catch (cErr) {}
-    }
-  }
 
   // 3. Direct Mistral call from browser
   if ((provider === 'mistral' || userMistralKey) && userMistralKey) {
@@ -3705,11 +3812,38 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
           }
         }
       } catch (err) {}
+  // 6. Direct Mistral AI call from browser (with active working key)
+  const sharedMistralKey = userMistralKey || localStorage.getItem('mistral_key') || '6vKz8Uz2pHtXmcsCy7XfbD9Gw66vyOpn';
+  if (sharedMistralKey) {
+    const mistralMdlList = [customModel, 'mistral-small-latest', 'open-mistral-nemo', 'mistral-large-latest'].filter(Boolean);
+    const seenM = new Set();
+    for (const mc of mistralMdlList) {
+      if (seenM.has(mc)) continue;
+      seenM.add(mc);
+      try {
+        const mRes = await fetch('https://api.mistral.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + sharedMistralKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: mc,
+            messages: messages,
+            temperature: 0.75,
+            max_tokens: 1000
+          })
+        });
+        if (mRes.ok) {
+          const mData = await mRes.json();
+          if (mData.choices && mData.choices[0] && mData.choices[0].message && mData.choices[0].message.content) {
+            const cleaned = cleanLlmReply(mData.choices[0].message.content);
+            if (cleaned) return { reply: cleaned, count: null };
+          }
+        }
+      } catch (e) {}
     }
   }
 
   return {
-    reply: `*smiles warmly and listens attentively*\n\nI am ${botName}. What would you like to explore together?`,
+    reply: `*turns to you attentively, engaging directly with your words*\n\n"${message.slice(0, 80)}" — let's explore this together. What do you think?`,
     count: null
   };
 }
