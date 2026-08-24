@@ -961,13 +961,23 @@ body.sidebar-hidden .sidebar {
 }
 .theater-iframe { width: 100%; height: 100%; border: none; }
 .theater-companion-bar {
-  width: 100%; max-width: 1100px; display: flex; align-items: center; justify-content: space-between;
-  gap: 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
-  border-radius: 12px; padding: 10px 16px; margin-top: 10px;
+  width: 100%; max-width: 1100px; display: flex; flex-direction: column;
+  gap: 10px; background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 12px 16px; margin-top: 10px; flex-shrink: 0;
 }
 .theater-reaction-bubble {
-  flex: 1; font-size: 13px; line-height: 1.5; color: var(--text-primary);
-  min-height: 22px; display: flex; align-items: center; gap: 8px;
+  width: 100%; font-size: 13.5px; line-height: 1.6; color: var(--text-primary);
+  display: flex; align-items: flex-start; gap: 10px; min-width: 0;
+  word-break: break-word; overflow-wrap: anywhere;
+}
+.theater-reaction-text {
+  flex: 1; min-width: 0; word-break: break-word; overflow-wrap: anywhere;
+  white-space: normal; display: block;
+}
+.theater-companion-actions {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 8px; width: 100%; border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 8px; flex-wrap: wrap;
 }
 </style>
 </head>
@@ -1697,15 +1707,20 @@ body.sidebar-hidden .sidebar {
 
     <div class="theater-companion-bar">
       <div class="theater-reaction-bubble" id="theaterReactionBubble">
-        <span style="font-size:20px;">🍿</span>
-        <span id="theaterReactionText">Ready to watch together! Paste a YouTube link above.</span>
+        <span style="font-size:22px; flex-shrink:0;">🍿</span>
+        <div id="theaterReactionText" class="theater-reaction-text">Ready to watch together! Paste a YouTube link above.</div>
       </div>
-      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap;">
-        <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-muted); cursor:pointer; background:rgba(255,255,255,0.06); padding:5px 9px; border-radius:6px; border:1px solid var(--card-border);">
-          <input type="checkbox" id="theaterAutoChimeIn" checked>
-          <span>Auto Chime-In</span>
-        </label>
-        <button class="btn-primary" onclick="askCompanionAboutVideo()" style="padding:6px 14px; font-size:11px; background:rgba(229,192,123,0.15); color:#e5c07b; border:1px solid rgba(229,192,123,0.3);">💬 Ask Thoughts</button>
+      <div class="theater-companion-actions">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:11px; color:var(--accent); font-weight:600;" id="theaterVideoStatus">● AI Video Ingestion Ready</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-muted); cursor:pointer; background:rgba(255,255,255,0.06); padding:5px 9px; border-radius:6px; border:1px solid var(--card-border);">
+            <input type="checkbox" id="theaterAutoChimeIn" checked>
+            <span>Auto Chime-In</span>
+          </label>
+          <button class="btn-primary" onclick="askCompanionAboutVideo()" style="padding:6px 14px; font-size:11px; background:rgba(229,192,123,0.15); color:#e5c07b; border:1px solid rgba(229,192,123,0.3);">💬 Ask Thoughts</button>
+        </div>
       </div>
     </div>
   </div>
@@ -5460,6 +5475,29 @@ function extractYouTubeId(url) {
   return (match && match[2].length === 11) ? match[2] : (url.length === 11 ? url : null);
 }
 
+async function fetchImageAsBase64(url) {
+  try {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.min(img.naturalWidth || 480, 640);
+          canvas.height = Math.min(img.naturalHeight || 360, 480);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        } catch(e) { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  } catch(e) {
+    return null;
+  }
+}
+
 async function loadTheaterYouTubeVideo() {
   const inp = $('theaterYoutubeUrlInput');
   if (!inp) return;
@@ -5470,13 +5508,16 @@ async function loadTheaterYouTubeVideo() {
     return;
   }
   watchTogetherCurrentVideo = videoId;
-  watchTogetherVideoInfo = { id: videoId, title: "YouTube Video", author: "", loadedAt: Date.now() };
+  watchTogetherVideoInfo = { id: videoId, title: "YouTube Video", author: "", thumb: null, loadedAt: Date.now() };
 
   const iframe = $('theaterIframe');
   if (iframe) {
     iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
   }
   showToast('▶ Playing in Cinema Theater');
+
+  const statusEl = $('theaterVideoStatus');
+  if (statusEl) statusEl.innerText = '● Ingesting Video Context...';
 
   // Fetch real video title & author metadata for AI context
   try {
@@ -5492,13 +5533,21 @@ async function loadTheaterYouTubeVideo() {
     console.warn('Could not fetch oembed metadata:', e);
   }
 
-  // Initial Co-Watching Reaction
+  // Fetch video keyframe thumbnail as visual frame for Vision AI
+  try {
+    const thumbUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    watchTogetherVideoInfo.thumb = await fetchImageAsBase64(thumbUrl);
+  } catch(e) {}
+
+  if (statusEl) statusEl.innerText = `● Ingested: ${watchTogetherVideoInfo.title}`;
+
+  // Initial Co-Watching Reaction with Video Context & Visual Frame
   if (activePersona) {
-    const initialPrompt = `We just pressed play on the YouTube video "${watchTogetherVideoInfo.title}" ${watchTogetherVideoInfo.author ? `by ${watchTogetherVideoInfo.author}` : ''}. As my companion watching alongside me with snacks, give an excited, short, natural in-character opening reaction!`;
+    const initialPrompt = `We just pressed play on the YouTube video "${watchTogetherVideoInfo.title}" ${watchTogetherVideoInfo.author ? `by ${watchTogetherVideoInfo.author}` : ''} (URL: https://www.youtube.com/watch?v=${videoId}). As my companion watching alongside me with snacks, look at this video and give an excited, short, natural in-character opening reaction!`;
     try {
       const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
       const history = (chatMessages[activePersona.id] || []).slice(-3);
-      const res = await executeAiChatRequest(initialPrompt, sysPrompt, activePersona, history, null);
+      const res = await executeAiChatRequest(initialPrompt, sysPrompt, activePersona, history, watchTogetherVideoInfo.thumb);
       const startMsg = (res && res.reply) ? res.reply : `*grabs some popcorn and sits beside you* Let's watch "${watchTogetherVideoInfo.title}"!`;
       $('theaterReactionText').innerText = startMsg;
       appendChatMsg('assistant', startMsg);
@@ -5520,12 +5569,12 @@ async function loadTheaterYouTubeVideo() {
     if (!watchTogetherCurrentVideo || !watchTogetherVideoInfo) return;
 
     const elapsedSec = Math.floor((Date.now() - watchTogetherVideoInfo.loadedAt) / 1000);
-    const spontaneousPrompt = `We are watching "${watchTogetherVideoInfo.title}" (approx ${Math.floor(elapsedSec/60)}m ${elapsedSec%60}s in). As my companion watching this video with me, make a spontaneous, short, natural in-character comment, reaction, or thought about what we are watching! Keep it under 2 sentences.`;
+    const spontaneousPrompt = `We are watching the YouTube video "${watchTogetherVideoInfo.title}" (approx ${Math.floor(elapsedSec/60)}m ${elapsedSec%60}s in, URL: https://www.youtube.com/watch?v=${watchTogetherVideoInfo.id}). As my companion watching this video with me, make a spontaneous, short, natural in-character comment, reaction, or thought about what we are watching! Keep it under 2 sentences.`;
 
     try {
       const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
       const history = (chatMessages[activePersona.id] || []).slice(-4);
-      const res = await executeAiChatRequest(spontaneousPrompt, sysPrompt, activePersona, history, null);
+      const res = await executeAiChatRequest(spontaneousPrompt, sysPrompt, activePersona, history, watchTogetherVideoInfo.thumb);
       if (res && res.reply) {
         $('theaterReactionText').innerText = res.reply;
         appendChatMsg('assistant', res.reply);
@@ -5543,7 +5592,7 @@ async function askCompanionAboutVideo() {
     return;
   }
   const videoTitle = (watchTogetherVideoInfo && watchTogetherVideoInfo.title) ? watchTogetherVideoInfo.title : `YouTube Video (${watchTogetherCurrentVideo})`;
-  const prompt = `We are watching "${videoTitle}" together. Share your honest in-character thoughts, reactions, and commentary on what we are watching so far!`;
+  const prompt = `We are watching "${videoTitle}" (URL: https://www.youtube.com/watch?v=${watchTogetherCurrentVideo}) together. Share your honest in-character thoughts, reactions, and commentary on what we are watching so far!`;
   
   $('theaterReactionText').innerText = `${activePersona.name} is thinking...`;
   appendChatMsg('user', "What do you think of this video so far?");
@@ -5551,8 +5600,9 @@ async function askCompanionAboutVideo() {
   try {
     const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
     const history = (chatMessages[activePersona.id] || []).slice(0, -1);
+    const thumb = watchTogetherVideoInfo ? watchTogetherVideoInfo.thumb : null;
 
-    const res = await executeAiChatRequest(prompt, sysPrompt, activePersona, history, null);
+    const res = await executeAiChatRequest(prompt, sysPrompt, activePersona, history, thumb);
     const replyText = (res && res.reply) ? res.reply : "*smiles and watches along with you*";
 
     $('theaterReactionText').innerText = replyText;
