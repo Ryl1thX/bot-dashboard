@@ -1700,8 +1700,12 @@ body.sidebar-hidden .sidebar {
         <span style="font-size:20px;">🍿</span>
         <span id="theaterReactionText">Ready to watch together! Paste a YouTube link above.</span>
       </div>
-      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
-        <button class="btn-primary" onclick="askCompanionAboutVideo()" style="padding:6px 14px; font-size:11px; background:rgba(229,192,123,0.15); color:#e5c07b; border:1px solid rgba(229,192,123,0.3);">💬 Ask Persona's Thoughts</button>
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0; flex-wrap:wrap;">
+        <label style="display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-muted); cursor:pointer; background:rgba(255,255,255,0.06); padding:5px 9px; border-radius:6px; border:1px solid var(--card-border);">
+          <input type="checkbox" id="theaterAutoChimeIn" checked>
+          <span>Auto Chime-In</span>
+        </label>
+        <button class="btn-primary" onclick="askCompanionAboutVideo()" style="padding:6px 14px; font-size:11px; background:rgba(229,192,123,0.15); color:#e5c07b; border:1px solid rgba(229,192,123,0.3);">💬 Ask Thoughts</button>
       </div>
     </div>
   </div>
@@ -5188,6 +5192,17 @@ async function handleVoiceUserInput(userText) {
   }
 }
 
+let cachedBrowserVoices = [];
+function initVoiceVoices() {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    cachedBrowserVoices = window.speechSynthesis.getVoices() || [];
+    window.speechSynthesis.onvoiceschanged = () => {
+      cachedBrowserVoices = window.speechSynthesis.getVoices() || [];
+    };
+  }
+}
+initVoiceVoices();
+
 function speakPersonaVoiceReply(text) {
   if (voiceSpeakerMuted || !text) {
     $('voiceCallStatus').innerText = 'Connected • Listening';
@@ -5203,27 +5218,44 @@ function speakPersonaVoiceReply(text) {
     return;
   }
 
-  window.speechSynthesis.cancel();
+  try {
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.resume();
+  } catch(e) {}
 
-  // Strip Markdown characters for clean speech
-  const cleanSpoken = text.replace(/[*_#`~>\[\]()]/g, ' ').replace(/\s+/g, ' ').trim();
+  // Strip Markdown characters, actions *...*, and emojis for clean spoken speech
+  const cleanSpoken = text
+    .replace(/\*[^*]*\*/g, '')
+    .replace(/[*_#`~>\[\]()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() || text.replace(/[*_#`~>\[\]()]/g, ' ').trim();
+
   const utterance = new SpeechSynthesisUtterance(cleanSpoken);
   utterance.rate = 1.05;
   utterance.pitch = 1.0;
 
-  // Find a natural matching voice if available
-  const voices = window.speechSynthesis.getVoices();
+  // Pick suitable voice from cached list
+  const voices = cachedBrowserVoices.length > 0 ? cachedBrowserVoices : (window.speechSynthesis.getVoices() || []);
   if (voices.length > 0) {
     const pName = (activePersona.name || '').toLowerCase();
     const isFemale = pName.includes('yuna') || pName.includes('maiko') || pName.includes('nene') || pName.includes('lucy') || pName.includes('teto');
-    const match = voices.find(v => isFemale ? (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English') || v.name.includes('Zira')) : (v.name.includes('Male') || v.name.includes('David')));
+    const match = voices.find(v => isFemale ? (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English') || v.name.includes('Zira') || v.lang.startsWith('en')) : (v.name.includes('Male') || v.name.includes('David') || v.lang.startsWith('en')));
     if (match) utterance.voice = match;
   }
 
   const halo = $('voiceAvatarHalo');
   if (halo) halo.classList.add('speaking');
 
+  let keepAliveInterval = setInterval(() => {
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.resume();
+    } else {
+      clearInterval(keepAliveInterval);
+    }
+  }, 3000);
+
   const onSpeechDone = () => {
+    clearInterval(keepAliveInterval);
     if (halo) halo.classList.remove('speaking');
     $('voiceCallStatus').innerText = 'Connected • Listening';
     isProcessingVoiceTurn = false;
@@ -5235,7 +5267,13 @@ function speakPersonaVoiceReply(text) {
   utterance.onend = onSpeechDone;
   utterance.onerror = onSpeechDone;
 
-  window.speechSynthesis.speak(utterance);
+  try {
+    window.speechSynthesis.speak(utterance);
+    window.speechSynthesis.resume();
+  } catch(err) {
+    console.warn('Speech synthesis speak error:', err);
+    onSpeechDone();
+  }
 }
 
 function startVoiceWaveform() {
@@ -5271,7 +5309,7 @@ function startVoiceWaveform() {
 }
 
 /* --------------------------------------------------------------------------
-   SCREEN SHARING & GAME / MOVIE VISION CO-PILOT
+   SCREEN SHARING & LIVE CAMERA / GAME VISION CO-PILOT
    -------------------------------------------------------------------------- */
 let screenVisionStream = null;
 let autoVisionInterval = null;
@@ -5285,15 +5323,26 @@ async function toggleScreenVision() {
 }
 
 async function startScreenSharing() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-    showToast('Screen sharing is not supported on this browser/device');
-    return;
-  }
   try {
-    screenVisionStream = await navigator.mediaDevices.getDisplayMedia({
-      video: { cursor: "always" },
-      audio: false
-    });
+    if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+      screenVisionStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { cursor: "always" },
+        audio: false
+      });
+      showToast('🖥️ Screen vision active! Bot can now watch your games, movies & code');
+    } else if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      // Mobile fallback to environment camera stream
+      showToast('📱 Mobile screen capture restricted. Opening Live Camera Vision...');
+      screenVisionStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" },
+        audio: false
+      });
+      showToast('📷 Live Camera Vision active!');
+    } else {
+      showToast('Vision media stream not supported on this browser');
+      return;
+    }
+
     const video = $('screenVisionVideo');
     if (video) {
       video.srcObject = screenVisionStream;
@@ -5315,9 +5364,13 @@ async function startScreenSharing() {
       }
     }, 30000);
 
-    showToast('🖥️ Screen vision active! Bot can now watch your games, movies & code');
   } catch (err) {
-    console.warn('Screen share cancelled/failed:', err);
+    console.warn('Vision capture error:', err);
+    if (err.name === 'NotAllowedError') {
+      showToast('Screen/Camera permission was denied');
+    } else {
+      showToast('Unable to start screen stream on this device');
+    }
   }
 }
 
@@ -5334,7 +5387,7 @@ function stopScreenVision() {
   if (monitor) monitor.classList.remove('active');
   const video = $('screenVisionVideo');
   if (video) video.srcObject = null;
-  showToast('Screen vision stopped');
+  showToast('Vision stream stopped');
 }
 
 async function captureAndAskScreenVision(customPrompt) {
@@ -5363,23 +5416,26 @@ async function captureAndAskScreenVision(customPrompt) {
     const replyText = (res && res.reply) ? res.reply : "*watches screen attentively*";
 
     appendChatMsg('assistant', replyText);
-    if (voiceCallActive) {
-      speakPersonaVoiceReply(replyText);
-    }
+    speakPersonaVoiceReply(replyText);
   } catch(e) {
     console.warn('Screen capture vision error:', e);
   }
 }
 
 /* --------------------------------------------------------------------------
-   WATCH TOGETHER / FULLSCREEN CINEMA THEATER
+   WATCH TOGETHER: CONTEXT EXTRACTION & AUTONOMOUS SPONTANEOUS COMMENTARY
    -------------------------------------------------------------------------- */
 let watchTogetherCurrentVideo = null;
+let watchTogetherVideoInfo = null;
+let watchTogetherChimeInterval = null;
 
 function openWatchTogetherTheater() {
   const modal = $('watchTogetherTheaterModal');
   if (modal) {
     modal.classList.add('open');
+    try {
+      if ('speechSynthesis' in window) window.speechSynthesis.resume();
+    } catch(e) {}
     if (activePersona) {
       $('theaterBotBadge').innerText = `Co-Watching with ${activePersona.name}`;
       $('theaterReactionText').innerText = `Ready to watch together! Paste a YouTube link above.`;
@@ -5391,6 +5447,10 @@ function openWatchTogetherTheater() {
 function closeWatchTogetherTheater() {
   const modal = $('watchTogetherTheaterModal');
   if (modal) modal.classList.remove('open');
+  if (watchTogetherChimeInterval) {
+    clearInterval(watchTogetherChimeInterval);
+    watchTogetherChimeInterval = null;
+  }
 }
 
 function extractYouTubeId(url) {
@@ -5400,7 +5460,7 @@ function extractYouTubeId(url) {
   return (match && match[2].length === 11) ? match[2] : (url.length === 11 ? url : null);
 }
 
-function loadTheaterYouTubeVideo() {
+async function loadTheaterYouTubeVideo() {
   const inp = $('theaterYoutubeUrlInput');
   if (!inp) return;
   const raw = inp.value.trim();
@@ -5410,18 +5470,71 @@ function loadTheaterYouTubeVideo() {
     return;
   }
   watchTogetherCurrentVideo = videoId;
+  watchTogetherVideoInfo = { id: videoId, title: "YouTube Video", author: "", loadedAt: Date.now() };
+
   const iframe = $('theaterIframe');
   if (iframe) {
     iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
   }
   showToast('▶ Playing in Cinema Theater');
 
-  if (activePersona) {
-    const startMsg = `*grabs some popcorn and sits beside you* Let's watch! What are we watching?`;
-    $('theaterReactionText').innerText = startMsg;
-    appendChatMsg('assistant', startMsg);
-    if (voiceCallActive) speakPersonaVoiceReply(startMsg);
+  // Fetch real video title & author metadata for AI context
+  try {
+    const oembedRes = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
+    if (oembedRes.ok) {
+      const oembedData = await oembedRes.json();
+      if (oembedData && oembedData.title) {
+        watchTogetherVideoInfo.title = oembedData.title;
+        watchTogetherVideoInfo.author = oembedData.author_name || "";
+      }
+    }
+  } catch(e) {
+    console.warn('Could not fetch oembed metadata:', e);
   }
+
+  // Initial Co-Watching Reaction
+  if (activePersona) {
+    const initialPrompt = `We just pressed play on the YouTube video "${watchTogetherVideoInfo.title}" ${watchTogetherVideoInfo.author ? `by ${watchTogetherVideoInfo.author}` : ''}. As my companion watching alongside me with snacks, give an excited, short, natural in-character opening reaction!`;
+    try {
+      const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
+      const history = (chatMessages[activePersona.id] || []).slice(-3);
+      const res = await executeAiChatRequest(initialPrompt, sysPrompt, activePersona, history, null);
+      const startMsg = (res && res.reply) ? res.reply : `*grabs some popcorn and sits beside you* Let's watch "${watchTogetherVideoInfo.title}"!`;
+      $('theaterReactionText').innerText = startMsg;
+      appendChatMsg('assistant', startMsg);
+      speakPersonaVoiceReply(startMsg);
+    } catch(e) {
+      const fallbackMsg = `*grabs some popcorn and sits beside you* Let's watch!`;
+      $('theaterReactionText').innerText = fallbackMsg;
+      appendChatMsg('assistant', fallbackMsg);
+      speakPersonaVoiceReply(fallbackMsg);
+    }
+  }
+
+  // Start Autonomous Spontaneous Co-Watching Commentary Loop (Every 28 seconds)
+  if (watchTogetherChimeInterval) clearInterval(watchTogetherChimeInterval);
+  watchTogetherChimeInterval = setInterval(async () => {
+    const autoChime = $('theaterAutoChimeIn');
+    const modal = $('watchTogetherTheaterModal');
+    if (!autoChime || !autoChime.checked || !modal || !modal.classList.contains('open') || isProcessingVoiceTurn) return;
+    if (!watchTogetherCurrentVideo || !watchTogetherVideoInfo) return;
+
+    const elapsedSec = Math.floor((Date.now() - watchTogetherVideoInfo.loadedAt) / 1000);
+    const spontaneousPrompt = `We are watching "${watchTogetherVideoInfo.title}" (approx ${Math.floor(elapsedSec/60)}m ${elapsedSec%60}s in). As my companion watching this video with me, make a spontaneous, short, natural in-character comment, reaction, or thought about what we are watching! Keep it under 2 sentences.`;
+
+    try {
+      const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
+      const history = (chatMessages[activePersona.id] || []).slice(-4);
+      const res = await executeAiChatRequest(spontaneousPrompt, sysPrompt, activePersona, history, null);
+      if (res && res.reply) {
+        $('theaterReactionText').innerText = res.reply;
+        appendChatMsg('assistant', res.reply);
+        speakPersonaVoiceReply(res.reply);
+      }
+    } catch(e) {
+      console.warn('Auto chime error:', e);
+    }
+  }, 28000);
 }
 
 async function askCompanionAboutVideo() {
@@ -5429,7 +5542,8 @@ async function askCompanionAboutVideo() {
     showToast('Paste & Play a video first');
     return;
   }
-  const prompt = `We are watching a YouTube video together (Video ID: ${watchTogetherCurrentVideo}). Share your in-character thoughts, reactions, and commentary on what we are watching!`;
+  const videoTitle = (watchTogetherVideoInfo && watchTogetherVideoInfo.title) ? watchTogetherVideoInfo.title : `YouTube Video (${watchTogetherCurrentVideo})`;
+  const prompt = `We are watching "${videoTitle}" together. Share your honest in-character thoughts, reactions, and commentary on what we are watching so far!`;
   
   $('theaterReactionText').innerText = `${activePersona.name} is thinking...`;
   appendChatMsg('user', "What do you think of this video so far?");
@@ -5443,7 +5557,7 @@ async function askCompanionAboutVideo() {
 
     $('theaterReactionText').innerText = replyText;
     appendChatMsg('assistant', replyText);
-    if (voiceCallActive) speakPersonaVoiceReply(replyText);
+    speakPersonaVoiceReply(replyText);
   } catch(e) {
     $('theaterReactionText').innerText = "*watches the video with you*";
   }
