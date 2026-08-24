@@ -5047,7 +5047,7 @@ memVP.addEventListener('wheel', e => {
 }, { passive: false });
 
 /* ==========================================================================
-   COMPANION SUITE: VOICE CALLS, SCREEN SHARING & WATCH TOGETHER THEATER
+   COMPANION SUITE: GEMINI LIVE MULTIMODAL ENGINE, VOICE & VISION
    ========================================================================== */
 
 function appendChatMsg(role, text, imgData = null) {
@@ -5059,6 +5059,256 @@ function appendChatMsg(role, text, imgData = null) {
   localStorage.setItem('bot_saas_history', JSON.stringify(chatMessages));
   renderChatBox();
 }
+
+/* --------------------------------------------------------------------------
+   GEMINI LIVE MULTIMODAL WEBSOCKET ENGINE (BIDIRECTIONAL AUDIO + VISION)
+   -------------------------------------------------------------------------- */
+class GeminiLiveAudioPlayer {
+  constructor() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    this.ctx = AudioCtx ? new AudioCtx({ sampleRate: 24000 }) : null;
+    this.nextPlayTime = 0;
+    this.activeSources = [];
+  }
+
+  playChunk(base64PcmData) {
+    if (!this.ctx) return;
+    try {
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+      const raw = atob(base64PcmData);
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+
+      const int16 = new Int16Array(bytes.buffer);
+      const float32 = new Float32Array(int16.length);
+      for (let i = 0; i < int16.length; i++) {
+        float32[i] = int16[i] / (int16[i] < 0 ? 32768 : 32767);
+      }
+
+      const buffer = this.ctx.createBuffer(1, float32.length, 24000);
+      buffer.copyToChannel(float32, 0);
+
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(this.ctx.destination);
+
+      const currentTime = this.ctx.currentTime;
+      if (this.nextPlayTime < currentTime) {
+        this.nextPlayTime = currentTime;
+      }
+      source.start(this.nextPlayTime);
+      this.nextPlayTime += buffer.duration;
+
+      this.activeSources.push(source);
+      source.onended = () => {
+        const idx = this.activeSources.indexOf(source);
+        if (idx >= 0) this.activeSources.splice(idx, 1);
+      };
+    } catch(err) {
+      console.warn('Gemini Live PCM audio decode error:', err);
+    }
+  }
+
+  stop() {
+    this.activeSources.forEach(s => {
+      try { s.stop(); } catch(e) {}
+    });
+    this.activeSources = [];
+    if (this.ctx) {
+      this.nextPlayTime = this.ctx.currentTime;
+    }
+  }
+}
+
+class GeminiLiveSession {
+  constructor(apiKey, systemPrompt, voiceName = 'Aoede', callbacks = {}) {
+    this.apiKey = apiKey;
+    this.systemPrompt = systemPrompt;
+    this.voiceName = voiceName;
+    this.onAudioChunk = callbacks.onAudioChunk;
+    this.onTextChunk = callbacks.onTextChunk;
+    this.onInterrupted = callbacks.onInterrupted;
+    this.onStatusChange = callbacks.onStatusChange;
+    this.ws = null;
+    this.isConnected = false;
+    this.inputAudioContext = null;
+    this.scriptProcessor = null;
+    this.mediaStream = null;
+  }
+
+  async connect(mediaStream = null) {
+    this.mediaStream = mediaStream;
+    const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
+    
+    if (this.onStatusChange) this.onStatusChange('Connecting to Gemini Live...');
+    this.ws = new WebSocket(url);
+
+    this.ws.onopen = () => {
+      this.isConnected = true;
+      if (this.onStatusChange) this.onStatusChange('Gemini Live Connected');
+      this.sendSetup();
+      if (this.mediaStream) {
+        this.startStreamingMicAudio(this.mediaStream);
+      }
+    };
+
+    this.ws.onmessage = async (event) => {
+      let data = event.data;
+      if (data instanceof Blob) {
+        data = await data.text();
+      }
+      try {
+        const msg = JSON.parse(data);
+        this.handleMessage(msg);
+      } catch(e) {
+        console.warn('Gemini Live message parse error:', e);
+      }
+    };
+
+    this.ws.onerror = (err) => {
+      console.warn('Gemini Live WebSocket error:', err);
+      if (this.onStatusChange) this.onStatusChange('Gemini Live Connection Failed');
+    };
+
+    this.ws.onclose = () => {
+      this.isConnected = false;
+      if (this.onStatusChange) this.onStatusChange('Gemini Live Disconnected');
+      this.cleanup();
+    };
+  }
+
+  sendSetup() {
+    const setupMsg = {
+      setup: {
+        model: "models/gemini-2.0-flash-exp",
+        generation_config: {
+          response_modalities: ["AUDIO", "TEXT"],
+          speech_config: {
+            voice_config: {
+              prebuilt_voice_config: {
+                voice_name: this.voiceName || "Aoede"
+              }
+            }
+          }
+        },
+        system_instruction: {
+          parts: [{ text: this.systemPrompt || "You are an engaging, lively live companion." }]
+        }
+      }
+    };
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(setupMsg));
+    }
+  }
+
+  startStreamingMicAudio(stream) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      this.inputAudioContext = new AudioCtx({ sampleRate: 16000 });
+      const source = this.inputAudioContext.createMediaStreamSource(stream);
+      this.scriptProcessor = this.inputAudioContext.createScriptProcessor(4096, 1, 1);
+
+      this.scriptProcessor.onaudioprocess = (e) => {
+        if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+        const inputData = e.inputBuffer.getChannelData(0);
+        const pcm16 = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          const s = Math.max(-1, Math.min(1, inputData[i]));
+          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+        const base64Pcm = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
+        const realtimeChunk = {
+          realtime_input: {
+            media_chunks: [
+              {
+                mime_type: "audio/pcm;rate=16000",
+                data: base64Pcm
+              }
+            ]
+          }
+        };
+        this.ws.send(JSON.stringify(realtimeChunk));
+      };
+
+      source.connect(this.scriptProcessor);
+      this.scriptProcessor.connect(this.inputAudioContext.destination);
+    } catch(err) {
+      console.warn('Gemini Live mic streaming setup error:', err);
+    }
+  }
+
+  sendImageFrame(base64JpegData) {
+    if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    const cleanBase64 = base64JpegData.replace(/^data:image\/\w+;base64,/, '');
+    const videoChunk = {
+      realtime_input: {
+        media_chunks: [
+          {
+            mime_type: "image/jpeg",
+            data: cleanBase64
+          }
+        ]
+      }
+    };
+    this.ws.send(JSON.stringify(videoChunk));
+  }
+
+  sendText(text) {
+    if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    const textMsg = {
+      client_content: {
+        turns: [
+          {
+            role: "user",
+            parts: [{ text: text }]
+          }
+        ],
+        turn_complete: true
+      }
+    };
+    this.ws.send(JSON.stringify(textMsg));
+  }
+
+  handleMessage(msg) {
+    if (msg.server_content) {
+      const { model_turn, turn_complete, interrupted } = msg.server_content;
+      if (interrupted && this.onInterrupted) {
+        this.onInterrupted();
+      }
+      if (model_turn && model_turn.parts) {
+        for (const part of model_turn.parts) {
+          if (part.text && this.onTextChunk) {
+            this.onTextChunk(part.text);
+          }
+          if (part.inline_data && part.inline_data.data && this.onAudioChunk) {
+            this.onAudioChunk(part.inline_data.data, part.inline_data.mime_type);
+          }
+        }
+      }
+    }
+  }
+
+  cleanup() {
+    if (this.scriptProcessor) {
+      try { this.scriptProcessor.disconnect(); } catch(e) {}
+      this.scriptProcessor = null;
+    }
+    if (this.inputAudioContext) {
+      try { this.inputAudioContext.close(); } catch(e) {}
+      this.inputAudioContext = null;
+    }
+    if (this.ws) {
+      try { this.ws.close(); } catch(e) {}
+      this.ws = null;
+    }
+    this.isConnected = false;
+  }
+}
+
+let activeGeminiLiveSession = null;
+let activeGeminiLivePlayer = null;
 
 let voiceCallActive = false;
 let voiceRecognition = null;
@@ -5163,7 +5413,7 @@ function initVoiceRecognition() {
   };
 
   rec.onend = () => {
-    if (voiceCallActive && !voiceMicMuted && !isProcessingVoiceTurn) {
+    if (voiceCallActive && !voiceMicMuted && !isProcessingVoiceTurn && !activeGeminiLiveSession) {
       try { rec.start(); } catch(e) {}
     }
   };
@@ -5206,13 +5456,50 @@ async function startVoiceCall() {
   await initRealMicAudio();
   startVoiceWaveform();
 
-  // Start Speech-To-Text
-  if (!voiceRecognition) voiceRecognition = initVoiceRecognition();
-  if (voiceRecognition) {
-    try { voiceRecognition.start(); } catch(e) {}
-  }
+  // Check if Gemini API key is available for Gemini Live Bi-directional streaming
+  const ep = (typeof getCustomEndpointConfig === 'function') ? getCustomEndpointConfig() : {};
+  const gKey = (activePersona.config && activePersona.config.gemini_key) || activePersona.gemini_key || ep.gemini_key || localStorage.getItem('gemini_key') || '';
 
-  showToast(`📞 Voice call connected with ${activePersona.name}`);
+  if (gKey) {
+    $('voiceCallStatus').innerText = 'Connecting Gemini Live (Neural Voice)...';
+    if (!activeGeminiLivePlayer) activeGeminiLivePlayer = new GeminiLiveAudioPlayer();
+
+    const halo = $('voiceAvatarHalo');
+    const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
+
+    activeGeminiLiveSession = new GeminiLiveSession(gKey, sysPrompt, 'Aoede', {
+      onAudioChunk: (base64Pcm) => {
+        if (voiceSpeakerMuted) return;
+        if (halo) halo.classList.add('speaking');
+        $('voiceCallStatus').innerText = 'Gemini Live Speaking...';
+        if (activeGeminiLivePlayer) activeGeminiLivePlayer.playChunk(base64Pcm);
+      },
+      onTextChunk: (text) => {
+        const captionEl = $('voiceCaptionBox');
+        if (captionEl) {
+          captionEl.innerHTML = `<span style="color:var(--accent); font-size:12px; display:block; margin-bottom:2px;">${escapeHtml(activePersona.name)}:</span> ${escapeHtml(text)}`;
+        }
+      },
+      onInterrupted: () => {
+        if (activeGeminiLivePlayer) activeGeminiLivePlayer.stop();
+        if (halo) halo.classList.remove('speaking');
+        $('voiceCallStatus').innerText = 'Connected • Listening (Live)';
+      },
+      onStatusChange: (status) => {
+        $('voiceCallStatus').innerText = status;
+      }
+    });
+
+    await activeGeminiLiveSession.connect(voiceMicStream);
+    showToast(`⚡ Gemini Live bidirectional audio active with ${activePersona.name}`);
+  } else {
+    // Standard Speech-To-Text fallback
+    if (!voiceRecognition) voiceRecognition = initVoiceRecognition();
+    if (voiceRecognition) {
+      try { voiceRecognition.start(); } catch(e) {}
+    }
+    showToast(`📞 Voice call connected with ${activePersona.name}`);
+  }
 }
 
 function endVoiceCall() {
@@ -5221,6 +5508,15 @@ function endVoiceCall() {
   isVoicePushToTalkRecording = false;
   if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
   if (voiceWatchdogTimer) clearTimeout(voiceWatchdogTimer);
+
+  if (activeGeminiLiveSession) {
+    activeGeminiLiveSession.cleanup();
+    activeGeminiLiveSession = null;
+  }
+  if (activeGeminiLivePlayer) {
+    activeGeminiLivePlayer.stop();
+    activeGeminiLivePlayer = null;
+  }
 
   const modal = $('voiceCallModal');
   if (modal) modal.classList.remove('active');
@@ -5825,6 +6121,12 @@ async function captureAndAskScreenVision(customPrompt) {
     showToast('👁 Analyzing screen...');
 
     appendChatMsg('user', question, frameData);
+
+    if (activeGeminiLiveSession && activeGeminiLiveSession.isConnected) {
+      activeGeminiLiveSession.sendImageFrame(frameData);
+      activeGeminiLiveSession.sendText(question);
+      return;
+    }
 
     const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
     const history = (chatMessages[activePersona.id] || []).slice(0, -1);
