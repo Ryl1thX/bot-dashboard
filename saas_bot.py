@@ -137,8 +137,9 @@ class SupabaseBridge:
         self.url = SUPABASE_URL
         self.service_key = SUPABASE_SERVICE_KEY
         self.fernet = fernet
-        self.poll_interval = int(os.getenv("POLL_INTERVAL", "30"))
+        self.poll_interval = int(os.getenv("POLL_INTERVAL", "60"))
         self._last_checksum = ""
+        self._last_meta_sig = ""
         self._running = False
 
     def _checksum(self, data):
@@ -149,9 +150,21 @@ class SupabaseBridge:
             return []
         async with aiohttp.ClientSession() as session:
             try:
+                # 1. Lightweight metadata check (only 1KB instead of 2.7MB)
+                meta_url = f"{self.url}/rest/v1/user_bots?is_active=eq.true&select=id,bot_id,updated_at&order=updated_at.desc"
+                headers = {"apikey": self.service_key, "Authorization": f"Bearer {self.service_key}"}
+                async with session.get(meta_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as m_resp:
+                    if m_resp.status == 200:
+                        meta_data = await m_resp.json()
+                        meta_sig = str(hash(json.dumps(meta_data, sort_keys=True)))
+                        if meta_sig == self._last_meta_sig and self._last_checksum:
+                            return None # No changes detected, skip downloading full payload
+                        self._last_meta_sig = meta_sig
+
+                # 2. Download full payload only when changed or initial boot
                 async with session.get(
                     f"{self.url}/rest/v1/user_bots?is_active=eq.true&select=*",
-                    headers={"apikey": self.service_key, "Authorization": f"Bearer {self.service_key}"},
+                    headers=headers,
                     timeout=aiohttp.ClientTimeout(total=15),
                 ) as resp:
                     if resp.status == 200:
@@ -256,6 +269,8 @@ class SupabaseBridge:
 
     async def sync_once(self):
         raw = await self._fetch_configs()
+        if raw is None:
+            return
         checksum = self._checksum(raw)
         if checksum != self._last_checksum:
             self._last_checksum = checksum
@@ -4780,8 +4795,6 @@ def record_bot_interaction(bot_id: str):
             b.save()
         except Exception:
             pass
-        if bot_loop and bot_loop.is_running():
-            asyncio.run_coroutine_threadsafe(sync_interaction_count_to_supabase(bot_id, cnt), bot_loop)
         return cnt
     
     path = os.path.join(USERS_DIR, f"{bot_id}.json")
@@ -4793,8 +4806,6 @@ def record_bot_interaction(bot_id: str):
             d["message_count"] = cur
             d["interactions"] = cur
             _atomic_json_save(path, d, backup=False)
-            if bot_loop and bot_loop.is_running():
-                asyncio.run_coroutine_threadsafe(sync_interaction_count_to_supabase(bot_id, cur), bot_loop)
             return cur
         except Exception:
             pass

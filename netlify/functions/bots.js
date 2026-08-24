@@ -32,13 +32,14 @@ export default async function handler(req, res) {
     reqHeaders = req.headers || {};
   }
 
-  function sendJson(status, data) {
+  function sendJson(status, data, extraHeaders = {}) {
+    const combined = { ...corsHeaders, ...extraHeaders };
     if (isWebReq) {
-      return new Response(JSON.stringify(data), { status, headers: corsHeaders });
+      return new Response(JSON.stringify(data), { status, headers: combined });
     }
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-User-Id, X-User-Email');
+    for (const [k, v] of Object.entries(combined)) {
+      res.setHeader(k, v);
+    }
     return res.status(status).json(data);
   }
 
@@ -257,7 +258,7 @@ export default async function handler(req, res) {
         }
       }
 
-      return sendJson(200, { ok: true, bots: bots, is_admin: isAdmin });
+      return sendJson(200, { ok: true, bots: bots, is_admin: isAdmin }, { 'Cache-Control': 'public, max-age=10, stale-while-revalidate=30' });
     }
 
     // ==========================================

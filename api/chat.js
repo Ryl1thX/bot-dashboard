@@ -317,48 +317,10 @@ Stay strictly in character as ${botName} at all times. Deliver lively, expressiv
       reply = `*turns to you attentively, engaging directly with your words*\n\n"${message.slice(0, 80)}" — let's delve deeper into this. What are your thoughts?`;
     }
 
-    // Update global interaction count in Supabase
-    let interactionCount = 1;
-    try {
-      if (botId && botId !== 'bot' && !botId.startsWith('test_')) {
-        const getRes = await fetch(`${SUPABASE_URL}/rest/v1/user_bots?bot_id=eq.${encodeURIComponent(botId)}&select=*`, {
-          headers: {
-            'apikey': SUPABASE_SERVICE_KEY,
-            'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`
-          }
-        });
-        if (getRes.ok) {
-          const rows = await getRes.json();
-          if (rows && rows.length > 0) {
-            const row = rows[0];
-            const cfg = row.settings || {};
-            const cur = parseInt(cfg.interactions !== undefined ? cfg.interactions : (cfg.message_count !== undefined ? cfg.message_count : 0), 10) || 0;
-            interactionCount = cur + 1;
-            cfg.interactions = interactionCount;
-            cfg.message_count = interactionCount;
-            await fetch(`${SUPABASE_URL}/rest/v1/user_bots?bot_id=eq.${encodeURIComponent(botId)}`, {
-              method: 'PATCH',
-              headers: {
-                'apikey': SUPABASE_SERVICE_KEY,
-                'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-              },
-              body: JSON.stringify({
-                settings: cfg,
-                updated_at: new Date().toISOString()
-              })
-            });
-          }
-        }
-      }
-    } catch (dbErr) {}
-
     return sendJson(200, {
       ok: true,
       reply: reply,
-      bot_id: botId,
-      interaction_count: interactionCount
+      bot_id: botId
     });
   } catch (error) {
     console.error('API /api/chat error:', error);
