@@ -2711,16 +2711,16 @@ function openSettingsModal(e) {
 
 function onSettingEngineProviderChange(prov) {
   const defaultModels = {
-    'auto': 'gemini-3.1-flash-lite',
-    'gemini': 'gemini-3.1-flash-lite',
+    'auto': 'gemini-2.0-flash',
+    'gemini': 'gemini-2.0-flash',
     'groq': 'llama-3.3-70b-versatile',
     'deepseek': 'deepseek-chat',
-    'mistral': 'mistral-large-latest',
+    'mistral': 'mistral-small-latest',
     'openai': 'gpt-4o-mini',
-    'openrouter': 'google/gemini-2.0-flash-lite-001',
+    'openrouter': 'google/gemini-2.0-flash-001',
     'custom': 'custom-model'
   };
-  if($('settingEngineModel')) $('settingEngineModel').value = defaultModels[prov] || 'gemini-3.1-flash-lite';
+  if($('settingEngineModel')) $('settingEngineModel').value = defaultModels[prov] || 'gemini-2.0-flash';
 }
 
 function saveEngineSettingsFromModal() {
@@ -2949,9 +2949,9 @@ function renderModelSlots() {
     'gemini': 'gemini-2.0-flash',
     'groq': 'llama-3.3-70b-versatile',
     'deepseek': 'deepseek-chat',
-    'mistral': 'mistral-large-latest',
+    'mistral': 'mistral-small-latest',
     'openai': 'gpt-4o-mini',
-    'openrouter': 'google/gemini-2.0-flash-exp:free',
+    'openrouter': 'google/gemini-2.0-flash-001',
     'custom': 'custom-model'
   };
 
@@ -2997,9 +2997,9 @@ function updateModelSlotProvider(idx, newProv) {
     'gemini': 'gemini-2.0-flash',
     'groq': 'llama-3.3-70b-versatile',
     'deepseek': 'deepseek-chat',
-    'mistral': 'mistral-large-latest',
+    'mistral': 'mistral-small-latest',
     'openai': 'gpt-4o-mini',
-    'openrouter': 'google/gemini-2.0-flash-exp:free',
+    'openrouter': 'google/gemini-2.0-flash-001',
     'custom': 'custom-model'
   };
   activeModelSlots[idx].model = defaultModels[newProv] || 'gemini-2.0-flash';
@@ -3018,8 +3018,8 @@ function addModelSlot() {
   const defaultModels = {
     'groq': 'llama-3.3-70b-versatile',
     'deepseek': 'deepseek-chat',
-    'mistral': 'mistral-large-latest',
-    'openrouter': 'google/gemini-2.0-flash-exp:free'
+    'mistral': 'mistral-small-latest',
+    'openrouter': 'google/gemini-2.0-flash-001'
   };
   activeModelSlots.push({ provider: nextProv, model: defaultModels[nextProv] || 'gemini-2.0-flash' });
   renderModelSlots();
@@ -3039,7 +3039,7 @@ function openCreateTabForNew() {
   setCustomEndpointConfig({});
   uploadedPfpData = null;
   activeModelSlots = [
-    { provider: 'auto', model: 'gemini-3.1-flash-lite' },
+    { provider: 'auto', model: 'gemini-2.0-flash' },
     { provider: 'groq', model: 'llama-3.3-70b-versatile' }
   ];
 
