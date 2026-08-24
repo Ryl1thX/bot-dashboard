@@ -849,93 +849,125 @@ body.sidebar-hidden .sidebar {
   .theme-popover { left: 60px; bottom: calc(28vh + 36px); }
   .view-panel { padding: 14px; }
   .quick-theme-bar { display: none; }
-/* COMPANION SUITE: VOICE CALL OVERLAY */
+/* COMPANION SUITE: RESPONSIVE TOP BAR */
+.chat-top {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--chat-top-bg); padding: 8px 14px;
+  border-bottom: 1px solid var(--card-border); gap: 10px;
+  min-height: 52px; z-index: 10;
+}
+.chat-top-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 1; }
+.chat-top-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
+.chat-top-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 9px; font-size: 11px; font-weight: 600;
+  border-radius: 6px; border: 1px solid var(--card-border);
+  background: rgba(255,255,255,0.06); color: var(--text-secondary);
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.chat-top-btn:hover {
+  background: rgba(255,255,255,0.12); color: var(--text-primary);
+  border-color: var(--accent); transform: translateY(-1px);
+}
+.chat-top-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+@media (max-width: 680px) {
+  .chat-top-btn span { display: none; }
+  .chat-top-btn { padding: 6px 8px; }
+  .chat-top-name { font-size: 13px; max-width: 90px; }
+}
+
+/* COMPANION SUITE: VOICE CALL OVERLAY WITH VAD */
 .voice-call-overlay {
   position: fixed; inset: 0; z-index: 999999;
-  background: radial-gradient(circle at center, rgba(20, 26, 22, 0.95) 0%, rgba(10, 14, 12, 0.98) 100%);
+  background: radial-gradient(circle at center, rgba(16, 22, 18, 0.96) 0%, rgba(8, 12, 10, 0.98) 100%);
   backdrop-filter: blur(28px);
   display: none; flex-direction: column; align-items: center; justify-content: space-between;
-  padding: 40px 24px; animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  padding: 30px 20px; animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .voice-call-overlay.active { display: flex; }
 .voice-avatar-halo {
-  position: relative; width: 140px; height: 140px; border-radius: 50%;
-  display: grid; place-items: center; margin-top: 30px;
+  position: relative; width: 130px; height: 130px; border-radius: 50%;
+  display: grid; place-items: center; margin-top: 20px;
 }
 .voice-avatar-halo::before {
-  content: ''; position: absolute; inset: -20px; border-radius: 50%;
+  content: ''; position: absolute; inset: -18px; border-radius: 50%;
   background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
-  opacity: 0.4; animation: pulseHalo 2s infinite ease-in-out;
+  opacity: 0.35; animation: pulseHalo 2s infinite ease-in-out;
 }
 .voice-avatar-halo.speaking::before {
-  opacity: 0.95; transform: scale(1.3); animation: pulseSpeaking 0.6s infinite alternate ease-in-out;
+  opacity: 0.95; transform: scale(1.3); animation: pulseSpeaking 0.5s infinite alternate ease-in-out;
 }
-@keyframes pulseHalo { 0%, 100% { transform: scale(1); opacity: 0.4; } 50% { transform: scale(1.15); opacity: 0.7; } }
+@keyframes pulseHalo { 0%, 100% { transform: scale(1); opacity: 0.35; } 50% { transform: scale(1.15); opacity: 0.65; } }
 @keyframes pulseSpeaking { from { transform: scale(1.1); opacity: 0.6; } to { transform: scale(1.35); opacity: 1; filter: drop-shadow(0 0 24px var(--accent)); } }
 
-.voice-wave-canvas { width: 320px; height: 60px; margin: 15px 0; border-radius: 8px; }
+.voice-wave-canvas { width: 300px; height: 50px; margin: 10px 0; border-radius: 8px; }
 .voice-caption-box {
-  max-width: 580px; text-align: center; font-size: 15px; line-height: 1.6;
-  color: var(--text-primary); min-height: 60px; background: rgba(0,0,0,0.4);
-  padding: 14px 22px; border-radius: 14px; border: 1px solid var(--card-border);
+  width: 90vw; max-width: 560px; text-align: center; font-size: 14px; line-height: 1.6;
+  color: var(--text-primary); min-height: 60px; max-height: 120px; overflow-y: auto;
+  background: rgba(0,0,0,0.5); padding: 12px 18px; border-radius: 12px; border: 1px solid var(--card-border);
   box-shadow: 0 8px 32px rgba(0,0,0,0.5);
 }
-.voice-controls { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; }
+.voice-controls { display: flex; align-items: center; gap: 16px; margin-bottom: 15px; }
 .voice-ctrl-btn {
-  width: 56px; height: 56px; border-radius: 50%; border: none; cursor: pointer;
-  display: grid; place-items: center; color: #fff; font-size: 20px;
+  width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer;
+  display: grid; place-items: center; color: #fff; font-size: 18px;
   background: rgba(255,255,255,0.1); border: 1px solid var(--card-border);
   transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
 }
-.voice-ctrl-btn:hover { transform: scale(1.1); background: rgba(255,255,255,0.2); box-shadow: 0 4px 16px rgba(255,255,255,0.2); }
+.voice-ctrl-btn:hover { transform: scale(1.08); background: rgba(255,255,255,0.2); }
 .voice-ctrl-btn.end-call { background: #e06c75; border-color: #e06c75; }
 .voice-ctrl-btn.end-call:hover { background: #ff5c6c; transform: scale(1.15); box-shadow: 0 0 24px rgba(224,108,117,0.6); }
 .voice-ctrl-btn.muted { background: #e5c07b; color: #111; border-color: #e5c07b; }
+.voice-ctrl-btn.talk-btn { width: 140px; border-radius: 26px; font-size: 13px; font-weight: 700; gap: 6px; display: inline-flex; }
 
 /* COMPANION SUITE: SCREEN SHARING & VISION MONITOR */
 .screen-vision-floating {
-  position: absolute; bottom: 85px; right: 20px; width: 320px; height: 210px;
+  position: absolute; bottom: 85px; right: 20px; width: 300px; height: 200px;
   background: var(--card-bg); border: 1.5px solid var(--accent); border-radius: 12px;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.8), 0 0 20px var(--accent-soft);
+  box-shadow: 0 16px 48px rgba(0,0,0,0.85), 0 0 20px var(--accent-soft);
   display: none; flex-direction: column; overflow: hidden; z-index: 500;
   backdrop-filter: blur(16px); animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .screen-vision-floating.active { display: flex; }
 .screen-vision-header {
-  padding: 8px 12px; background: var(--input-bg); display: flex;
-  align-items: center; justify-content: space-between; font-size: 11.5px;
+  padding: 6px 10px; background: var(--input-bg); display: flex;
+  align-items: center; justify-content: space-between; font-size: 11px;
   font-weight: 700; color: var(--accent); border-bottom: 1px solid var(--card-border);
 }
-.screen-vision-video { width: 100%; height: 130px; object-fit: contain; background: #000; }
+.screen-vision-video { width: 100%; height: 125px; object-fit: contain; background: #000; }
 .screen-vision-footer {
   padding: 6px 10px; display: flex; align-items: center; justify-content: space-between;
   background: var(--input-bg); border-top: 1px solid var(--card-border); gap: 6px;
 }
 
-/* COMPANION SUITE: WATCH TOGETHER / YOUTUBE THEATER */
-.chat-arena-body {
-  display: flex; flex: 1; min-height: 0; position: relative; overflow: hidden;
+/* COMPANION SUITE: FULLSCREEN CINEMA / THEATER OVERLAY */
+.theater-cinema-overlay {
+  position: fixed; inset: 0; z-index: 999990;
+  background: rgba(8, 10, 12, 0.96); backdrop-filter: blur(24px);
+  display: none; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 16px 20px; animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-.chat-messages-col {
-  display: flex; flex-direction: column; flex: 1; min-width: 0; min-height: 0;
+.theater-cinema-overlay.open { display: flex; }
+.theater-top-bar {
+  width: 100%; max-width: 1100px; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--card-border);
 }
-.watch-together-panel {
-  display: none; width: 420px; min-width: 300px; max-width: 50vw;
-  background: var(--chat-top-bg); border-left: 1px solid var(--card-border);
-  flex-direction: column; height: 100%; overflow: hidden;
-  box-shadow: -4px 0 20px rgba(0,0,0,0.3);
+.theater-screen-wrapper {
+  width: 100%; max-width: 1100px; aspect-ratio: 16/9; max-height: 68vh;
+  background: #000; border-radius: 12px; overflow: hidden;
+  box-shadow: 0 16px 64px rgba(0,0,0,0.9), 0 0 32px rgba(229,192,123,0.15);
+  border: 1px solid rgba(255,255,255,0.1); position: relative;
 }
-.watch-together-panel.open { display: flex; }
-.watch-together-header {
-  padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;
-  border-bottom: 1px solid var(--card-border); font-size: 12.5px; font-weight: 700; color: var(--text-primary);
+.theater-iframe { width: 100%; height: 100%; border: none; }
+.theater-companion-bar {
+  width: 100%; max-width: 1100px; display: flex; align-items: center; justify-content: space-between;
+  gap: 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
+  border-radius: 12px; padding: 10px 16px; margin-top: 10px;
 }
-.watch-together-player-box {
-  width: 100%; aspect-ratio: 16/9; background: #000; position: relative; flex-shrink: 0;
-}
-.watch-together-iframe { width: 100%; height: 100%; border: none; }
-.watch-together-body {
-  padding: 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto;
+.theater-reaction-bubble {
+  flex: 1; font-size: 13px; line-height: 1.5; color: var(--text-primary);
+  min-height: 22px; display: flex; align-items: center; gap: 8px;
 }
 </style>
 </head>
@@ -1552,7 +1584,7 @@ body.sidebar-hidden .sidebar {
     </div>
   </div>
 
-  <!-- VIEW 5: CHAT ARENA (WITH VOICE CALL, SCREEN SHARING & WATCH TOGETHER) -->
+  <!-- VIEW 5: CHAT ARENA (CLEAN, SPACIOUS WITH COMPANION TOP BAR) -->
   <div class="chat-arena-view" id="view-chat" style="display:none;">
     <div class="chat-top">
       <div class="chat-top-left">
@@ -1563,97 +1595,66 @@ body.sidebar-hidden .sidebar {
         <span class="chat-top-name" id="charName">Yuna</span>
       </div>
       
-      <div style="display:flex; align-items:center; gap:6px; flex-wrap:nowrap;">
+      <div class="chat-top-right">
         <!-- VOICE CALL BUTTON -->
-        <button class="chat-top-btn" id="voiceCallHeaderBtn" onclick="startVoiceCall()" title="Start Voice Call with Persona" style="color:#61afef; border-color:#61afef; background:rgba(97,175,239,0.12);">
+        <button class="chat-top-btn" id="voiceCallHeaderBtn" onclick="startVoiceCall()" title="Start Voice Call" style="color:#61afef; border-color:#61afef; background:rgba(97,175,239,0.12);">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
           <span>Call</span>
         </button>
 
         <!-- SCREEN VISION BUTTON -->
-        <button class="chat-top-btn" id="screenVisionHeaderBtn" onclick="toggleScreenVision()" title="Share Screen / Gaming / Video Vision with Persona" style="color:#98c379; border-color:#98c379; background:rgba(152,195,121,0.12);">
+        <button class="chat-top-btn" id="screenVisionHeaderBtn" onclick="toggleScreenVision()" title="Share Screen Vision" style="color:#98c379; border-color:#98c379; background:rgba(152,195,121,0.12);">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
           <span>Screen</span>
         </button>
 
-        <!-- WATCH TOGETHER BUTTON -->
-        <button class="chat-top-btn" id="watchTogetherHeaderBtn" onclick="toggleWatchTogether()" title="Watch YouTube / Video Together with Persona" style="color:#e5c07b; border-color:#e5c07b; background:rgba(229,192,123,0.12);">
+        <!-- FULLSCREEN THEATER BUTTON -->
+        <button class="chat-top-btn" id="watchTogetherHeaderBtn" onclick="openWatchTogetherTheater()" title="Watch Together Cinema" style="color:#e5c07b; border-color:#e5c07b; background:rgba(229,192,123,0.12);">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-          <span>Watch</span>
+          <span>Theater</span>
         </button>
 
         <!-- MEMORY TREE -->
-        <button class="chat-top-btn" onclick="openMemoryTreeModal()" title="Character Memory Tree &amp; Neural Constellation" style="color:var(--accent); border-color:var(--accent); background:var(--accent-soft);">
+        <button class="chat-top-btn" onclick="openMemoryTreeModal()" title="Character Memory Tree" style="color:var(--accent); border-color:var(--accent); background:var(--accent-soft);">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="4" r="2.5"></circle><circle cx="5" cy="18" r="2.5"></circle><circle cx="19" cy="18" r="2.5"></circle><circle cx="12" cy="12" r="2"></circle><path d="M12 6.5v3.5M6.5 16.5l3.5-3M17.5 16.5l-3.5-3"></path></svg>
           <span>Memory</span>
         </button>
 
         <!-- SETTINGS -->
-        <button class="chat-top-btn" onclick="openSettingsModal()" title="Chat Controls, Sessions, Persona &amp; Engine Settings">
+        <button class="chat-top-btn" onclick="openSettingsModal()" title="Chat Controls">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
       </div>
     </div>
 
-    <!-- CHAT ARENA BODY (SPLIT VIEW FOR WATCH TOGETHER) -->
-    <div class="chat-arena-body">
-      <div class="chat-messages-col">
-        <!-- MESSAGES -->
-        <div class="chat-messages" id="chatBox"></div>
+    <!-- MESSAGES (FULL WIDTH & CLEAN) -->
+    <div class="chat-messages" id="chatBox"></div>
 
-        <!-- TYPING INDICATOR -->
-        <div class="typing-row" id="typingRow">
-          <div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div>
-          <span id="typingLabel">Thinking...</span>
-        </div>
+    <!-- TYPING INDICATOR -->
+    <div class="typing-row" id="typingRow">
+      <div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div>
+      <span id="typingLabel">Thinking...</span>
+    </div>
 
-        <!-- COMPOSER -->
-        <div class="composer">
-          <div class="image-preview-badge" id="imagePreviewBadge">
-            <img id="imagePreviewThumb" src="" alt="">
-            <span id="imagePreviewName">image.png</span>
-            <button type="button" class="image-preview-remove" onclick="removeAttachedImage()" title="Remove image">✕</button>
-          </div>
-
-          <div class="composer-box">
-            <input type="text" class="composer-input" id="chatInput" placeholder="Type a message (Enter to send)..." onkeydown="handleChatEnter(event)">
-            
-            <button type="button" class="composer-btn" id="visionTriggerBtn" onclick="document.getElementById('chatImageInput').click()" title="Attach Image for Persona Context &amp; Memory Anchor">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-            </button>
-
-            <button type="button" class="send-btn" onclick="sendMsg()">
-              <span>SEND</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-            </button>
-          </div>
-        </div>
+    <!-- COMPOSER -->
+    <div class="composer">
+      <div class="image-preview-badge" id="imagePreviewBadge">
+        <img id="imagePreviewThumb" src="" alt="">
+        <span id="imagePreviewName">image.png</span>
+        <button type="button" class="image-preview-remove" onclick="removeAttachedImage()" title="Remove image">✕</button>
       </div>
 
-      <!-- WATCH TOGETHER THEATER PANEL -->
-      <div class="watch-together-panel" id="watchTogetherPanel">
-        <div class="watch-together-header">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span>🍿 Watch Together Theater</span>
-            <span style="font-size:10px; padding:2px 6px; border-radius:4px; background:rgba(229,192,123,0.15); color:#e5c07b;">Co-Watching</span>
-          </div>
-          <button type="button" class="chat-top-btn" onclick="toggleWatchTogether()" title="Close Watch Together">✕</button>
-        </div>
-        <div class="watch-together-player-box">
-          <iframe class="watch-together-iframe" id="watchTogetherIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-        </div>
-        <div class="watch-together-body">
-          <div style="display:flex; gap:6px;">
-            <input type="text" class="composer-input" id="youtubeUrlInput" placeholder="Paste YouTube link (https://youtu.be/...)" style="background:var(--input-bg); border:1px solid var(--card-border); border-radius:6px; padding:6px 10px; font-size:12px; flex:1;">
-            <button class="btn-primary" onclick="loadYouTubeVideoFromInput()" style="padding:6px 12px; font-size:11px;">▶ Load</button>
-          </div>
-          <div style="font-size:11px; color:var(--text-muted); line-height:1.5; margin-top:4px;">
-            ◈ Your AI companion watches synchronized milestones with you and reacts in real-time to what you're watching!
-          </div>
-          <div style="display:flex; gap:6px; margin-top:8px;">
-            <button class="btn-primary" onclick="askCompanionAboutVideo()" style="flex:1; justify-content:center; padding:6px 10px; font-size:11px; background:rgba(229,192,123,0.12); color:#e5c07b; border:1px solid rgba(229,192,123,0.25);">💬 Ask Persona's Thoughts</button>
-          </div>
-        </div>
+      <div class="composer-box">
+        <input type="text" class="composer-input" id="chatInput" placeholder="Type a message (Enter to send)..." onkeydown="handleChatEnter(event)">
+        
+        <button type="button" class="composer-btn" id="visionTriggerBtn" onclick="document.getElementById('chatImageInput').click()" title="Attach Image for Persona Context">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+        </button>
+
+        <button type="button" class="send-btn" onclick="sendMsg()">
+          <span>SEND</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
       </div>
     </div>
 
@@ -1664,7 +1665,7 @@ body.sidebar-hidden .sidebar {
           <span style="color:#98c379;">● LIVE</span>
           <span>Screen &amp; Game Vision</span>
         </div>
-        <button type="button" class="chat-top-btn" onclick="stopScreenVision()" style="padding:2px 6px; font-size:10px;">✕ Stop</button>
+        <button type="button" class="chat-top-btn" onclick="stopScreenVision()" style="padding:2px 6px; font-size:10px;">✕</button>
       </div>
       <video class="screen-vision-video" id="screenVisionVideo" autoplay muted playsinline></video>
       <div class="screen-vision-footer">
@@ -1676,26 +1677,58 @@ body.sidebar-hidden .sidebar {
     </div>
   </div>
 
+  <!-- FULLSCREEN CINEMA / THEATER OVERLAY -->
+  <div class="theater-cinema-overlay" id="watchTogetherTheaterModal">
+    <div class="theater-top-bar">
+      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+        <span style="font-size:14px; font-weight:700; color:var(--accent);">🍿 Cinema Theater</span>
+        <span style="font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="theaterBotBadge">Co-Watching with Yuna</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; flex:1; max-width:540px;">
+        <input type="text" class="composer-input" id="theaterYoutubeUrlInput" placeholder="Paste YouTube link (https://youtu.be/...)" style="background:var(--input-bg); border:1px solid var(--card-border); border-radius:6px; padding:6px 12px; font-size:12px; flex:1;">
+        <button class="btn-primary" onclick="loadTheaterYouTubeVideo()" style="padding:6px 14px; font-size:11px; white-space:nowrap;">▶ Play</button>
+      </div>
+      <button class="chat-top-btn" onclick="closeWatchTogetherTheater()" style="padding:6px 12px;">✕ Close</button>
+    </div>
+
+    <div class="theater-screen-wrapper">
+      <iframe class="theater-iframe" id="theaterIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+
+    <div class="theater-companion-bar">
+      <div class="theater-reaction-bubble" id="theaterReactionBubble">
+        <span style="font-size:20px;">🍿</span>
+        <span id="theaterReactionText">Ready to watch together! Paste a YouTube link above.</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
+        <button class="btn-primary" onclick="askCompanionAboutVideo()" style="padding:6px 14px; font-size:11px; background:rgba(229,192,123,0.15); color:#e5c07b; border:1px solid rgba(229,192,123,0.3);">💬 Ask Persona's Thoughts</button>
+      </div>
+    </div>
+  </div>
+
   <!-- FULLSCREEN VOICE CALL OVERLAY -->
   <div class="voice-call-overlay" id="voiceCallModal">
     <div style="display:flex; flex-direction:column; align-items:center; text-align:center;">
       <div class="voice-avatar-halo" id="voiceAvatarHalo">
-        <div class="char-avatar" id="voiceCallAvatar" style="width:120px; height:120px; font-size:44px; border-radius:50%; box-shadow:0 8px 32px rgba(0,0,0,0.6);">Y</div>
+        <div class="char-avatar" id="voiceCallAvatar" style="width:110px; height:110px; font-size:40px; border-radius:50%; box-shadow:0 8px 32px rgba(0,0,0,0.6);">Y</div>
       </div>
-      <h2 style="font-size:22px; font-weight:700; margin-top:16px; color:var(--text-primary);" id="voiceCallBotName">Yuna</h2>
-      <div style="font-size:12px; color:var(--accent); font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-top:4px;" id="voiceCallStatus">Connected • Listening</div>
+      <h2 style="font-size:20px; font-weight:700; margin-top:14px; color:var(--text-primary);" id="voiceCallBotName">Yuna</h2>
+      <div style="font-size:11px; color:var(--accent); font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-top:4px;" id="voiceCallStatus">Connected • Listening</div>
     </div>
 
-    <div style="display:flex; flex-direction:column; align-items:center; width:100%; max-width:600px;">
+    <div style="display:flex; flex-direction:column; align-items:center; width:100%; max-width:580px;">
       <canvas class="voice-wave-canvas" id="voiceWaveCanvas"></canvas>
       <div class="voice-caption-box" id="voiceCaptionBox">
-        <em>Say something to start talking...</em>
+        <em>Listening for your voice...</em>
       </div>
     </div>
 
     <div class="voice-controls">
       <button type="button" class="voice-ctrl-btn" id="voiceMicToggleBtn" onclick="toggleVoiceCallMic()" title="Mute/Unmute Mic">
         🎙️
+      </button>
+      <button type="button" class="voice-ctrl-btn talk-btn" id="voiceTalkBtn" onclick="triggerManualVoiceSend()" title="Finish &amp; Send Voice">
+        <span>✓ Done Speaking</span>
       </button>
       <button type="button" class="voice-ctrl-btn end-call" onclick="endVoiceCall()" title="End Voice Call">
         📞
@@ -4941,14 +4974,24 @@ memVP.addEventListener('wheel', e => {
    COMPANION SUITE: VOICE CALLS, SCREEN SHARING & WATCH TOGETHER THEATER
    ========================================================================== */
 
+function appendChatMsg(role, text, imgData = null) {
+  if (!activePersona) return;
+  if (!chatMessages[activePersona.id]) chatMessages[activePersona.id] = [];
+  const msgObj = { role, text };
+  if (imgData) msgObj.image_data = imgData;
+  chatMessages[activePersona.id].push(msgObj);
+  localStorage.setItem('bot_saas_history', JSON.stringify(chatMessages));
+  renderChatBox();
+}
+
 let voiceCallActive = false;
 let voiceRecognition = null;
 let voiceMicMuted = false;
 let voiceSpeakerMuted = false;
 let voiceWaveAnimId = null;
-let voiceAudioContext = null;
-let voiceAnalyser = null;
-let voiceMicStream = null;
+let voiceVadSilenceTimer = null;
+let voiceCurrentTranscript = '';
+let isProcessingVoiceTurn = false;
 
 function initVoiceRecognition() {
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -4961,8 +5004,8 @@ function initVoiceRecognition() {
   rec.interimResults = true;
   rec.lang = 'en-US';
 
-  rec.onresult = async (event) => {
-    if (voiceMicMuted) return;
+  rec.onresult = (event) => {
+    if (voiceMicMuted || isProcessingVoiceTurn) return;
     let interim = '';
     let final = '';
     for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -4972,22 +5015,34 @@ function initVoiceRecognition() {
         interim += event.results[i][0].transcript;
       }
     }
+    const current = (final || interim || '').trim();
+    if (!current) return;
+
+    voiceCurrentTranscript = current;
     const captionEl = $('voiceCaptionBox');
     if (captionEl) {
-      captionEl.innerHTML = `<span style="opacity:0.6; font-size:12px; display:block; margin-bottom:4px;">You:</span> ${escapeHtml(final || interim || 'Listening...')}`;
+      captionEl.innerHTML = `<span style="opacity:0.6; font-size:12px; display:block; margin-bottom:2px;">You:</span> ${escapeHtml(current)}`;
     }
 
-    if (final && final.trim().length > 1) {
-      handleVoiceUserInput(final.trim());
-    }
+    // Smart VAD: 1.2s silence after speech automatically submits
+    if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
+    voiceVadSilenceTimer = setTimeout(() => {
+      if (voiceCurrentTranscript && voiceCurrentTranscript.length > 1 && !isProcessingVoiceTurn) {
+        triggerManualVoiceSend();
+      }
+    }, 1200);
   };
 
   rec.onerror = (e) => {
     console.warn('Voice recognition event:', e.error);
+    if (e.error === 'not-allowed') {
+      showToast('Microphone permission denied');
+      endVoiceCall();
+    }
   };
 
   rec.onend = () => {
-    if (voiceCallActive && !voiceMicMuted) {
+    if (voiceCallActive && !voiceMicMuted && !isProcessingVoiceTurn) {
       try { rec.start(); } catch(e) {}
     }
   };
@@ -5003,6 +5058,8 @@ function startVoiceCall() {
   voiceCallActive = true;
   voiceMicMuted = false;
   voiceSpeakerMuted = false;
+  isProcessingVoiceTurn = false;
+  voiceCurrentTranscript = '';
 
   const modal = $('voiceCallModal');
   if (modal) modal.classList.add('active');
@@ -5012,7 +5069,7 @@ function startVoiceCall() {
 
   const avatarDisplay = renderAvatarHtml(activePersona.pfp, activePersona.name[0] || 'P', activePersona.color);
   $('voiceCallAvatar').innerHTML = avatarDisplay;
-  $('voiceCaptionBox').innerHTML = `<em>Say anything to ${escapeHtml(activePersona.name)}...</em>`;
+  $('voiceCaptionBox').innerHTML = `<em>Listening for your voice...</em>`;
 
   // Start audio waveform visualizer
   startVoiceWaveform();
@@ -5028,6 +5085,9 @@ function startVoiceCall() {
 
 function endVoiceCall() {
   voiceCallActive = false;
+  isProcessingVoiceTurn = false;
+  if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
+
   const modal = $('voiceCallModal');
   if (modal) modal.classList.remove('active');
 
@@ -5040,10 +5100,6 @@ function endVoiceCall() {
   if (voiceWaveAnimId) {
     cancelAnimationFrame(voiceWaveAnimId);
     voiceWaveAnimId = null;
-  }
-  if (voiceMicStream) {
-    voiceMicStream.getTracks().forEach(t => t.stop());
-    voiceMicStream = null;
   }
   const halo = $('voiceAvatarHalo');
   if (halo) halo.classList.remove('speaking');
@@ -5060,7 +5116,7 @@ function toggleVoiceCallMic() {
   }
   if (voiceMicMuted && voiceRecognition) {
     try { voiceRecognition.stop(); } catch(e) {}
-  } else if (!voiceMicMuted && voiceRecognition && voiceCallActive) {
+  } else if (!voiceMicMuted && voiceRecognition && voiceCallActive && !isProcessingVoiceTurn) {
     try { voiceRecognition.start(); } catch(e) {}
   }
   showToast(voiceMicMuted ? 'Microphone muted' : 'Microphone unmuted');
@@ -5079,40 +5135,73 @@ function toggleVoiceCallSpeaker() {
   showToast(voiceSpeakerMuted ? 'Speaker muted' : 'Speaker unmuted');
 }
 
+function triggerManualVoiceSend() {
+  if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
+  const textToSend = voiceCurrentTranscript.trim();
+  if (!textToSend || isProcessingVoiceTurn) return;
+  voiceCurrentTranscript = '';
+  handleVoiceUserInput(textToSend);
+}
+
 async function handleVoiceUserInput(userText) {
   if (!userText || !activePersona) return;
+  isProcessingVoiceTurn = true;
+  if (voiceRecognition) {
+    try { voiceRecognition.stop(); } catch(e) {}
+  }
+
   $('voiceCallStatus').innerText = 'Thinking...';
+  const captionEl = $('voiceCaptionBox');
+  if (captionEl) {
+    captionEl.innerHTML = `<span style="opacity:0.6; font-size:12px; display:block; margin-bottom:2px;">You:</span> ${escapeHtml(userText)}<div style="margin-top:6px; color:var(--accent); font-size:12px;"><em>Thinking...</em></div>`;
+  }
 
   // Append user message to active chat history
   appendChatMsg('user', userText);
 
-  // Build system prompt with memories
-  const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
-  const history = getSessionChatHistory(activePersona.id, activeSessionId);
+  try {
+    // Build system prompt with memories
+    const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
+    const history = (chatMessages[activePersona.id] || []).slice(0, -1);
 
-  // Execute AI Request
-  const res = await executeAiChatRequest(userText, sysPrompt, activePersona, history, attachedImageData);
-  const botReply = res.reply || '...';
+    // Execute AI Request
+    const res = await executeAiChatRequest(userText, sysPrompt, activePersona, history, null);
+    const botReply = (res && res.reply) ? res.reply : "*listens attentively and nods*";
 
-  // Append bot message to chat
-  appendChatMsg('assistant', botReply);
+    // Append bot message to chat
+    appendChatMsg('assistant', botReply);
 
-  // Display and speak reply
-  const captionEl = $('voiceCaptionBox');
-  if (captionEl) {
-    captionEl.innerHTML = `<span style="color:var(--accent); font-size:12px; display:block; margin-bottom:4px;">${escapeHtml(activePersona.name)}:</span> ${escapeHtml(botReply.replace(/[*_#`]/g, ''))}`;
+    // Display and speak reply
+    if (captionEl) {
+      captionEl.innerHTML = `<span style="color:var(--accent); font-size:12px; display:block; margin-bottom:2px;">${escapeHtml(activePersona.name)}:</span> ${escapeHtml(botReply.replace(/[*_#`]/g, ''))}`;
+    }
+
+    $('voiceCallStatus').innerText = 'Speaking...';
+    speakPersonaVoiceReply(botReply);
+  } catch (err) {
+    console.error('Voice call chat error:', err);
+    $('voiceCallStatus').innerText = 'Connected • Listening';
+    isProcessingVoiceTurn = false;
+    if (voiceCallActive && !voiceMicMuted && voiceRecognition) {
+      try { voiceRecognition.start(); } catch(e) {}
+    }
   }
-
-  $('voiceCallStatus').innerText = 'Connected • Speaking';
-  speakPersonaVoiceReply(botReply);
 }
 
 function speakPersonaVoiceReply(text) {
   if (voiceSpeakerMuted || !text) {
     $('voiceCallStatus').innerText = 'Connected • Listening';
+    isProcessingVoiceTurn = false;
+    if (voiceCallActive && !voiceMicMuted && voiceRecognition) {
+      try { voiceRecognition.start(); } catch(e) {}
+    }
     return;
   }
-  if (!('speechSynthesis' in window)) return;
+  if (!('speechSynthesis' in window)) {
+    isProcessingVoiceTurn = false;
+    $('voiceCallStatus').innerText = 'Connected • Listening';
+    return;
+  }
 
   window.speechSynthesis.cancel();
 
@@ -5134,14 +5223,17 @@ function speakPersonaVoiceReply(text) {
   const halo = $('voiceAvatarHalo');
   if (halo) halo.classList.add('speaking');
 
-  utterance.onend = () => {
+  const onSpeechDone = () => {
     if (halo) halo.classList.remove('speaking');
     $('voiceCallStatus').innerText = 'Connected • Listening';
+    isProcessingVoiceTurn = false;
+    if (voiceCallActive && !voiceMicMuted && voiceRecognition) {
+      try { voiceRecognition.start(); } catch(e) {}
+    }
   };
-  utterance.onerror = () => {
-    if (halo) halo.classList.remove('speaking');
-    $('voiceCallStatus').innerText = 'Connected • Listening';
-  };
+
+  utterance.onend = onSpeechDone;
+  utterance.onerror = onSpeechDone;
 
   window.speechSynthesis.speak(utterance);
 }
@@ -5150,8 +5242,8 @@ function startVoiceWaveform() {
   const canvas = $('voiceWaveCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  canvas.width = 320;
-  canvas.height = 60;
+  canvas.width = 300;
+  canvas.height = 50;
 
   let phase = 0;
   function draw() {
@@ -5162,10 +5254,10 @@ function startVoiceWaveform() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const halo = $('voiceAvatarHalo');
     const isSpeaking = halo && halo.classList.contains('speaking');
-    const amp = isSpeaking ? 22 : (voiceMicMuted ? 2 : 10);
+    const amp = isSpeaking ? 18 : (voiceMicMuted ? 2 : 8);
 
     ctx.beginPath();
-    ctx.lineWidth = 2.5;
+    ctx.lineWidth = 2.2;
     ctx.strokeStyle = isSpeaking ? 'var(--accent)' : 'rgba(255,255,255,0.4)';
 
     for (let x = 0; x < canvas.width; x++) {
@@ -5185,7 +5277,6 @@ let screenVisionStream = null;
 let autoVisionInterval = null;
 
 async function toggleScreenVision() {
-  const monitor = $('screenVisionFloating');
   if (screenVisionStream) {
     stopScreenVision();
   } else {
@@ -5195,7 +5286,7 @@ async function toggleScreenVision() {
 
 async function startScreenSharing() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-    showToast('Screen sharing is not supported on this device/browser');
+    showToast('Screen sharing is not supported on this browser/device');
     return;
   }
   try {
@@ -5215,14 +5306,14 @@ async function startScreenSharing() {
       stopScreenVision();
     };
 
-    // Auto vision commentary every 20s if enabled
+    // Auto vision commentary every 30s if enabled
     if (autoVisionInterval) clearInterval(autoVisionInterval);
     autoVisionInterval = setInterval(() => {
       const autoCheck = $('autoVisionCommentaryCheck');
-      if (autoCheck && autoCheck.checked && screenVisionStream && !document.hidden) {
-        captureAndAskScreenVision("Observe what's on my screen right now and give a natural, short in-character comment or reaction!");
+      if (autoCheck && autoCheck.checked && screenVisionStream && !document.hidden && !isProcessingVoiceTurn) {
+        captureAndAskScreenVision("Give a short, natural in-character reaction to what you see on my screen right now!");
       }
-    }, 25000);
+    }, 30000);
 
     showToast('🖥️ Screen vision active! Bot can now watch your games, movies & code');
   } catch (err) {
@@ -5261,21 +5352,19 @@ async function captureAndAskScreenVision(customPrompt) {
     const frameData = canvas.toDataURL('image/jpeg', 0.75);
 
     const question = customPrompt || "Looking at what is on my screen right now: what do you see, and what advice or thoughts do you have?";
-    showToast('👁 Persona analyzing screen...');
+    showToast('👁 Analyzing screen...');
 
-    // Attach as visual frame for next LLM chat query
-    attachedImageData = frameData;
     appendChatMsg('user', question, frameData);
 
     const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
-    const history = getSessionChatHistory(activePersona.id, activeSessionId);
+    const history = (chatMessages[activePersona.id] || []).slice(0, -1);
 
     const res = await executeAiChatRequest(question, sysPrompt, activePersona, history, frameData);
-    attachedImageData = null;
+    const replyText = (res && res.reply) ? res.reply : "*watches screen attentively*";
 
-    appendChatMsg('assistant', res.reply);
+    appendChatMsg('assistant', replyText);
     if (voiceCallActive) {
-      speakPersonaVoiceReply(res.reply);
+      speakPersonaVoiceReply(replyText);
     }
   } catch(e) {
     console.warn('Screen capture vision error:', e);
@@ -5283,21 +5372,25 @@ async function captureAndAskScreenVision(customPrompt) {
 }
 
 /* --------------------------------------------------------------------------
-   WATCH TOGETHER / YOUTUBE THEATER MODE
+   WATCH TOGETHER / FULLSCREEN CINEMA THEATER
    -------------------------------------------------------------------------- */
 let watchTogetherCurrentVideo = null;
 
-function toggleWatchTogether() {
-  const panel = $('watchTogetherPanel');
-  if (panel) {
-    panel.classList.toggle('open');
-    const isOpen = panel.classList.contains('open');
-    const headerBtn = $('watchTogetherHeaderBtn');
-    if (headerBtn) {
-      headerBtn.style.background = isOpen ? 'rgba(229,192,123,0.3)' : 'rgba(229,192,123,0.12)';
+function openWatchTogetherTheater() {
+  const modal = $('watchTogetherTheaterModal');
+  if (modal) {
+    modal.classList.add('open');
+    if (activePersona) {
+      $('theaterBotBadge').innerText = `Co-Watching with ${activePersona.name}`;
+      $('theaterReactionText').innerText = `Ready to watch together! Paste a YouTube link above.`;
     }
-    showToast(isOpen ? '🍿 Watch Together Theater opened' : 'Watch Together closed');
+    showToast('🍿 Fullscreen Cinema Theater opened');
   }
+}
+
+function closeWatchTogetherTheater() {
+  const modal = $('watchTogetherTheaterModal');
+  if (modal) modal.classList.remove('open');
 }
 
 function extractYouTubeId(url) {
@@ -5307,8 +5400,8 @@ function extractYouTubeId(url) {
   return (match && match[2].length === 11) ? match[2] : (url.length === 11 ? url : null);
 }
 
-function loadYouTubeVideoFromInput() {
-  const inp = $('youtubeUrlInput');
+function loadTheaterYouTubeVideo() {
+  const inp = $('theaterYoutubeUrlInput');
   if (!inp) return;
   const raw = inp.value.trim();
   const videoId = extractYouTubeId(raw);
@@ -5317,36 +5410,43 @@ function loadYouTubeVideoFromInput() {
     return;
   }
   watchTogetherCurrentVideo = videoId;
-  const iframe = $('watchTogetherIframe');
+  const iframe = $('theaterIframe');
   if (iframe) {
     iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
   }
-  showToast('▶ Video loaded in Watch Together Theater');
+  showToast('▶ Playing in Cinema Theater');
 
-  // Persona comments on co-watching start
   if (activePersona) {
-    setTimeout(() => {
-      const startMsg = `*grabs some snacks and sits beside you to watch the video* Ready! What are we watching?`;
-      appendChatMsg('assistant', startMsg);
-      if (voiceCallActive) speakPersonaVoiceReply(startMsg);
-    }, 1500);
+    const startMsg = `*grabs some popcorn and sits beside you* Let's watch! What are we watching?`;
+    $('theaterReactionText').innerText = startMsg;
+    appendChatMsg('assistant', startMsg);
+    if (voiceCallActive) speakPersonaVoiceReply(startMsg);
   }
 }
 
 async function askCompanionAboutVideo() {
   if (!watchTogetherCurrentVideo) {
-    showToast('Load a video in Watch Together first');
+    showToast('Paste & Play a video first');
     return;
   }
-  const prompt = `We are watching a video together (YouTube ID: ${watchTogetherCurrentVideo}). What do you think about what we're watching so far? Share your in-character thoughts and reactions!`;
+  const prompt = `We are watching a YouTube video together (Video ID: ${watchTogetherCurrentVideo}). Share your in-character thoughts, reactions, and commentary on what we are watching!`;
+  
+  $('theaterReactionText').innerText = `${activePersona.name} is thinking...`;
   appendChatMsg('user', "What do you think of this video so far?");
 
-  const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
-  const history = getSessionChatHistory(activePersona.id, activeSessionId);
+  try {
+    const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
+    const history = (chatMessages[activePersona.id] || []).slice(0, -1);
 
-  const res = await executeAiChatRequest(prompt, sysPrompt, activePersona, history, null);
-  appendChatMsg('assistant', res.reply);
-  if (voiceCallActive) speakPersonaVoiceReply(res.reply);
+    const res = await executeAiChatRequest(prompt, sysPrompt, activePersona, history, null);
+    const replyText = (res && res.reply) ? res.reply : "*smiles and watches along with you*";
+
+    $('theaterReactionText').innerText = replyText;
+    appendChatMsg('assistant', replyText);
+    if (voiceCallActive) speakPersonaVoiceReply(replyText);
+  } catch(e) {
+    $('theaterReactionText').innerText = "*watches the video with you*";
+  }
 }
 
 loadServerBots();
