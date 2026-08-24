@@ -919,7 +919,23 @@ body.sidebar-hidden .sidebar {
 .voice-ctrl-btn.end-call { background: #e06c75; border-color: #e06c75; }
 .voice-ctrl-btn.end-call:hover { background: #ff5c6c; transform: scale(1.15); box-shadow: 0 0 24px rgba(224,108,117,0.6); }
 .voice-ctrl-btn.muted { background: #e5c07b; color: #111; border-color: #e5c07b; }
-.voice-ctrl-btn.talk-btn { width: 140px; border-radius: 26px; font-size: 13px; font-weight: 700; gap: 6px; display: inline-flex; }
+.voice-ctrl-btn.talk-btn {
+  width: auto; min-width: 150px; padding: 0 18px; border-radius: 26px; font-size: 13px; font-weight: 700; gap: 6px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--accent); color: #fff; border: 1px solid var(--accent);
+}
+.voice-ctrl-btn.talk-btn.recording {
+  background: #e06c75; border-color: #ff5c6c; color: #fff; animation: pulseRecord 1s infinite alternate;
+}
+@keyframes pulseRecord {
+  from { box-shadow: 0 0 8px rgba(224, 108, 117, 0.4); }
+  to { box-shadow: 0 0 24px rgba(224, 108, 117, 0.9); }
+}
+.voice-mic-level-container {
+  width: 100%; max-width: 320px; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; margin-top: 8px; margin-bottom: 12px;
+}
+.voice-mic-level-bar {
+  height: 100%; width: 0%; background: var(--accent); border-radius: 3px; transition: width 0.08s ease-out;
+}
 
 /* COMPANION SUITE: SCREEN SHARING & VISION MONITOR */
 .screen-vision-floating {
@@ -1737,8 +1753,11 @@ body.sidebar-hidden .sidebar {
 
     <div style="display:flex; flex-direction:column; align-items:center; width:100%; max-width:580px;">
       <canvas class="voice-wave-canvas" id="voiceWaveCanvas"></canvas>
+      <div class="voice-mic-level-container" title="Real-time Microphone Decibel Volume">
+        <div class="voice-mic-level-bar" id="voiceMicLevelBar"></div>
+      </div>
       <div class="voice-caption-box" id="voiceCaptionBox">
-        <em>Listening for your voice...</em>
+        <em>Listening for your voice... speak anytime</em>
       </div>
     </div>
 
@@ -1746,8 +1765,8 @@ body.sidebar-hidden .sidebar {
       <button type="button" class="voice-ctrl-btn" id="voiceMicToggleBtn" onclick="toggleVoiceCallMic()" title="Mute/Unmute Mic">
         🎙️
       </button>
-      <button type="button" class="voice-ctrl-btn talk-btn" id="voiceTalkBtn" onclick="triggerManualVoiceSend()" title="Finish &amp; Send Voice">
-        <span>✓ Done Speaking</span>
+      <button type="button" class="voice-ctrl-btn talk-btn" id="voiceTalkBtn" onclick="handleVoicePushToTalk()" title="Tap to Speak / Done Speaking">
+        <span id="voiceTalkBtnLabel">🎙️ Tap to Speak</span>
       </button>
       <button type="button" class="voice-ctrl-btn end-call" onclick="endVoiceCall()" title="End Voice Call">
         📞
@@ -5053,6 +5072,12 @@ let activeUtterance = null;
 let voiceWatchdogTimer = null;
 let cachedBrowserVoices = [];
 
+let voiceAudioCtx = null;
+let voiceAnalyser = null;
+let voiceMicStream = null;
+let voiceAudioDataArray = null;
+let isVoicePushToTalkRecording = false;
+
 function initVoiceVoices() {
   if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
     cachedBrowserVoices = window.speechSynthesis.getVoices() || [];
@@ -5062,6 +5087,30 @@ function initVoiceVoices() {
   }
 }
 initVoiceVoices();
+
+async function initRealMicAudio() {
+  try {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    if (voiceMicStream) {
+      voiceMicStream.getTracks().forEach(t => t.stop());
+    }
+    voiceMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      voiceAudioCtx = new AudioContextClass();
+      if (voiceAudioCtx.state === 'suspended') {
+        await voiceAudioCtx.resume();
+      }
+      const source = voiceAudioCtx.createMediaStreamSource(voiceMicStream);
+      voiceAnalyser = voiceAudioCtx.createAnalyser();
+      voiceAnalyser.fftSize = 128;
+      source.connect(voiceAnalyser);
+      voiceAudioDataArray = new Uint8Array(voiceAnalyser.frequencyBinCount);
+    }
+  } catch(e) {
+    console.warn('Real mic audio visualizer setup notice:', e);
+  }
+}
 
 function initVoiceRecognition() {
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -5094,13 +5143,15 @@ function initVoiceRecognition() {
       captionEl.innerHTML = `<span style="opacity:0.6; font-size:12px; display:block; margin-bottom:2px;">🎤 Hearing you:</span> ${escapeHtml(current)}`;
     }
 
-    // Smart VAD: 1.2s silence after speech automatically submits
-    if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
-    voiceVadSilenceTimer = setTimeout(() => {
-      if (voiceCurrentTranscript && voiceCurrentTranscript.length > 1 && !isProcessingVoiceTurn) {
-        triggerManualVoiceSend();
-      }
-    }, 1200);
+    // Smart VAD: 1.2s silence after speech automatically submits if not in manual hold mode
+    if (!isVoicePushToTalkRecording) {
+      if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
+      voiceVadSilenceTimer = setTimeout(() => {
+        if (voiceCurrentTranscript && voiceCurrentTranscript.length > 1 && !isProcessingVoiceTurn) {
+          triggerManualVoiceSend();
+        }
+      }, 1200);
+    }
   };
 
   rec.onerror = (e) => {
@@ -5120,7 +5171,7 @@ function initVoiceRecognition() {
   return rec;
 }
 
-function startVoiceCall() {
+async function startVoiceCall() {
   if (!activePersona) {
     showToast('Select a persona first');
     return;
@@ -5130,6 +5181,7 @@ function startVoiceCall() {
   voiceSpeakerMuted = false;
   isProcessingVoiceTurn = false;
   voiceCurrentTranscript = '';
+  isVoicePushToTalkRecording = false;
 
   try {
     if ('speechSynthesis' in window) window.speechSynthesis.resume();
@@ -5145,7 +5197,13 @@ function startVoiceCall() {
   $('voiceCallAvatar').innerHTML = avatarDisplay;
   $('voiceCaptionBox').innerHTML = `<em>Listening for your voice... speak anytime</em>`;
 
-  // Start audio waveform visualizer
+  const btn = $('voiceTalkBtn');
+  const label = $('voiceTalkBtnLabel');
+  if (btn) btn.classList.remove('recording');
+  if (label) label.innerText = '🎙️ Tap to Speak';
+
+  // Initialize real microphone audio stream and visualizer
+  await initRealMicAudio();
   startVoiceWaveform();
 
   // Start Speech-To-Text
@@ -5154,12 +5212,13 @@ function startVoiceCall() {
     try { voiceRecognition.start(); } catch(e) {}
   }
 
-  showToast(`📞 Voice call started with ${activePersona.name}`);
+  showToast(`📞 Voice call connected with ${activePersona.name}`);
 }
 
 function endVoiceCall() {
   voiceCallActive = false;
   isProcessingVoiceTurn = false;
+  isVoicePushToTalkRecording = false;
   if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
   if (voiceWatchdogTimer) clearTimeout(voiceWatchdogTimer);
 
@@ -5172,7 +5231,19 @@ function endVoiceCall() {
   if (window.speechSynthesis) {
     window.speechSynthesis.cancel();
   }
+  if (voiceMicStream) {
+    voiceMicStream.getTracks().forEach(t => t.stop());
+    voiceMicStream = null;
+  }
+  if (voiceAudioCtx) {
+    try { voiceAudioCtx.close(); } catch(e) {}
+    voiceAudioCtx = null;
+  }
   activeUtterance = null;
+  if (currentPlayingAudio) {
+    try { currentPlayingAudio.pause(); } catch(e) {}
+    currentPlayingAudio = null;
+  }
   if (voiceWaveAnimId) {
     cancelAnimationFrame(voiceWaveAnimId);
     voiceWaveAnimId = null;
@@ -5181,6 +5252,35 @@ function endVoiceCall() {
   if (halo) halo.classList.remove('speaking');
 
   showToast('Call ended');
+}
+
+function handleVoicePushToTalk() {
+  const btn = $('voiceTalkBtn');
+  const label = $('voiceTalkBtnLabel');
+  if (isProcessingVoiceTurn) {
+    showToast('AI is speaking or thinking...');
+    return;
+  }
+
+  if (!isVoicePushToTalkRecording) {
+    // Start speaking turn
+    isVoicePushToTalkRecording = true;
+    if (btn) btn.classList.add('recording');
+    if (label) label.innerText = '✓ Done Speaking';
+    $('voiceCallStatus').innerText = 'Connected • Listening to You...';
+    voiceCurrentTranscript = '';
+    if (!voiceRecognition) voiceRecognition = initVoiceRecognition();
+    if (voiceRecognition) {
+      try { voiceRecognition.start(); } catch(e) {}
+    }
+    showToast('🎙️ Recording speech... Tap again when finished');
+  } else {
+    // Stop speaking turn & commit
+    isVoicePushToTalkRecording = false;
+    if (btn) btn.classList.remove('recording');
+    if (label) label.innerText = '🎙️ Tap to Speak';
+    triggerManualVoiceSend();
+  }
 }
 
 function toggleVoiceCallMic() {
@@ -5207,6 +5307,9 @@ function toggleVoiceCallSpeaker() {
   }
   if (voiceSpeakerMuted && window.speechSynthesis) {
     window.speechSynthesis.cancel();
+  }
+  if (voiceSpeakerMuted && currentPlayingAudio) {
+    try { currentPlayingAudio.pause(); } catch(e) {}
   }
   showToast(voiceSpeakerMuted ? 'Speaker muted' : 'Speaker unmuted');
 }
@@ -5515,14 +5618,35 @@ function startVoiceWaveform() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const halo = $('voiceAvatarHalo');
     const isSpeaking = halo && halo.classList.contains('speaking');
-    const amp = isSpeaking ? 18 : (voiceMicMuted ? 2 : 8);
+
+    // Sample real microphone decibels if available
+    let micAmp = 4;
+    let micLevel = 0;
+    if (voiceAnalyser && voiceAudioDataArray && !voiceMicMuted && !isSpeaking) {
+      voiceAnalyser.getByteFrequencyData(voiceAudioDataArray);
+      let sum = 0;
+      for (let i = 0; i < voiceAudioDataArray.length; i++) {
+        sum += voiceAudioDataArray[i];
+      }
+      const avg = sum / voiceAudioDataArray.length;
+      micLevel = Math.min(100, Math.round(avg * 1.8));
+      micAmp = Math.max(4, Math.min(26, avg * 0.35));
+    } else if (isSpeaking) {
+      micAmp = 18;
+      micLevel = 75;
+    }
+
+    const levelBar = $('voiceMicLevelBar');
+    if (levelBar) {
+      levelBar.style.width = (voiceMicMuted ? 0 : micLevel) + '%';
+    }
 
     ctx.beginPath();
-    ctx.lineWidth = 2.2;
-    ctx.strokeStyle = isSpeaking ? 'var(--accent)' : 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = isSpeaking ? 'var(--accent)' : (micLevel > 15 ? '#4caf50' : 'rgba(255,255,255,0.4)');
 
     for (let x = 0; x < canvas.width; x++) {
-      const y = canvas.height / 2 + Math.sin(x * 0.05 + phase) * amp * Math.sin(x / canvas.width * Math.PI);
+      const y = canvas.height / 2 + Math.sin(x * 0.05 + phase) * micAmp * Math.sin(x / canvas.width * Math.PI);
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
@@ -5716,7 +5840,7 @@ async function captureAndAskScreenVision(customPrompt) {
 }
 
 /* --------------------------------------------------------------------------
-   WATCH TOGETHER: STRICT GROUNDED VIDEO CONTEXT & COMMENTARY
+   WATCH TOGETHER: STRICT GROUNDED VIDEO CONTEXT & SUBTITLE EXTRACTION
    -------------------------------------------------------------------------- */
 let watchTogetherCurrentVideo = null;
 let watchTogetherVideoInfo = null;
@@ -5776,6 +5900,29 @@ async function fetchImageAsBase64(url) {
   }
 }
 
+async function fetchYouTubeTranscript(videoId) {
+  if (!videoId) return [];
+  try {
+    const res = await fetch(`https://yt.lemnoslife.com/videos?part=captions&id=${videoId}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.items && Array.isArray(data.items)) {
+        return data.items;
+      }
+    }
+  } catch(e) {}
+  return [];
+}
+
+function getSceneTranscript(elapsedSec, transcriptList) {
+  if (!Array.isArray(transcriptList) || transcriptList.length === 0) return "";
+  const nearby = transcriptList.filter(c => {
+    const start = parseFloat(c.start || c.start_time || 0);
+    return start >= Math.max(0, elapsedSec - 25) && start <= (elapsedSec + 8);
+  });
+  return nearby.map(c => c.text || c.content || "").filter(Boolean).join(" ");
+}
+
 async function loadTheaterYouTubeVideo() {
   const inp = $('theaterYoutubeUrlInput');
   if (!inp) return;
@@ -5786,7 +5933,7 @@ async function loadTheaterYouTubeVideo() {
     return;
   }
   watchTogetherCurrentVideo = videoId;
-  watchTogetherVideoInfo = { id: videoId, title: "YouTube Video", author: "", thumb: null, loadedAt: Date.now() };
+  watchTogetherVideoInfo = { id: videoId, title: "YouTube Video", author: "", thumb: null, transcript: [], loadedAt: Date.now() };
 
   const iframe = $('theaterIframe');
   if (iframe) {
@@ -5795,7 +5942,7 @@ async function loadTheaterYouTubeVideo() {
   showToast('▶ Playing in Cinema Theater');
 
   const statusEl = $('theaterVideoStatus');
-  if (statusEl) statusEl.innerText = '● Ingesting Video Content...';
+  if (statusEl) statusEl.innerText = '● Ingesting Video & Subtitles...';
 
   // Fetch real video title & author metadata for strict AI grounding
   try {
@@ -5815,6 +5962,11 @@ async function loadTheaterYouTubeVideo() {
   try {
     const thumbUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
     watchTogetherVideoInfo.thumb = await fetchImageAsBase64(thumbUrl);
+  } catch(e) {}
+
+  // Fetch video subtitles/captions
+  try {
+    watchTogetherVideoInfo.transcript = await fetchYouTubeTranscript(videoId);
   } catch(e) {}
 
   if (statusEl) statusEl.innerText = `● Ingested: ${watchTogetherVideoInfo.title}`;
@@ -5854,12 +6006,15 @@ We just pressed play on this exact video. As my companion watching alongside me 
     if (!watchTogetherCurrentVideo || !watchTogetherVideoInfo) return;
 
     const elapsedSec = Math.floor((Date.now() - watchTogetherVideoInfo.loadedAt) / 1000);
+    const sceneText = getSceneTranscript(elapsedSec, watchTogetherVideoInfo.transcript);
+
     const spontaneousPrompt = `[CO-WATCHING LIVE YOUTUBE VIDEO]
 - Video Title: "${watchTogetherVideoInfo.title}"
 - Creator: "${watchTogetherVideoInfo.author}"
 - Watched Progress: Approx ${Math.floor(elapsedSec/60)}m ${elapsedSec%60}s in.
+${sceneText ? `- Words/Dialogue Spoken In This Scene: "${sceneText}"` : ''}
 
-As my companion watching this video with me, make a spontaneous, short, natural in-character reaction directly about "${watchTogetherVideoInfo.title}". Keep it under 2 sentences.`;
+As my companion watching this video with me right now, make a spontaneous, short, natural in-character reaction directly about what is happening in "${watchTogetherVideoInfo.title}". Keep it under 2 sentences.`;
 
     try {
       const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
@@ -5883,10 +6038,15 @@ async function askCompanionAboutVideo() {
   }
   const videoTitle = (watchTogetherVideoInfo && watchTogetherVideoInfo.title) ? watchTogetherVideoInfo.title : `YouTube Video (${watchTogetherCurrentVideo})`;
   const author = (watchTogetherVideoInfo && watchTogetherVideoInfo.author) ? watchTogetherVideoInfo.author : '';
+  const elapsedSec = watchTogetherVideoInfo ? Math.floor((Date.now() - watchTogetherVideoInfo.loadedAt) / 1000) : 0;
+  const sceneText = watchTogetherVideoInfo ? getSceneTranscript(elapsedSec, watchTogetherVideoInfo.transcript) : '';
+
   const prompt = `[CO-WATCHING LIVE YOUTUBE VIDEO]
 - Video Title: "${videoTitle}"
 ${author ? `- Creator: "${author}"` : ''}
 - Video URL: https://www.youtube.com/watch?v=${watchTogetherCurrentVideo}
+- Current Timestamp: Approx ${Math.floor(elapsedSec/60)}m ${elapsedSec%60}s in.
+${sceneText ? `- Scene Dialogue/Spoken Subtitles: "${sceneText}"` : ''}
 
 Share your honest in-character thoughts, reactions, and commentary about THIS specific video!`;
   
