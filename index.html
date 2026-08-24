@@ -5264,7 +5264,127 @@ async function handleVoiceUserInput(userText) {
   }
 }
 
-function speakPersonaVoiceReply(text) {
+let currentPlayingAudio = null;
+
+async function synthesizeCustomTTSAudio(text, persona) {
+  if (!persona) return null;
+  const cfg = persona.config || persona.settings || {};
+  const ep = (typeof getCustomEndpointConfig === 'function') ? getCustomEndpointConfig() : {};
+
+  const cleanText = text
+    .replace(/\*[^*]*\*/g, '')
+    .replace(/[*_#`~>\[\]()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() || text.replace(/[*_#`~>\[\]()]/g, ' ').trim();
+
+  if (!cleanText) return null;
+
+  const ttsProvider = (cfg.tts_provider || persona.tts_provider || 'auto').toLowerCase();
+  const fishVoiceId = cfg.fish_voice_id || persona.fish_voice_id || cfg.voice_id || '';
+  const elevenVoiceId = cfg.elevenlabs_voice_id || persona.elevenlabs_voice_id || cfg.voice_id || '';
+  const cartesiaVoiceId = cfg.cartesia_voice_id || persona.cartesia_voice_id || '';
+  const openaiVoice = cfg.openai_voice || persona.openai_voice || 'nova';
+
+  const elevenKey = cfg.elevenlabs_key || ep.elevenlabs_key || '';
+  const fishKey = cfg.fish_key || ep.fish_key || '';
+  const cartesiaKey = cfg.cartesia_key || ep.cartesia_key || '';
+  const openaiKey = cfg.openai_key || ep.openai_key || '';
+
+  // 1. ELEVENLABS TTS API
+  if ((ttsProvider === 'elevenlabs' || elevenVoiceId) && (elevenKey || elevenVoiceId)) {
+    try {
+      const vId = elevenVoiceId || '21m00Tcm4TlvDq8ikWAM';
+      const keyToUse = elevenKey || 'sk_mock';
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${vId}`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': keyToUse,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: cleanText.slice(0, 1000),
+          model_id: cfg.elevenlabs_model || 'eleven_turbo_v2_5'
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch(e) { console.warn('ElevenLabs API error:', e); }
+  }
+
+  // 2. FISH AUDIO TTS API
+  if ((ttsProvider === 'fish' || fishVoiceId) && (fishKey || fishVoiceId)) {
+    try {
+      const res = await fetch('https://api.fish.audio/v1/tts', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${fishKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: cleanText.slice(0, 1000),
+          reference_id: fishVoiceId || undefined,
+          format: 'mp3'
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch(e) { console.warn('Fish Audio API error:', e); }
+  }
+
+  // 3. CARTESIA TTS API
+  if ((ttsProvider === 'cartesia' || cartesiaVoiceId) && cartesiaKey) {
+    try {
+      const res = await fetch('https://api.cartesia.ai/tts/bytes', {
+        method: 'POST',
+        headers: {
+          'X-API-Key': cartesiaKey,
+          'Cartesia-Version': '2024-06-10',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model_id: cfg.cartesia_model || 'sonic-3.5',
+          transcript: cleanText.slice(0, 1000),
+          voice: { mode: 'id', id: cartesiaVoiceId || 'a0e99841-438c-4a64-b679-ae501e7d6091' },
+          output_format: { container: 'raw', encoding: 'pcm_f32le', sample_rate: 44100 }
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch(e) { console.warn('Cartesia API error:', e); }
+  }
+
+  // 4. OPENAI TTS API
+  if ((ttsProvider === 'openai') && openaiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: cfg.openai_model || 'tts-1',
+          voice: openaiVoice,
+          input: cleanText.slice(0, 1000)
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch(e) { console.warn('OpenAI TTS API error:', e); }
+  }
+
+  return null;
+}
+
+async function speakPersonaVoiceReply(text) {
   if (voiceSpeakerMuted || !text) {
     $('voiceCallStatus').innerText = 'Connected • Listening';
     isProcessingVoiceTurn = false;
@@ -5273,16 +5393,28 @@ function speakPersonaVoiceReply(text) {
     }
     return;
   }
-  if (!('speechSynthesis' in window)) {
-    isProcessingVoiceTurn = false;
-    $('voiceCallStatus').innerText = 'Connected • Listening';
-    return;
+
+  // Stop any previous playing audio
+  if (currentPlayingAudio) {
+    try { currentPlayingAudio.pause(); } catch(e) {}
+    currentPlayingAudio = null;
+  }
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch(e) {}
   }
 
-  try {
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.resume();
-  } catch(e) {}
+  const halo = $('voiceAvatarHalo');
+  const onSpeechDone = () => {
+    if (voiceWatchdogTimer) clearTimeout(voiceWatchdogTimer);
+    if (halo) halo.classList.remove('speaking');
+    $('voiceCallStatus').innerText = 'Connected • Listening';
+    isProcessingVoiceTurn = false;
+    activeUtterance = null;
+    currentPlayingAudio = null;
+    if (voiceCallActive && !voiceMicMuted && voiceRecognition) {
+      try { voiceRecognition.start(); } catch(e) {}
+    }
+  };
 
   // Strip Markdown characters, actions *...*, and emojis for clean spoken speech
   const cleanSpoken = text
@@ -5292,15 +5424,48 @@ function speakPersonaVoiceReply(text) {
     .trim() || text.replace(/[*_#`~>\[\]()]/g, ' ').trim();
 
   if (!cleanSpoken) {
-    $('voiceCallStatus').innerText = 'Connected • Listening';
-    isProcessingVoiceTurn = false;
-    if (voiceCallActive && !voiceMicMuted && voiceRecognition) {
-      try { voiceRecognition.start(); } catch(e) {}
-    }
+    onSpeechDone();
     return;
   }
 
-  // GLOBAL VARIABLE ASSIGNMENT PREVENTS V8 GARBAGE COLLECTION BUG
+  // 1. Try Custom TTS API from bot settings (Fish Audio / ElevenLabs / Cartesia / OpenAI)
+  try {
+    const customAudioUrl = await synthesizeCustomTTSAudio(cleanSpoken, activePersona);
+    if (customAudioUrl) {
+      if (halo) halo.classList.add('speaking');
+      $('voiceCallStatus').innerText = 'Speaking (Custom Voice)...';
+
+      const audio = new Audio(customAudioUrl);
+      currentPlayingAudio = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(customAudioUrl);
+        onSpeechDone();
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(customAudioUrl);
+        onSpeechDone();
+      };
+
+      if (voiceWatchdogTimer) clearTimeout(voiceWatchdogTimer);
+      voiceWatchdogTimer = setTimeout(onSpeechDone, 30000);
+
+      await audio.play();
+      return;
+    }
+  } catch(err) {
+    console.warn('Custom TTS playback error, falling back to Web Speech:', err);
+  }
+
+  // 2. Fallback to Web Speech API
+  if (!('speechSynthesis' in window)) {
+    onSpeechDone();
+    return;
+  }
+
+  try {
+    window.speechSynthesis.resume();
+  } catch(e) {}
+
   activeUtterance = new SpeechSynthesisUtterance(cleanSpoken);
   activeUtterance.rate = 1.05;
   activeUtterance.pitch = 1.0;
@@ -5314,28 +5479,8 @@ function speakPersonaVoiceReply(text) {
     if (match) activeUtterance.voice = match;
   }
 
-  const halo = $('voiceAvatarHalo');
   if (halo) halo.classList.add('speaking');
-
-  let keepAliveInterval = setInterval(() => {
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.resume();
-    } else {
-      clearInterval(keepAliveInterval);
-    }
-  }, 2000);
-
-  const onSpeechDone = () => {
-    if (voiceWatchdogTimer) clearTimeout(voiceWatchdogTimer);
-    clearInterval(keepAliveInterval);
-    if (halo) halo.classList.remove('speaking');
-    $('voiceCallStatus').innerText = 'Connected • Listening';
-    isProcessingVoiceTurn = false;
-    activeUtterance = null;
-    if (voiceCallActive && !voiceMicMuted && voiceRecognition) {
-      try { voiceRecognition.start(); } catch(e) {}
-    }
-  };
+  $('voiceCallStatus').innerText = 'Speaking...';
 
   activeUtterance.onend = onSpeechDone;
   activeUtterance.onerror = onSpeechDone;
@@ -5387,10 +5532,77 @@ function startVoiceWaveform() {
 }
 
 /* --------------------------------------------------------------------------
-   SCREEN SHARING & LIVE CAMERA / GAME VISION CO-PILOT
+   SCREEN SHARING & DRAGGABLE LIVE CAMERA / GAME VISION CO-PILOT
    -------------------------------------------------------------------------- */
 let screenVisionStream = null;
 let autoVisionInterval = null;
+let screenVisionDragging = false;
+let screenVisionDragOffsetX = 0;
+let screenVisionDragOffsetY = 0;
+
+function initDraggableScreenVision() {
+  const panel = $('screenVisionFloating');
+  if (!panel) return;
+  const header = panel.querySelector('.screen-vision-header');
+  if (!header) return;
+
+  header.style.cursor = 'move';
+  header.style.userSelect = 'none';
+
+  function onDragStart(clientX, clientY) {
+    screenVisionDragging = true;
+    const rect = panel.getBoundingClientRect();
+    screenVisionDragOffsetX = clientX - rect.left;
+    screenVisionDragOffsetY = clientY - rect.top;
+  }
+
+  function onDragMove(clientX, clientY) {
+    if (!screenVisionDragging) return;
+    let newX = clientX - screenVisionDragOffsetX;
+    let newY = clientY - screenVisionDragOffsetY;
+    
+    // Clamp inside viewport
+    const maxX = window.innerWidth - panel.offsetWidth - 10;
+    const maxY = window.innerHeight - panel.offsetHeight - 10;
+    newX = Math.max(10, Math.min(maxX, newX));
+    newY = Math.max(10, Math.min(maxY, newY));
+
+    panel.style.left = newX + 'px';
+    panel.style.top = newY + 'px';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+  }
+
+  function onDragEnd() {
+    screenVisionDragging = false;
+  }
+
+  header.addEventListener('mousedown', (e) => {
+    if (e.target.closest('button')) return;
+    onDragStart(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (screenVisionDragging) onDragMove(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('mouseup', onDragEnd);
+
+  header.addEventListener('touchstart', (e) => {
+    if (e.target.closest('button')) return;
+    if (e.touches.length === 1) {
+      onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (screenVisionDragging && e.touches.length === 1) {
+      onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchend', onDragEnd);
+}
 
 async function toggleScreenVision() {
   if (screenVisionStream) {
@@ -5427,7 +5639,10 @@ async function startScreenSharing() {
       video.play();
     }
     const monitor = $('screenVisionFloating');
-    if (monitor) monitor.classList.add('active');
+    if (monitor) {
+      monitor.classList.add('active');
+      initDraggableScreenVision();
+    }
 
     screenVisionStream.getVideoTracks()[0].onended = () => {
       stopScreenVision();
@@ -5501,7 +5716,7 @@ async function captureAndAskScreenVision(customPrompt) {
 }
 
 /* --------------------------------------------------------------------------
-   WATCH TOGETHER: CONTEXT EXTRACTION & AUTONOMOUS SPONTANEOUS COMMENTARY
+   WATCH TOGETHER: STRICT GROUNDED VIDEO CONTEXT & COMMENTARY
    -------------------------------------------------------------------------- */
 let watchTogetherCurrentVideo = null;
 let watchTogetherVideoInfo = null;
@@ -5580,16 +5795,16 @@ async function loadTheaterYouTubeVideo() {
   showToast('▶ Playing in Cinema Theater');
 
   const statusEl = $('theaterVideoStatus');
-  if (statusEl) statusEl.innerText = '● Ingesting Video Context...';
+  if (statusEl) statusEl.innerText = '● Ingesting Video Content...';
 
-  // Fetch real video title & author metadata for AI context
+  // Fetch real video title & author metadata for strict AI grounding
   try {
     const oembedRes = await fetch(`https://noembed.com/embed?url=https://www.youtube.com/watch?v=${videoId}`);
     if (oembedRes.ok) {
       const oembedData = await oembedRes.json();
       if (oembedData && oembedData.title) {
         watchTogetherVideoInfo.title = oembedData.title;
-        watchTogetherVideoInfo.author = oembedData.author_name || "";
+        watchTogetherVideoInfo.author = oembedData.author_name || "Creator";
       }
     }
   } catch(e) {
@@ -5603,27 +5818,34 @@ async function loadTheaterYouTubeVideo() {
   } catch(e) {}
 
   if (statusEl) statusEl.innerText = `● Ingested: ${watchTogetherVideoInfo.title}`;
+  if ($('theaterBotBadge')) $('theaterBotBadge').innerText = `Watching: ${watchTogetherVideoInfo.title}`;
 
-  // Initial Co-Watching Reaction with Video Context & Visual Frame
+  // Grounded Opening Reaction
   if (activePersona) {
-    const initialPrompt = `We just pressed play on the YouTube video "${watchTogetherVideoInfo.title}" ${watchTogetherVideoInfo.author ? `by ${watchTogetherVideoInfo.author}` : ''} (URL: https://www.youtube.com/watch?v=${videoId}). As my companion watching alongside me with snacks, look at this video and give an excited, short, natural in-character opening reaction!`;
+    const initialPrompt = `[CO-WATCHING LIVE YOUTUBE VIDEO]
+- Video Title: "${watchTogetherVideoInfo.title}"
+- Creator: "${watchTogetherVideoInfo.author}"
+- Video URL: https://www.youtube.com/watch?v=${videoId}
+
+We just pressed play on this exact video. As my companion watching alongside me with snacks, give an excited, short, natural in-character opening reaction about THIS specific video! Do NOT talk about random things.`;
+
     try {
       const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
       const history = (chatMessages[activePersona.id] || []).slice(-3);
       const res = await executeAiChatRequest(initialPrompt, sysPrompt, activePersona, history, watchTogetherVideoInfo.thumb);
-      const startMsg = (res && res.reply) ? res.reply : `*grabs some popcorn and sits beside you* Let's watch "${watchTogetherVideoInfo.title}"!`;
+      const startMsg = (res && res.reply) ? res.reply : `*grabs popcorn* Let's watch "${watchTogetherVideoInfo.title}"!`;
       $('theaterReactionText').innerText = startMsg;
       appendChatMsg('assistant', startMsg);
       speakPersonaVoiceReply(startMsg);
     } catch(e) {
-      const fallbackMsg = `*grabs some popcorn and sits beside you* Let's watch!`;
+      const fallbackMsg = `*grabs popcorn* Let's watch "${watchTogetherVideoInfo.title}"!`;
       $('theaterReactionText').innerText = fallbackMsg;
       appendChatMsg('assistant', fallbackMsg);
       speakPersonaVoiceReply(fallbackMsg);
     }
   }
 
-  // Start Autonomous Spontaneous Co-Watching Commentary Loop (Every 28 seconds)
+  // Autonomous Spontaneous Co-Watching Commentary Loop (Every 28 seconds)
   if (watchTogetherChimeInterval) clearInterval(watchTogetherChimeInterval);
   watchTogetherChimeInterval = setInterval(async () => {
     const autoChime = $('theaterAutoChimeIn');
@@ -5632,7 +5854,12 @@ async function loadTheaterYouTubeVideo() {
     if (!watchTogetherCurrentVideo || !watchTogetherVideoInfo) return;
 
     const elapsedSec = Math.floor((Date.now() - watchTogetherVideoInfo.loadedAt) / 1000);
-    const spontaneousPrompt = `We are watching the YouTube video "${watchTogetherVideoInfo.title}" (approx ${Math.floor(elapsedSec/60)}m ${elapsedSec%60}s in, URL: https://www.youtube.com/watch?v=${watchTogetherVideoInfo.id}). As my companion watching this video with me, make a spontaneous, short, natural in-character comment, reaction, or thought about what we are watching! Keep it under 2 sentences.`;
+    const spontaneousPrompt = `[CO-WATCHING LIVE YOUTUBE VIDEO]
+- Video Title: "${watchTogetherVideoInfo.title}"
+- Creator: "${watchTogetherVideoInfo.author}"
+- Watched Progress: Approx ${Math.floor(elapsedSec/60)}m ${elapsedSec%60}s in.
+
+As my companion watching this video with me, make a spontaneous, short, natural in-character reaction directly about "${watchTogetherVideoInfo.title}". Keep it under 2 sentences.`;
 
     try {
       const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
@@ -5655,10 +5882,16 @@ async function askCompanionAboutVideo() {
     return;
   }
   const videoTitle = (watchTogetherVideoInfo && watchTogetherVideoInfo.title) ? watchTogetherVideoInfo.title : `YouTube Video (${watchTogetherCurrentVideo})`;
-  const prompt = `We are watching "${videoTitle}" (URL: https://www.youtube.com/watch?v=${watchTogetherCurrentVideo}) together. Share your honest in-character thoughts, reactions, and commentary on what we are watching so far!`;
+  const author = (watchTogetherVideoInfo && watchTogetherVideoInfo.author) ? watchTogetherVideoInfo.author : '';
+  const prompt = `[CO-WATCHING LIVE YOUTUBE VIDEO]
+- Video Title: "${videoTitle}"
+${author ? `- Creator: "${author}"` : ''}
+- Video URL: https://www.youtube.com/watch?v=${watchTogetherCurrentVideo}
+
+Share your honest in-character thoughts, reactions, and commentary about THIS specific video!`;
   
   $('theaterReactionText').innerText = `${activePersona.name} is thinking...`;
-  appendChatMsg('user', "What do you think of this video so far?");
+  appendChatMsg('user', `What do you think of "${videoTitle}" so far?`);
 
   try {
     const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
