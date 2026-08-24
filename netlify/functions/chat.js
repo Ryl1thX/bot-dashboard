@@ -98,7 +98,7 @@ export default async function handler(req, res) {
     // Custom keys from request body or env
     const customBaseUrl = (body.custom_base_url || (body.config && body.config.custom_base_url) || '').trim();
     const customKey = (body.custom_key || (body.config && body.config.custom_key) || '').trim();
-    const customModel = (body.custom_model || (body.config && body.config.custom_model) || requestedModel || 'gemini-3.1-flash-lite').trim();
+    const customModel = (body.custom_model || (body.config && body.config.custom_model) || requestedModel || 'gemini-2.0-flash').trim();
     
     const userGeminiKey = (body.gemini_key || (body.config && body.config.gemini_key) || '').trim();
     const userGroqKey = (body.groq_key || (body.config && body.config.groq_key) || '').trim();
