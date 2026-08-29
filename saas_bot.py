@@ -5382,10 +5382,10 @@ def dashboard_page():
     if os.path.exists(path):
         try:
             with open(path, "r", encoding="utf-8") as f:
-                return render_template_string(f.read())
+                return Response(f.read(), mimetype="text/html; charset=utf-8")
         except Exception:
             pass
-    return render_template_string(DASHBOARD_HTML)
+    return Response(DASHBOARD_HTML, mimetype="text/html; charset=utf-8")
 
 @app.route("/studio")
 @app.route("/studio.html")
@@ -5395,18 +5395,18 @@ def dashboard_page():
 @app.route("/home.html")
 def studio_page():
     paths = [
-        os.path.join(SCRIPT_DIR, "designs", "index.html"),
         os.path.join(SCRIPT_DIR, "index.html"),
-        "/storage/emulated/0/discord-bot/designs/index.html",
+        os.path.join(SCRIPT_DIR, "studio.html"),
+        os.path.join(SCRIPT_DIR, "designs", "index.html"),
         "/storage/emulated/0/discord-bot/index.html"
     ]
     for p in paths:
         if os.path.exists(p):
             try:
                 with open(p, "r", encoding="utf-8") as f:
-                    return render_template_string(f.read())
+                    return Response(f.read(), mimetype="text/html; charset=utf-8")
             except Exception as e:
-                return f"Studio template read error: {e}", 500
+                return f"Studio read error: {e}", 500
     return "Studio index.html not found", 404
 
 @app.route("/designs/<path:filename>")
@@ -5414,11 +5414,7 @@ def serve_designs(filename):
     designs_dir = os.path.join(SCRIPT_DIR, "designs")
     file_path = os.path.join(designs_dir, filename)
     if os.path.exists(file_path):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                return render_template_string(f.read())
-        except Exception:
-            return send_file(file_path)
+        return send_file(file_path)
     return f"File {filename} not found", 404
 
 @app.route("/api/bots", methods=["GET", "POST"])
