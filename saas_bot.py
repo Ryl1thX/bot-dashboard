@@ -50,7 +50,7 @@ from functools import wraps
 import aiohttp
 import discord
 from discord import app_commands
-from flask import Flask, request, jsonify, render_template_string, make_response, send_file
+from flask import Flask, request, jsonify, render_template_string, make_response, send_file, Response
 from dotenv import load_dotenv
 
 try:
