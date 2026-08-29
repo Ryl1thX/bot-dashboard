@@ -2332,8 +2332,13 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
     }
   }
 
+  const fallbackReplies = [
+    `*smiles warmly at you* I'm listening. Tell me more about what you're thinking.`,
+    `*leans in curiously* Hmm, go on—what else?`,
+    `*nods gently* I'm right here with you.`
+  ];
   return {
-    reply: `*turns to you attentively, engaging directly with your words*\n\n"${message.slice(0, 80)}" — let's explore this together. What do you think?`,
+    reply: fallbackReplies[Math.floor(Math.random() * fallbackReplies.length)],
     count: null
   };
 }

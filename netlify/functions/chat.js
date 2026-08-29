@@ -400,9 +400,14 @@ Stay strictly in character as ${botName} at all times. Speak directly, authentic
       }
     }
 
-    // Fallback in character if all external networks timed out
+    // Graceful fallback in character if external network timed out
     if (!reply) {
-      reply = `*turns to you attentively, engaging directly with your words*\n\n"${message.slice(0, 80)}" — let's delve deeper into this. What are your thoughts?`;
+      const fallbackReplies = [
+        `*smiles warmly at you* I'm listening. Tell me more about what you're thinking.`,
+        `*leans in curiously* Hmm, go on—what else?`,
+        `*nods gently* I'm right here with you.`
+      ];
+      reply = fallbackReplies[Math.floor(Math.random() * fallbackReplies.length)];
     }
 
     return sendJson(200, {

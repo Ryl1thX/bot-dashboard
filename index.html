@@ -1702,30 +1702,140 @@ body.sidebar-hidden .sidebar {
   </div>
 
   <!-- FULLSCREEN CINEMA / THEATER OVERLAY -->
+  <!-- FULLSCREEN CINEMA / THEATER OVERLAY -->
   <div class="theater-cinema-overlay" id="watchTogetherTheaterModal">
+    <!-- Responsive Floating Top Bar -->
     <div class="theater-top-bar">
-      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-        <span style="font-size:14px; font-weight:700; color:var(--accent);">🍿 Cinema Theater</span>
-        <span style="font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="theaterBotBadge">Co-Watching with Yuna</span>
+      <!-- Row 1: Header Badge + Action Buttons -->
+      <div class="theater-top-row1" style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:8px;">
+        <div style="display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden;">
+          <span style="font-size:14px; flex-shrink:0;">🍿</span>
+          <span style="font-size:12px; font-weight:700; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="theaterBotBadge">Co-Watching with Yuna</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+          <button type="button" class="chat-top-btn" id="theaterMicToggleBtn" onclick="toggleTheaterContinuousEar()" style="padding:4px 10px; font-size:11px; border-radius:14px; background:rgba(97,175,239,0.15); color:#61afef; border:1px solid rgba(97,175,239,0.3);" title="Toggle Call Mode / Mic in Theater">🎙️ Call Mode</button>
+          <button type="button" class="chat-top-btn" id="theaterScreenFeedBtn" onclick="toggleTheaterScreenFeed()" style="padding:4px 10px; font-size:11px; border-radius:14px; background:rgba(229,192,123,0.15); color:#e5c07b; border:1px solid rgba(229,192,123,0.3);" title="Stream screen/tab to AI">🖥️ Screen Feed</button>
+          <button type="button" class="chat-top-btn" onclick="closeWatchTogetherTheater()" style="padding:4px 10px; font-size:11px; border-radius:14px;">✕ Close</button>
+        </div>
       </div>
-      <div style="display:flex; align-items:center; gap:8px; flex:1; max-width:540px;">
-        <input type="text" class="composer-input" id="theaterYoutubeUrlInput" placeholder="Paste YouTube link (https://youtu.be/...)" style="background:var(--input-bg); border:1px solid var(--card-border); border-radius:6px; padding:6px 12px; font-size:12px; flex:1;">
-        <button class="btn-primary" onclick="loadTheaterYouTubeVideo()" style="padding:6px 14px; font-size:11px; white-space:nowrap;">▶ Play</button>
+      <!-- Row 2: Search Input & Media Buttons -->
+      <div class="theater-top-row2" style="display:flex; align-items:center; gap:6px; width:100%;">
+        <input type="text" class="composer-input" id="theaterYoutubeUrlInput" placeholder="Paste YouTube link (youtu.be/...) or Video URL" onkeydown="if(event.key==='Enter') loadTheaterYouTubeVideo()" style="background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:5px 12px; font-size:11.5px; flex:1; min-width:0; color:#fff;">
+        <button type="button" class="btn-primary" onclick="loadTheaterYouTubeVideo()" style="padding:5px 12px; font-size:11px; border-radius:16px; white-space:nowrap; flex-shrink:0;">▶ Play</button>
+        <input type="file" id="theaterFileInput" accept="video/*" style="display:none;" onchange="loadTheaterLocalFile(event)">
+        <button type="button" class="chat-top-btn" onclick="$('theaterFileInput').click()" style="padding:5px 9px; font-size:11px; border-radius:16px; white-space:nowrap; flex-shrink:0;" title="Open local video file">📁 File</button>
       </div>
-      <button class="chat-top-btn" onclick="closeWatchTogetherTheater()" style="padding:6px 12px;">✕ Close</button>
     </div>
 
+    <!-- Main Video Screen -->
     <div class="theater-screen-wrapper">
       <iframe class="theater-iframe" id="theaterIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <video class="theater-iframe" id="theaterHtml5Video" style="display:none; width:100%; height:100%; object-fit:contain;" controls autoplay playsinline></video>
     </div>
 
-    <div class="theater-companion-bar">
-      <div class="theater-reaction-bubble" id="theaterReactionBubble">
-        <span style="font-size:20px;">🍿</span>
-        <span id="theaterReactionText">Ready to watch together! Paste a YouTube link above.</span>
+    <!-- Floating Cinematic Companion HUD -->
+    <div class="theater-companion-hud">
+      <!-- Typewriter Speech Bubble -->
+      <div class="theater-reaction-bubble" id="theaterReactionBubble" title="Click to fast-forward text">
+        <span style="font-size:16px; flex-shrink:0;">🍿</span>
+        <div id="theaterReactionText" class="theater-reaction-text">Ready to watch together! Paste a YouTube link or choose a video above.</div>
       </div>
-      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
-        <button class="btn-primary" onclick="askCompanionAboutVideo()" style="padding:6px 14px; font-size:11px; background:rgba(229,192,123,0.15); color:#e5c07b; border:1px solid rgba(229,192,123,0.3);">💬 Ask Persona's Thoughts</button>
+
+      <!-- Quick Chat Input Box & Mic Button -->
+      <form class="theater-type-form" onsubmit="sendTheaterUserMessage(event)" style="display:flex; align-items:center; gap:6px; width:100%;">
+        <button type="button" class="theater-send-btn" id="theaterMicBtn" onclick="toggleTheaterContinuousEar()" style="background:rgba(97,175,239,0.15); color:#61afef; border:1px solid rgba(97,175,239,0.3); padding:6px 10px; border-radius:8px; cursor:pointer;" title="Voice Call / Talk to AI">🎙️</button>
+        <input type="text" class="theater-chat-input" id="theaterChatInput" placeholder="Talk to companion (or speak hands-free with Call Mode)..." autocomplete="off" style="flex:1; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:6px 12px; color:#fff; font-size:12px;">
+        <button type="submit" class="theater-send-btn" style="background:var(--accent); color:#fff; border:none; padding:6px 14px; border-radius:8px; font-weight:600; cursor:pointer;">Send ➔</button>
+      </form>
+
+      <!-- Action & Live Vision / Mic Status Bar -->
+      <div style="display:flex; align-items:center; justify-content:space-between; width:100%; border-top:1px solid rgba(255,255,255,0.06); padding-top:4px; font-size:10.5px; flex-wrap:wrap; gap:4px;">
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span style="color:var(--accent); font-weight:600;" id="theaterVideoStatus">● AI Video Ingestion Ready</span>
+          <span id="theaterMicStatus" style="font-size:10.5px; color:#61afef; display:none;">● 🎤 Listening for your voice...</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:4px; color:var(--text-muted); cursor:pointer;">
+            <input type="checkbox" id="theaterAutoChimeIn" checked>
+            <span>Auto-Chime</span>
+          </label>
+          <button type="button" class="btn-primary" onclick="askCompanionAboutVideo()" style="padding:2px 9px; font-size:10.5px; background:rgba(229,192,123,0.15); color:#e5c07b; border:1px solid rgba(229,192,123,0.3); border-radius:6px; cursor:pointer;">💬 Ask Thoughts</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN MUSIC LOUNGE OVERLAY -->
+  <div class="theater-cinema-overlay" id="musicLoungeModal" style="background: radial-gradient(circle at center, rgba(18, 14, 28, 0.98) 0%, rgba(8, 6, 14, 0.99) 100%);">
+    <!-- Responsive Floating Top Bar -->
+    <div class="theater-top-bar" style="border-color: rgba(198,120,221,0.25); background: rgba(30, 20, 45, 0.45);">
+      <!-- Row 1: Header Badge + Close -->
+      <div class="theater-top-row1" style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px; min-width:0; overflow:hidden;">
+          <span style="font-size:16px; flex-shrink:0;">🎧</span>
+          <span style="font-size:12.5px; font-weight:700; color:#c678dd; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="musicBotBadge">Music Lounge with Yuna</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+          <button type="button" class="chat-top-btn" onclick="closeMusicLounge()" style="padding:4px 12px; font-size:11px; border-radius:14px; color:#c678dd; border:1px solid rgba(198,120,221,0.3); background:rgba(198,120,221,0.1); cursor:pointer;">✕ Close</button>
+        </div>
+      </div>
+      <!-- Row 2: Search Input & Media Buttons -->
+      <div class="theater-top-row2" style="display:flex; align-items:center; gap:6px; width:100%;">
+        <input type="text" class="composer-input" id="musicUrlInput" placeholder="Paste Spotify link, YouTube Music, or Audio URL..." onkeydown="if(event.key==='Enter') loadMusicSourceUrl()" style="background:rgba(0,0,0,0.55); border:1px solid rgba(198,120,221,0.25); border-radius:16px; padding:6px 14px; font-size:11.5px; flex:1; min-width:0; color:#fff;">
+        <button type="button" class="btn-primary" onclick="loadMusicSourceUrl()" style="padding:5px 14px; font-size:11px; border-radius:16px; background:#c678dd; color:#fff; border:none; font-weight:600; white-space:nowrap; flex-shrink:0; cursor:pointer;">▶ Play</button>
+        <input type="file" id="musicFileInput" accept="audio/*" style="display:none;" onchange="loadMusicLocalFile(event)">
+        <button type="button" class="chat-top-btn" onclick="$('musicFileInput').click()" style="padding:5px 11px; font-size:11px; border-radius:16px; border:1px solid rgba(198,120,221,0.3); color:#c678dd; background:rgba(198,120,221,0.08); white-space:nowrap; flex-shrink:0; cursor:pointer;" title="Open local MP3 / audio file">📁 MP3 / File</button>
+      </div>
+    </div>
+
+    <!-- Music Visualizer / Album Art & Player Screen -->
+    <div class="theater-screen-wrapper" style="max-height: 44vh; display:flex; flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(circle, #1a1528 0%, #0d0a14 100%); border:1px solid rgba(198,120,221,0.2); box-shadow: 0 12px 36px rgba(0,0,0,0.8), 0 0 24px rgba(198,120,221,0.15); padding: 12px; gap: 12px;">
+      <!-- Album Art / Vinyl Disc Visualizer -->
+      <div id="musicDiscContainer" style="display:flex; align-items:center; justify-content:center; gap:16px; width:100%; max-width:460px;">
+        <div id="musicCoverArt" style="width:100px; height:100px; border-radius:10px; background:linear-gradient(135deg, #2e1a47, #13091f); border:1px solid rgba(198,120,221,0.3); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; box-shadow:0 6px 20px rgba(0,0,0,0.6);">
+          <img id="musicCoverImg" src="" style="display:none; width:100%; height:100%; object-fit:cover;">
+          <svg id="musicDefaultIcon" viewBox="0 0 24 24" fill="none" stroke="rgba(198,120,221,0.6)" stroke-width="1.5" style="width:42px; height:42px;"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+        </div>
+        <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
+          <div style="font-size:14px; font-weight:700; color:#fff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="musicTrackTitle">No Track Playing</div>
+          <div style="font-size:12px; color:#c678dd; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="musicTrackArtist">Choose Spotify, YouTube Music, or MP3 above</div>
+          <div style="font-size:10.5px; color:var(--text-muted); margin-top:4px;" id="musicTrackSource">Ready for co-listening session</div>
+        </div>
+      </div>
+
+      <!-- Embedded Spotify / YouTube Player -->
+      <iframe class="theater-iframe" id="musicIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen style="display:none; width:100%; max-width:480px; height:152px; border-radius:12px; border:1px solid rgba(198,120,221,0.25);"></iframe>
+      
+      <!-- Direct HTML5 Audio Player for MP3s -->
+      <audio id="musicHtml5Audio" style="display:none; width:100%; max-width:480px; margin-top:4px;" controls autoplay playsinline></audio>
+    </div>
+
+    <!-- Floating Companion Music HUD -->
+    <div class="theater-companion-hud" style="border-color: rgba(198,120,221,0.2); background: rgba(14, 10, 20, 0.7);">
+      <!-- Speech Reaction Bubble -->
+      <div class="theater-reaction-bubble" id="musicReactionBubble" style="border-color: rgba(198,120,221,0.25); background: rgba(30, 20, 42, 0.65);" title="Click to fast-forward text">
+        <span style="font-size:16px; flex-shrink:0;">🎧</span>
+        <div id="musicReactionText" class="theater-reaction-text" style="color:#f0e6f6;">Ready to vibe together! Paste a music link or pick an MP3 file above.</div>
+      </div>
+
+      <!-- Quick Chat Input Box -->
+      <form class="theater-type-form" onsubmit="sendMusicUserMessage(event)" style="display:flex; align-items:center; gap:6px; width:100%;">
+        <input type="text" class="theater-chat-input" id="musicChatInput" placeholder="Talk about this track or the vibe..." autocomplete="off" style="flex:1; background:rgba(0,0,0,0.5); border:1px solid rgba(198,120,221,0.2); border-radius:8px; padding:6px 12px; color:#fff; font-size:12px;">
+        <button type="submit" class="theater-send-btn" style="background:rgba(198,120,221,0.2); color:#c678dd; border:1px solid rgba(198,120,221,0.3); padding:6px 14px; border-radius:8px; font-weight:600; cursor:pointer;">Send ➔</button>
+      </form>
+
+      <!-- Music Status & Vibe Check Controls -->
+      <div style="display:flex; align-items:center; justify-content:space-between; width:100%; border-top:1px solid rgba(255,255,255,0.06); padding-top:4px; font-size:10.5px; flex-wrap:wrap; gap:4px;">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="color:#c678dd; font-weight:600;" id="musicStatus">● Music Pipeline Active</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <label style="display:flex; align-items:center; gap:4px; color:var(--text-muted); cursor:pointer;">
+            <input type="checkbox" id="musicAutoChimeIn" checked>
+            <span>Auto-Vibe Check</span>
+          </label>
+          <button type="button" class="btn-primary" onclick="askCompanionAboutMusic()" style="padding:2px 9px; font-size:10.5px; background:rgba(198,120,221,0.2); color:#c678dd; border:1px solid rgba(198,120,221,0.3); border-radius:6px; cursor:pointer;">💬 Ask Vibe</button>
+        </div>
       </div>
     </div>
   </div>
@@ -4039,8 +4149,13 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
     }
   }
 
+  const fallbackReplies = [
+    `*smiles warmly at you* I'm listening. Tell me more about what you're thinking.`,
+    `*leans in curiously* Hmm, go on—what else?`,
+    `*nods gently* I'm right here with you.`
+  ];
   return {
-    reply: `*turns to you attentively, engaging directly with your words*\n\n"${message.slice(0, 80)}" — let's explore this together. What do you think?`,
+    reply: fallbackReplies[Math.floor(Math.random() * fallbackReplies.length)],
     count: null
   };
 }
@@ -5408,82 +5523,1494 @@ async function captureAndAskScreenVision(customPrompt) {
 }
 
 /* --------------------------------------------------------------------------
-   WATCH TOGETHER / FULLSCREEN CINEMA THEATER
+   WATCH TOGETHER THEATER: BULLETPROOF VIDEO LOADER & PLAYBACK SYNC
+   -------------------------------------------------------------------------- */
+/* --------------------------------------------------------------------------
+   WATCH TOGETHER THEATER: BULLETPROOF VIDEO LOADER & PLAYBACK SYNC
    -------------------------------------------------------------------------- */
 let watchTogetherCurrentVideo = null;
+let watchTogetherVideoInfo = null;
+let watchTogetherChimeInterval = null;
+let theaterFrameClipBuffer = [];
+let theaterBufferInterval = null;
+let theaterSpeechRec = null;
+let isTheaterEarActive = true;
+let isTheaterVideoPaused = false;
+let currentTheaterTimestamp = 0;
+let theaterPlayStartedAt = null;
+let theaterAccumulatedPlayTime = 0;
+let theaterClockTickerInterval = null;
+
+// Universal YouTube PostMessage State Listener & Progressive Timer Engine
+if (typeof window !== 'undefined') {
+  window.addEventListener('message', (event) => {
+    try {
+      if (!event.data) return;
+      let data = event.data;
+      if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch(e) { return; }
+      }
+      if (data && (data.event === 'infoDelivery' || data.infoDelivery) && data.info) {
+        if (data.info.currentTime !== undefined && !isNaN(data.info.currentTime)) {
+          const exactT = Number(data.info.currentTime);
+          currentTheaterTimestamp = exactT;
+          theaterAccumulatedPlayTime = exactT;
+          theaterPlayStartedAt = Date.now();
+        }
+        if (data.info.playerState !== undefined) {
+          const stateCode = data.info.playerState;
+          const statusEl = $('theaterVideoStatus');
+          if (stateCode === 1) { // PLAYING
+            isTheaterVideoPaused = false;
+            theaterPlayStartedAt = Date.now();
+            const min = Math.floor(currentTheaterTimestamp / 60);
+            const sec = Math.floor(currentTheaterTimestamp % 60);
+            if (statusEl) statusEl.innerHTML = `<span style="color:#4caf50;">● 🟢 Playing (${min}m ${sec.toString().padStart(2, '0')}s)</span>`;
+          } else if (stateCode === 2) { // PAUSED
+            isTheaterVideoPaused = true;
+            if (theaterPlayStartedAt) {
+              theaterAccumulatedPlayTime += (Date.now() - theaterPlayStartedAt) / 1000;
+              theaterPlayStartedAt = null;
+            }
+            currentTheaterTimestamp = theaterAccumulatedPlayTime;
+            const min = Math.floor(currentTheaterTimestamp / 60);
+            const sec = Math.floor(currentTheaterTimestamp % 60);
+            if (statusEl) statusEl.innerHTML = `<span style="color:#e5c07b;">● ⏸️ Paused at ${min}m ${sec}s</span>`;
+          } else if (stateCode === 0) { // ENDED
+            isTheaterVideoPaused = true;
+            if (statusEl) statusEl.innerHTML = '<span style="color:var(--text-muted);">● ⏹️ Ended</span>';
+          }
+        }
+      }
+    } catch(e) {}
+  });
+}
+
+function getExactVideoPlaybackState() {
+  const html5Vid = $('theaterHtml5Video');
+  if (html5Vid && html5Vid.style.display !== 'none') {
+    return {
+      isPaused: html5Vid.paused,
+      currentTime: html5Vid.currentTime || 0,
+      duration: html5Vid.duration || 0,
+      isHtml5: true
+    };
+  }
+
+  let calculatedTime = currentTheaterTimestamp;
+  if (!isTheaterVideoPaused && theaterPlayStartedAt) {
+    calculatedTime = theaterAccumulatedPlayTime + ((Date.now() - theaterPlayStartedAt) / 1000);
+  } else if (theaterAccumulatedPlayTime > 0) {
+    calculatedTime = theaterAccumulatedPlayTime;
+  }
+  currentTheaterTimestamp = Math.max(0, calculatedTime);
+
+  return {
+    isPaused: isTheaterVideoPaused,
+    currentTime: currentTheaterTimestamp,
+    duration: 0,
+    isHtml5: false
+  };
+}
+
+function startTheaterClockTicker() {
+  if (theaterClockTickerInterval) clearInterval(theaterClockTickerInterval);
+  theaterClockTickerInterval = setInterval(() => {
+    const modal = $('watchTogetherTheaterModal');
+    if (!modal || !modal.classList.contains('open')) return;
+    if (!watchTogetherCurrentVideo) return;
+
+    // Send active polling heartbeat to YouTube embed iframe
+    const iframe = $('theaterIframe');
+    if (iframe && iframe.contentWindow && iframe.style.display !== 'none') {
+      try {
+        iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1 }), '*');
+        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getCurrentTime', args: [] }), '*');
+      } catch(e) {}
+    }
+
+    const state = getExactVideoPlaybackState();
+    const statusEl = $('theaterVideoStatus');
+    const min = Math.floor(state.currentTime / 60);
+    const sec = Math.floor(state.currentTime % 60);
+    const timeStr = `${min}m ${sec.toString().padStart(2, '0')}s`;
+
+    if (!state.isPaused) {
+      if (statusEl) {
+        if (screenVisionStream) {
+          statusEl.innerHTML = `<span style="color:#4caf50;">● 🟢 Live Screen Vision (${timeStr})</span>`;
+        } else if (state.isHtml5) {
+          statusEl.innerHTML = `<span style="color:#4caf50;">● 🟢 Direct HTML5 Video (${timeStr})</span>`;
+        } else {
+          statusEl.innerHTML = `<span style="color:#4caf50;">● 🟢 Playing YouTube (${timeStr})</span>`;
+        }
+      }
+    }
+  }, 1000);
+}
 
 function openWatchTogetherTheater() {
   const modal = $('watchTogetherTheaterModal');
   if (modal) {
     modal.classList.add('open');
+    try {
+      if ('speechSynthesis' in window) window.speechSynthesis.resume();
+    } catch(e) {}
     if (activePersona) {
       $('theaterBotBadge').innerText = `Co-Watching with ${activePersona.name}`;
-      $('theaterReactionText').innerText = `Ready to watch together! Paste a YouTube link above.`;
+      if (!watchTogetherCurrentVideo) {
+        typewriteText('theaterReactionText', `Ready to watch together! Paste a YouTube link, file, or share your screen above.`);
+      }
     }
+    updateTheaterFeedStatus();
+    startTheaterClipBuffering();
+    startTheaterClockTicker();
+    // Theater mic listening disabled - pure video/audio analysis
     showToast('🍿 Fullscreen Cinema Theater opened');
   }
+}
+
+function resetAndStopAllTheaterMedia() {
+  const iframe = $('theaterIframe');
+  if (iframe) {
+    iframe.src = 'about:blank';
+    iframe.style.display = 'none';
+  }
+  const html5Vid = $('theaterHtml5Video');
+  if (html5Vid) {
+    try {
+      html5Vid.pause();
+      html5Vid.removeAttribute('src');
+      html5Vid.load();
+    } catch(e) {}
+    html5Vid.style.display = 'none';
+  }
+  stopTheaterVideoAudioIngestion();
+  theaterLatestRawAudioBase64 = null;
+  theaterRecentVideoDialogue = [];
+  theaterFrameClipBuffer = [];
+  isTheaterVideoPaused = true;
+  theaterPlayStartedAt = null;
+  currentTheaterTimestamp = 0;
+  theaterAccumulatedPlayTime = 0;
 }
 
 function closeWatchTogetherTheater() {
   const modal = $('watchTogetherTheaterModal');
   if (modal) modal.classList.remove('open');
+  if (watchTogetherChimeInterval) {
+    clearInterval(watchTogetherChimeInterval);
+    watchTogetherChimeInterval = null;
+  }
+  if (theaterBufferInterval) {
+    clearInterval(theaterBufferInterval);
+    theaterBufferInterval = null;
+  }
+  if (theaterClockTickerInterval) {
+    clearInterval(theaterClockTickerInterval);
+    theaterClockTickerInterval = null;
+  }
+  if (theaterContinuousEarActive) {
+    theaterContinuousEarActive = false;
+    updateTheaterMicUi();
+  }
+  if (theaterSpeechRec) {
+    try { theaterSpeechRec.stop(); } catch(e) {}
+  }
+  if (theaterMicStream) {
+    try { theaterMicStream.getTracks().forEach(t => t.stop()); } catch(e) {}
+    theaterMicStream = null;
+  }
+  resetAndStopAllTheaterMedia();
 }
 
 function extractYouTubeId(url) {
   if (!url) return null;
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : (url.length === 11 ? url : null);
+  const str = url.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(str)) {
+    return str;
+  }
+  let m = str.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i);
+  if (m) return m[1];
+  m = str.match(/[?&]v=([a-zA-Z0-9_-]{11})/i);
+  if (m) return m[1];
+  m = str.match(/youtube\.com\/(?:embed|shorts|v|live)\/([a-zA-Z0-9_-]{11})/i);
+  if (m) return m[1];
+  m = str.match(/(?:v=|\/embed\/|\/shorts\/|youtu\.be\/|\/v\/|\/e\/|watch\?v=|\&v=)([a-zA-Z0-9_-]{11})/i);
+  if (m) return m[1];
+  return null;
 }
 
-function loadTheaterYouTubeVideo() {
+async function fetchImageAsBase64(url) {
+  try {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.min(img.naturalWidth || 480, 640);
+          canvas.height = Math.min(img.naturalHeight || 360, 480);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        } catch(e) { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  } catch(e) {
+    return null;
+  }
+}
+
+let _sharedCaptureCanvas = null;
+function getSharedCaptureCanvas() {
+  if (!_sharedCaptureCanvas) {
+    _sharedCaptureCanvas = document.createElement('canvas');
+    _sharedCaptureCanvas.width = 480;
+    _sharedCaptureCanvas.height = 270;
+  }
+  return _sharedCaptureCanvas;
+}
+
+function captureSingleFrameFromSource() {
+  if (screenVisionStream) {
+    const v = $('screenVisionVideo');
+    if (v && v.videoWidth > 0 && v.videoHeight > 0) {
+      try {
+        const c = getSharedCaptureCanvas();
+        c.getContext('2d', { willReadFrequently: true }).drawImage(v, 0, 0, c.width, c.height);
+        return { data: c.toDataURL('image/jpeg', 0.75), time: Date.now() };
+      } catch(e) {}
+    }
+  }
+  const html5Vid = $('theaterHtml5Video');
+  if (html5Vid && !html5Vid.paused && html5Vid.style.display !== 'none' && html5Vid.videoWidth > 0) {
+    try {
+      const c = getSharedCaptureCanvas();
+      c.getContext('2d', { willReadFrequently: true }).drawImage(html5Vid, 0, 0, c.width, c.height);
+      return { data: c.toDataURL('image/jpeg', 0.75), time: Date.now() };
+    } catch(e) {}
+  }
+  return null;
+}
+
+function startTheaterClipBuffering() {
+  theaterFrameClipBuffer = [];
+  if (theaterBufferInterval) clearInterval(theaterBufferInterval);
+  theaterBufferInterval = setInterval(() => {
+    const f = captureSingleFrameFromSource();
+    if (f) {
+      theaterFrameClipBuffer.push(f);
+      if (theaterFrameClipBuffer.length > 3) {
+        theaterFrameClipBuffer.shift();
+      }
+    }
+  }, 1600);
+}
+
+async function getTheaterTemporalClipStrip() {
+  if (theaterFrameClipBuffer.length >= 2) {
+    try {
+      const canvas = document.createElement('canvas');
+      const numFrames = theaterFrameClipBuffer.length;
+      canvas.width = 360 * numFrames;
+      canvas.height = 200;
+      const ctx = canvas.getContext('2d');
+
+      const promises = theaterFrameClipBuffer.map((frame, idx) => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, idx * 360, 0, 360, 200);
+            ctx.fillStyle = 'rgba(0,0,0,0.65)';
+            ctx.fillRect(idx * 360 + 6, 6, 80, 20);
+            ctx.fillStyle = '#e5c07b';
+            ctx.font = 'bold 10.5px sans-serif';
+            const label = (idx === numFrames - 1) ? '● LIVE' : `T -${(numFrames - 1 - idx) * 2}s`;
+            ctx.fillText(label, idx * 360 + 12, 20);
+            resolve();
+          };
+          img.onerror = () => resolve();
+          img.src = frame.data;
+        });
+      });
+      await Promise.all(promises);
+      return { data: canvas.toDataURL('image/jpeg', 0.78), isLive: true, isClipStrip: true };
+    } catch(e) {
+      console.warn('Clip strip build error:', e);
+    }
+  }
+
+  const single = captureSingleFrameFromSource();
+  if (single) return { data: single.data, isLive: true, isClipStrip: false };
+  if (theaterLatestVideoFrameBase64) return { data: theaterLatestVideoFrameBase64, isLive: true, isClipStrip: false };
+  return { data: null, isLive: false, isClipStrip: false };
+}
+
+function updateTheaterFeedStatus() {
+  const statusEl = $('theaterVideoStatus');
+  const feedBtn = $('theaterScreenFeedBtn');
+  if (screenVisionStream) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#4caf50;">● 🟢 Live Screen Vision (3-Frame Clips)</span>';
+    if (feedBtn) {
+      feedBtn.style.background = 'rgba(76, 175, 80, 0.25)';
+      feedBtn.style.color = '#4caf50';
+      feedBtn.innerHTML = '🖥️ Stop Feed';
+    }
+  } else if ($('theaterHtml5Video') && $('theaterHtml5Video').style.display !== 'none') {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#4caf50;">● 🟢 Direct HTML5 Video Active</span>';
+    if (feedBtn) {
+      feedBtn.style.background = 'rgba(229,192,123,0.15)';
+      feedBtn.style.color = '#e5c07b';
+      feedBtn.innerHTML = '🖥️ Screen Feed';
+    }
+  } else if (watchTogetherCurrentVideo) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#4caf50;">● 🟢 Video Vision Active (Live Visual Frames)</span>';
+    if (feedBtn) {
+      feedBtn.style.background = 'rgba(229,192,123,0.15)';
+      feedBtn.style.color = '#e5c07b';
+      feedBtn.innerHTML = '🖥️ Screen Feed';
+    }
+  }
+}
+
+let theaterVideoAudioRecorder = null;
+let theaterVideoAudioChunks = [];
+let theaterRecentVideoDialogue = []; // [{ time: curSec, text: "transcribed speech" }]
+let theaterLatestRawAudioBase64 = null; // Raw base64 audio clip for direct Gemini Multimodal Music/Audio listening
+let theaterLatestVideoFrameBase64 = null; // Real-time extracted video screenshot frame from active timestamp
+let theaterVideoAudioInterval = null;
+
+function startTheaterVideoAudioIngestion(mediaStreamOrElement) {
+  stopTheaterVideoAudioIngestion();
+  try {
+    let audioStream = null;
+    if (mediaStreamOrElement && mediaStreamOrElement.getAudioTracks && mediaStreamOrElement.getAudioTracks().length > 0) {
+      audioStream = new MediaStream(mediaStreamOrElement.getAudioTracks());
+    } else if (mediaStreamOrElement && (mediaStreamOrElement.tagName === 'VIDEO' || mediaStreamOrElement.captureStream)) {
+      try {
+        const stream = mediaStreamOrElement.captureStream ? mediaStreamOrElement.captureStream() : (mediaStreamOrElement.mozCaptureStream ? mediaStreamOrElement.mozCaptureStream() : null);
+        if (stream && stream.getAudioTracks && stream.getAudioTracks().length > 0) {
+          audioStream = new MediaStream(stream.getAudioTracks());
+        }
+      } catch(e) {}
+    }
+
+    if (!audioStream || audioStream.getAudioTracks().length === 0) {
+      if (mediaStreamOrElement && (mediaStreamOrElement.tagName === "VIDEO" || mediaStreamOrElement.tagName === "AUDIO")) {
+        try {
+          if (!window.theaterAudioContext) {
+            window.theaterAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          const audioCtx = window.theaterAudioContext;
+          if (audioCtx.state === "suspended") audioCtx.resume();
+          if (!mediaStreamOrElement._audioSourceNode) {
+            mediaStreamOrElement._audioSourceNode = audioCtx.createMediaElementSource(mediaStreamOrElement);
+            mediaStreamOrElement._audioDestNode = audioCtx.createMediaStreamDestination();
+            mediaStreamOrElement._audioSourceNode.connect(mediaStreamOrElement._audioDestNode);
+            mediaStreamOrElement._audioSourceNode.connect(audioCtx.destination);
+          }
+          const dest = mediaStreamOrElement._audioDestNode;
+          if (dest.stream && dest.stream.getAudioTracks().length > 0) {
+            audioStream = dest.stream;
+          }
+        } catch(e) {}
+      }
+    }
+
+    if (!audioStream || audioStream.getAudioTracks().length === 0) {
+      return;
+    }
+
+    theaterVideoAudioChunks = [];
+    const mime = (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) ? 'audio/webm;codecs=opus' : 'audio/webm';
+    theaterVideoAudioRecorder = new MediaRecorder(audioStream);
+
+    theaterVideoAudioRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) theaterVideoAudioChunks.push(e.data);
+    };
+
+    theaterVideoAudioRecorder.start();
+
+    // Capture rolling 5-second raw audio clips of music and scene audio
+    if (theaterVideoAudioInterval) clearInterval(theaterVideoAudioInterval);
+    theaterVideoAudioInterval = setInterval(async () => {
+      if (!theaterVideoAudioRecorder || theaterVideoAudioRecorder.state !== 'recording') return;
+      if (isTheaterVideoPaused) return;
+
+      theaterVideoAudioRecorder.stop();
+      theaterVideoAudioRecorder.onstop = async () => {
+        try {
+          if (theaterVideoAudioChunks.length === 0) {
+            if (theaterVideoAudioRecorder && theaterVideoAudioRecorder.state === 'inactive') {
+              theaterVideoAudioRecorder.start();
+            }
+            return;
+          }
+          const blob = new Blob(theaterVideoAudioChunks, { type: 'audio/webm' });
+          theaterVideoAudioChunks = [];
+          if (theaterVideoAudioRecorder && theaterVideoAudioRecorder.state === 'inactive') {
+            theaterVideoAudioRecorder.start();
+          }
+
+          if (blob.size < 800) return;
+
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            try {
+              const base64Audio = reader.result;
+              theaterLatestRawAudioBase64 = base64Audio; // RAW AUDIO CLIP CAPTURED!
+
+              const statusEl = $('theaterVideoStatus');
+              if (statusEl && !isTheaterVideoPaused) {
+                statusEl.innerHTML = '<span style="color:#61afef;">🎵 Hearing Live Music & Audio Stream</span>';
+              }
+
+              const groqKey = userGroqKey || localStorage.getItem('groq_key') || '';
+              const res = await fetch('/api/stt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ audio: base64Audio, groq_key: groqKey, filename: 'video_audio.webm' })
+              });
+              const data = await res.json();
+              if (data && data.ok && data.text && data.text.trim()) {
+                const text = data.text.trim();
+                const curState = getExactVideoPlaybackState();
+                const curSec = Math.floor(curState.currentTime);
+                theaterRecentVideoDialogue.push({ time: curSec, text: text });
+                if (theaterRecentVideoDialogue.length > 10) theaterRecentVideoDialogue.shift();
+
+                if (statusEl && !isTheaterVideoPaused) {
+                  statusEl.innerHTML = `<span style="color:#61afef;">🎵 Audio: "${escapeHtml(text.slice(0, 45))}${text.length > 45 ? '...' : ''}"</span>`;
+                }
+              }
+            } catch(e) {}
+          };
+          reader.readAsDataURL(blob);
+        } catch(e) {}
+      };
+    }, 5000);
+  } catch(err) {
+    console.warn('Video audio ingestion setup notice:', err);
+  }
+}
+
+function stopTheaterVideoAudioIngestion() {
+  if (theaterVideoAudioInterval) {
+    clearInterval(theaterVideoAudioInterval);
+    theaterVideoAudioInterval = null;
+  }
+  if (theaterVideoAudioRecorder) {
+    try { theaterVideoAudioRecorder.stop(); } catch(e) {}
+    theaterVideoAudioRecorder = null;
+  }
+  theaterVideoAudioChunks = [];
+  theaterLatestRawAudioBase64 = null;
+}
+
+function getRecentVideoDialogueSummary(curSec, windowSeconds = 30) {
+  if (!theaterRecentVideoDialogue || theaterRecentVideoDialogue.length === 0) return '';
+  const relevant = theaterRecentVideoDialogue.filter(d => Math.abs(curSec - d.time) <= windowSeconds);
+  if (relevant.length === 0) {
+    return theaterRecentVideoDialogue.slice(-2).map(d => d.text).join(' ');
+  }
+  return relevant.map(d => d.text).join(' ');
+}
+
+async function toggleTheaterScreenFeed() {
+  if (screenVisionStream) {
+    stopScreenVision();
+    stopTheaterVideoAudioIngestion();
+    updateTheaterFeedStatus();
+  } else {
+    await startScreenSharing();
+    updateTheaterFeedStatus();
+    startTheaterClipBuffering();
+    if (screenVisionStream && screenVisionStream.getAudioTracks().length > 0) {
+      startTheaterVideoAudioIngestion(screenVisionStream);
+    }
+  }
+}
+
+let theaterContinuousEarActive = false;
+let theaterMediaRecorder = null;
+let theaterAudioChunks = [];
+let theaterMicStream = null;
+let theaterVadTimer = null;
+let theaterCurrentVoiceTranscript = '';
+let isTheaterVoiceProcessing = false;
+
+function logTheaterTerminal(level, event, message, details = '') {
+  console.log(`[THEATER ${level.toUpperCase()}] [${event}] ${message}`, details || '');
+  try {
+    fetch('/api/theater_log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        level: level,
+        event: event,
+        message: message,
+        details: (typeof details === 'object' ? JSON.stringify(details) : String(details)),
+        timestamp: new Date().toLocaleTimeString()
+      })
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+function initTheaterContinuousEar() {
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) {
+    logTheaterTerminal('warn', 'SPEECH_REC_UNAVAILABLE', 'Web Speech API not supported in this browser');
+    return null;
+  }
+  const rec = new SpeechRec();
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.lang = 'en-US';
+
+  rec.onresult = (event) => {
+    if (!theaterContinuousEarActive || isTheaterVoiceProcessing) return;
+
+    let interim = '';
+    let final = '';
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        final += event.results[i][0].transcript;
+      } else {
+        interim += event.results[i][0].transcript;
+      }
+    }
+    const current = (final || interim || '').trim();
+    if (!current) return;
+
+    theaterCurrentVoiceTranscript = current;
+    const statusEl = $('theaterMicStatus');
+    if (statusEl) {
+      statusEl.style.display = 'inline';
+      statusEl.innerHTML = `<span style="color:#61afef; font-weight:600;">● 🎤 Hearing you: "${escapeHtml(current.slice(0, 40))}${current.length > 40 ? '...' : ''}"</span>`;
+    }
+
+    if (theaterVadTimer) clearTimeout(theaterVadTimer);
+    theaterVadTimer = setTimeout(() => {
+      if (theaterCurrentVoiceTranscript && theaterCurrentVoiceTranscript.length > 1 && !isTheaterVoiceProcessing) {
+        const toSend = theaterCurrentVoiceTranscript.trim();
+        theaterCurrentVoiceTranscript = '';
+        if (toSend) {
+          handleTheaterUserSpokenOrTypedMessage(toSend);
+        }
+      }
+    }, 750);
+  };
+
+  rec.onerror = (e) => {
+    console.warn('Theater speech recognition event:', e.error);
+    if (e.error === 'not-allowed') {
+      showToast('Microphone permission required for theater call mode');
+      theaterContinuousEarActive = false;
+      updateTheaterMicUi();
+    }
+  };
+
+  rec.onend = () => {
+    if (theaterContinuousEarActive && !isTheaterVoiceProcessing) {
+      try { rec.start(); } catch(e) {}
+    }
+  };
+
+  return rec;
+}
+
+function updateTheaterMicUi() {
+  const topBtn = $('theaterMicToggleBtn');
+  const hudBtn = $('theaterMicBtn');
+  const statusEl = $('theaterMicStatus');
+  if (topBtn) {
+    if (theaterContinuousEarActive) {
+      topBtn.style.background = 'rgba(97,175,239,0.35)';
+      topBtn.style.borderColor = '#61afef';
+      topBtn.innerText = '🎙️ Call Mode (Active)';
+    } else {
+      topBtn.style.background = 'rgba(97,175,239,0.15)';
+      topBtn.style.borderColor = 'rgba(97,175,239,0.3)';
+      topBtn.innerText = '🎙️ Call Mode';
+    }
+  }
+  if (hudBtn) {
+    if (theaterContinuousEarActive) {
+      hudBtn.style.background = 'rgba(97,175,239,0.4)';
+      hudBtn.style.borderColor = '#61afef';
+      hudBtn.title = 'Call Mode Active (Click to mute)';
+    } else {
+      hudBtn.style.background = 'rgba(97,175,239,0.15)';
+      hudBtn.style.borderColor = 'rgba(97,175,239,0.3)';
+      hudBtn.title = 'Voice Call / Talk to AI';
+    }
+  }
+  if (statusEl) {
+    statusEl.style.display = theaterContinuousEarActive ? 'inline' : 'none';
+    if (theaterContinuousEarActive) {
+      statusEl.innerHTML = '<span style="color:#61afef;">● 🎤 Listening to your voice...</span>';
+    }
+  }
+}
+
+async function toggleTheaterContinuousEar() {
+  theaterContinuousEarActive = !theaterContinuousEarActive;
+  updateTheaterMicUi();
+
+  if (theaterContinuousEarActive) {
+    try {
+      if ('speechSynthesis' in window) {
+        const warmup = new SpeechSynthesisUtterance('');
+        warmup.volume = 0;
+        window.speechSynthesis.speak(warmup);
+        window.speechSynthesis.resume();
+      }
+    } catch(e) {}
+
+    if (!theaterSpeechRec) theaterSpeechRec = initTheaterContinuousEar();
+    if (theaterSpeechRec) {
+      try {
+        theaterSpeechRec.start();
+      } catch(e) {
+        console.warn('Theater speech rec start notice:', e);
+      }
+    }
+
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia && !theaterMicStream) {
+        theaterMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+    } catch(e) {}
+
+    showToast('🎙️ Theater Call Mode Connected - Speak anytime!');
+  } else {
+    if (theaterSpeechRec) {
+      try { theaterSpeechRec.stop(); } catch(e) {}
+    }
+    if (theaterVadTimer) {
+      clearTimeout(theaterVadTimer);
+      theaterVadTimer = null;
+    }
+    theaterCurrentVoiceTranscript = '';
+    showToast('🔇 Theater Microphone Muted');
+  }
+}
+
+function startTheaterPttRecord(event) {
+  if (event) event.preventDefault();
+  if (!theaterContinuousEarActive) {
+    toggleTheaterContinuousEar();
+  }
+}
+
+function stopTheaterPttRecord(event) {
+  if (event) event.preventDefault();
+}
+
+async function loadTheaterYouTubeVideo() {
   const inp = $('theaterYoutubeUrlInput');
   if (!inp) return;
   const raw = inp.value.trim();
-  const videoId = extractYouTubeId(raw);
-  if (!videoId) {
-    showToast('Please enter a valid YouTube URL or 11-character video ID');
+  if (!raw) {
+    showToast('Please enter a video link or YouTube URL');
     return;
   }
-  watchTogetherCurrentVideo = videoId;
-  const iframe = $('theaterIframe');
-  if (iframe) {
-    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
-  }
-  showToast('▶ Playing in Cinema Theater');
 
-  if (activePersona) {
-    const startMsg = `*grabs some popcorn and sits beside you* Let's watch! What are we watching?`;
-    $('theaterReactionText').innerText = startMsg;
-    appendChatMsg('assistant', startMsg);
-    if (voiceCallActive) speakPersonaVoiceReply(startMsg);
+  // 1. Direct video files (.mp4, .webm, .ogg, .mov, .m4v, .mkv)
+  const isDirectFile = /\.(mp4|webm|ogg|mov|m4v|mkv)(\?.*)?$/i.test(raw);
+  if (isDirectFile) {
+    loadTheaterDirectVideo(raw, 'Direct Video File');
+    return;
   }
+
+  // 2. YouTube URLs / IDs
+  const videoId = extractYouTubeId(raw);
+  if (videoId) {
+    resetAndStopAllTheaterMedia();
+    watchTogetherCurrentVideo = videoId;
+    watchTogetherVideoInfo = { id: videoId, title: "YouTube Video", author: "", thumb: null, loadedAt: Date.now(), isHtml5: false };
+    isTheaterVideoPaused = false;
+    currentTheaterTimestamp = 0;
+    theaterAccumulatedPlayTime = 0;
+    theaterPlayStartedAt = Date.now();
+
+    const iframe = $('theaterIframe');
+    if (iframe) {
+      iframe.style.display = 'block';
+      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&playsinline=1&rel=0`;
+    }
+
+    showToast('▶ Playing in Cinema Theater');
+    updateTheaterFeedStatus();
+    startTheaterClockTicker();
+
+    // Fetch rich YouTube video metadata & initial visual frame & audio slice from backend
+    try {
+      fetch('/api/youtube_context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: raw, timestamp: 0 })
+      }).then(r => r.json()).then(ytData => {
+        if (ytData && ytData.ok) {
+          if (ytData.title) watchTogetherVideoInfo.title = ytData.title;
+          if (ytData.artist) watchTogetherVideoInfo.author = ytData.artist;
+          if (ytData.description_snippet) watchTogetherVideoInfo.description = ytData.description_snippet;
+          if (ytData.frame_data) {
+            theaterLatestVideoFrameBase64 = ytData.frame_data;
+            watchTogetherVideoInfo.thumb = ytData.frame_data;
+          }
+          if (ytData.audio_data) theaterLatestRawAudioBase64 = ytData.audio_data;
+          if ($('theaterBotBadge')) $('theaterBotBadge').innerText = `Watching: ${watchTogetherVideoInfo.title}`;
+          const statusEl = $('theaterVideoStatus');
+          if (statusEl) statusEl.innerHTML = `<span style="color:#4caf50;">● 🟢 Playing: ${escapeHtml(watchTogetherVideoInfo.title.slice(0, 35))}</span>`;
+        }
+      }).catch(e => {});
+    } catch(e) {}
+
+    try {
+      if (!watchTogetherVideoInfo.thumb) {
+        const thumbUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+        fetchImageAsBase64(thumbUrl).then(t => {
+          if (t && !watchTogetherVideoInfo.thumb) watchTogetherVideoInfo.thumb = t;
+        });
+      }
+    } catch(e) {}
+
+    if ($('theaterBotBadge')) $('theaterBotBadge').innerText = `Watching: ${watchTogetherVideoInfo.title}`;
+
+    triggerTheaterOpeningReaction();
+    startTheaterCommentaryLoop();
+    return;
+  }
+
+  // 3. Generic web embed fallback (Vimeo, Streamable, etc.)
+  if (/^https?:\/\//i.test(raw)) {
+    resetAndStopAllTheaterMedia();
+    watchTogetherCurrentVideo = raw;
+    watchTogetherVideoInfo = { id: raw, title: "Web Video", author: "Web", thumb: null, loadedAt: Date.now(), isHtml5: false };
+    isTheaterVideoPaused = false;
+    currentTheaterTimestamp = 0;
+    theaterAccumulatedPlayTime = 0;
+    theaterPlayStartedAt = Date.now();
+    const iframe = $('theaterIframe');
+    if (iframe) {
+      iframe.style.display = 'block';
+      iframe.src = raw;
+    }
+    showToast('▶ Loading web video in Cinema Theater');
+    updateTheaterFeedStatus();
+    startTheaterClockTicker();
+    triggerTheaterOpeningReaction();
+    startTheaterCommentaryLoop();
+    return;
+  }
+
+  showToast('Please enter a valid YouTube URL or video link');
 }
 
-async function askCompanionAboutVideo() {
-  if (!watchTogetherCurrentVideo) {
-    showToast('Paste & Play a video first');
-    return;
+function loadTheaterDirectVideo(url, title) {
+  resetAndStopAllTheaterMedia();
+  watchTogetherCurrentVideo = url;
+  watchTogetherVideoInfo = { id: url, title: title || "Direct Video Stream", author: "Direct Media", thumb: null, loadedAt: Date.now(), isHtml5: true };
+  isTheaterVideoPaused = false;
+  currentTheaterTimestamp = 0;
+  theaterAccumulatedPlayTime = 0;
+  theaterPlayStartedAt = Date.now();
+
+  const html5Vid = $('theaterHtml5Video');
+  if (html5Vid) {
+    html5Vid.style.display = 'block';
+    html5Vid.src = url;
+    html5Vid.onplay = () => {
+      isTheaterVideoPaused = false;
+      theaterPlayStartedAt = Date.now();
+      startTheaterVideoAudioIngestion(html5Vid);
+      const statusEl = $('theaterVideoStatus');
+      if (statusEl) statusEl.innerHTML = '<span style="color:#4caf50;">● 🟢 Playing (HTML5)</span>';
+    };
+    html5Vid.onpause = () => {
+      isTheaterVideoPaused = true;
+      stopTheaterVideoAudioIngestion();
+      if (theaterPlayStartedAt) {
+        theaterAccumulatedPlayTime += (Date.now() - theaterPlayStartedAt) / 1000;
+        theaterPlayStartedAt = null;
+      }
+      currentTheaterTimestamp = html5Vid.currentTime || theaterAccumulatedPlayTime;
+      const min = Math.floor(currentTheaterTimestamp / 60);
+      const sec = Math.floor(currentTheaterTimestamp % 60);
+      const statusEl = $('theaterVideoStatus');
+      if (statusEl) statusEl.innerHTML = `<span style="color:#e5c07b;">● ⏸️ Paused at ${min}m ${sec}s</span>`;
+    };
+    html5Vid.play().catch(e => console.warn('HTML5 play notice:', e));
   }
-  const prompt = `We are watching a YouTube video together (Video ID: ${watchTogetherCurrentVideo}). Share your in-character thoughts, reactions, and commentary on what we are watching!`;
-  
-  $('theaterReactionText').innerText = `${activePersona.name} is thinking...`;
-  appendChatMsg('user', "What do you think of this video so far?");
+  showToast('▶ Playing Direct Video in Cinema Theater');
+  if ($('theaterBotBadge')) $('theaterBotBadge').innerText = `Watching: ${watchTogetherVideoInfo.title}`;
+  updateTheaterFeedStatus();
+  startTheaterClipBuffering();
+  startTheaterClockTicker();
+
+  triggerTheaterOpeningReaction();
+  startTheaterCommentaryLoop();
+}
+
+function loadTheaterLocalFile(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const objectUrl = URL.createObjectURL(file);
+  loadTheaterDirectVideo(objectUrl, file.name);
+}
+
+async function triggerTheaterOpeningReaction() {
+  if (!activePersona || !watchTogetherVideoInfo) return;
+
+  const initialPrompt = `[LIVE THEATER CO-WATCHING - OPENING SCENE]
+- Video Title: "${watchTogetherVideoInfo.title}"
+- Creator: "${watchTogetherVideoInfo.author || 'Creator'}"
+- Playback Status: Playback just started!
+
+We just pressed play on this video on our theater screen. As my companion sitting right next to me with snacks, give an excited, short, natural in-character opening reaction about starting to watch "${watchTogetherVideoInfo.title}"! Keep it under 2 sentences.`;
 
   try {
     const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
-    const history = (chatMessages[activePersona.id] || []).slice(0, -1);
-
-    const res = await executeAiChatRequest(prompt, sysPrompt, activePersona, history, null);
-    const replyText = (res && res.reply) ? res.reply : "*smiles and watches along with you*";
-
-    $('theaterReactionText').innerText = replyText;
-    appendChatMsg('assistant', replyText);
-    if (voiceCallActive) speakPersonaVoiceReply(replyText);
+    const history = (chatMessages[activePersona.id] || []).slice(-3);
+    const initialThumb = watchTogetherVideoInfo.thumb;
+    const res = await executeAiChatRequest(initialPrompt, sysPrompt, activePersona, history, initialThumb);
+    const startMsg = (res && res.reply) ? res.reply : `*grabs popcorn and snuggles in* Let's watch "${watchTogetherVideoInfo.title}"!`;
+    typewriteText('theaterReactionText', startMsg);
+    appendChatMsg('assistant', startMsg);
+    speakPersonaVoiceReply(startMsg);
   } catch(e) {
-    $('theaterReactionText').innerText = "*watches the video with you*";
+    const fallbackMsg = `*grabs popcorn* Let's watch "${watchTogetherVideoInfo.title}"!`;
+    typewriteText('theaterReactionText', fallbackMsg);
+    appendChatMsg('assistant', fallbackMsg);
+    speakPersonaVoiceReply(fallbackMsg);
   }
 }
+
+function startTheaterCommentaryLoop() {
+  if (watchTogetherChimeInterval) clearInterval(watchTogetherChimeInterval);
+  watchTogetherChimeInterval = setInterval(async () => {
+    const autoChime = $('theaterAutoChimeIn');
+    const modal = $('watchTogetherTheaterModal');
+    if (!autoChime || !autoChime.checked || !modal || !modal.classList.contains('open') || isProcessingVoiceTurn) return;
+    if (!watchTogetherCurrentVideo || !watchTogetherVideoInfo) return;
+
+    // EXACT REAL PLAYBACK STATE CHECK
+    const playbackState = getExactVideoPlaybackState();
+    if (playbackState.isPaused) {
+      // STOP AUTO COMMENTING WHILE PAUSED!
+      return;
+    }
+
+    const curSec = Math.floor(playbackState.currentTime);
+    const clipResult = await getTheaterTemporalClipStrip();
+    let videoAudioDialogue = getRecentVideoDialogueSummary(curSec);
+
+    // If watching YouTube / URL, fetch live video frame & audio slice at this exact timestamp from backend
+    if (watchTogetherCurrentVideo && !screenVisionStream) {
+      try {
+        const ytRes = await fetch('/api/youtube_context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: watchTogetherCurrentVideo, timestamp: curSec })
+        });
+        if (ytRes.ok) {
+          const ytData = await ytRes.json();
+          if (ytData && ytData.ok) {
+            if (ytData.frame_data) theaterLatestVideoFrameBase64 = ytData.frame_data;
+            if (ytData.audio_data) theaterLatestRawAudioBase64 = ytData.audio_data;
+            if (ytData.dialogue) videoAudioDialogue = ytData.dialogue;
+            if (ytData.full_transcript) watchTogetherVideoInfo.full_transcript = ytData.full_transcript;
+            if (ytData.title && (!watchTogetherVideoInfo.title || watchTogetherVideoInfo.title === 'YouTube Video')) {
+              watchTogetherVideoInfo.title = ytData.title;
+              watchTogetherVideoInfo.author = ytData.artist;
+            }
+          }
+        }
+      } catch(e) {}
+    }
+
+    const rawAudioPayload = theaterLatestRawAudioBase64;
+    const fullTranscriptSnippet = (watchTogetherVideoInfo && watchTogetherVideoInfo.full_transcript) ? watchTogetherVideoInfo.full_transcript.slice(0, 600) : '';
+
+    let imagePayload = clipResult.data || theaterLatestVideoFrameBase64 || null;
+    let prompt = '';
+
+    if (imagePayload) {
+      prompt = `[LIVE THEATER CO-WATCHING VIDEO FEED - ACTIVE SCREEN FRAME + AUDIO STREAM]
+- Video / Track Title: "${watchTogetherVideoInfo.title}"
+- Channel / Artist: "${watchTogetherVideoInfo.author || 'Creator'}"
+- Exact Playback Timestamp: ${Math.floor(curSec/60)}m ${curSec%60}s in.
+- Attached Visuals: ${clipResult.isClipStrip ? 'A 3-panel chronological motion storyboard strip [T-4s, T-2s, Live Now] showing the recent video clip sequence!' : 'A real-time live visual frame snapshot captured from the active video screen.'}`;
+      if (videoAudioDialogue) {
+        prompt += `\n- Exact Spoken Dialogue / Subtitles At This Second: "${videoAudioDialogue}"`;
+      }
+      if (fullTranscriptSnippet) {
+        prompt += `\n- Full Video Dialogue / Lyrics Sequence:\n${fullTranscriptSnippet}`;
+      }
+      if (rawAudioPayload) {
+        prompt += `\n- Attached Audio: Raw audio waveform clip of the playing soundtrack / music / instruments is attached directly for you to hear.`;
+      }
+      prompt += `\n\n[VISUAL REACTION DIRECTIVE]: Look closely at the attached video frame image. React specifically to what you SEE on screen (the characters, their expressions, actions, outfits, visual scene, animations, colors, objects) combined with the dialogue and soundtrack in "${watchTogetherVideoInfo.title}"! Keep it under 2 sentences.`;
+    } else {
+      prompt = `[LIVE THEATER CO-WATCHING - RUNNING PLAYBACK PROGRESSION + AUDIO STREAM]
+- Video / Track Title: "${watchTogetherVideoInfo.title}"
+- Channel / Artist: "${watchTogetherVideoInfo.author || 'Creator'}"
+- Exact Playback Timestamp: ${Math.floor(curSec/60)}m ${curSec%60}s in.
+- Playback Status: Actively playing live.`;
+      if (videoAudioDialogue) {
+        prompt += `\n- Exact Spoken Dialogue / Subtitles At This Second: "${videoAudioDialogue}"`;
+      }
+      if (fullTranscriptSnippet) {
+        prompt += `\n- Full Video Dialogue / Lyrics Sequence:\n${fullTranscriptSnippet}`;
+      }
+      if (rawAudioPayload) {
+        prompt += `\n- Attached Audio: Raw audio waveform clip of the playing soundtrack / music / instruments is attached directly for you to hear.`;
+      }
+      prompt += `\n\nAs my companion watching and listening to the music/audio alongside me, make a short, natural in-character reaction to what is happening and the music in "${watchTogetherVideoInfo.title}" at this timestamp. Keep it under 2 sentences.`;
+    }
+
+    try {
+      const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
+      const history = (chatMessages[activePersona.id] || []).slice(-4);
+      logTheaterTerminal('info', 'AUTO_CHIME_REQUEST', `Sending commentary prompt for "${watchTogetherVideoInfo.title}" at ${Math.floor(curSec/60)}m ${curSec%60}s...`);
+      const t0 = Date.now();
+      const res = await executeAiChatRequest(prompt, sysPrompt, activePersona, history, imagePayload, rawAudioPayload);
+      if (res && res.reply) {
+        logTheaterTerminal('info', 'AUTO_CHIME_SUCCESS', `Commentary generated in ${Date.now() - t0}ms: "${res.reply.slice(0, 75)}..."`);
+        typewriteText('theaterReactionText', res.reply);
+        appendChatMsg('assistant', res.reply);
+        speakPersonaVoiceReply(res.reply);
+      } else {
+        logTheaterTerminal('warn', 'AUTO_CHIME_EMPTY', 'Empty reply from executeAiChatRequest during chime');
+      }
+    } catch(e) {
+      logTheaterTerminal('error', 'AUTO_CHIME_ERROR', `Commentary loop error: ${e.message}`, e.stack);
+      console.warn('Auto chime notice:', e);
+    }
+  }, 22000);
+}
+
+async function handleTheaterUserSpokenOrTypedMessage(userText) {
+  if (!userText || !activePersona) return;
+  const input = $('theaterChatInput');
+  if (input) input.value = '';
+
+  const playbackState = getExactVideoPlaybackState();
+  const curSec = Math.floor(playbackState.currentTime);
+  const min = Math.floor(curSec / 60);
+  const sec = curSec % 60;
+  const vTitle = watchTogetherVideoInfo ? watchTogetherVideoInfo.title : 'the video';
+
+  logTheaterTerminal('info', 'USER_TURN_INPUT', `User spoken/typed: "${userText}" at ${min}m ${sec}s`);
+  typewriteText('theaterReactionText', `${activePersona.name} is watching and thinking...`, 20);
+  appendChatMsg('user', userText);
+
+  const clipResult = await getTheaterTemporalClipStrip();
+  let videoAudioDialogue = getRecentVideoDialogueSummary(curSec);
+
+  // If watching YouTube / URL, fetch live video frame & audio slice at this exact timestamp from backend
+  if (watchTogetherCurrentVideo && !screenVisionStream) {
+    try {
+      const ytRes = await fetch('/api/youtube_context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: watchTogetherCurrentVideo, timestamp: curSec })
+      });
+      if (ytRes.ok) {
+        const ytData = await ytRes.json();
+        if (ytData && ytData.ok) {
+          if (ytData.frame_data) theaterLatestVideoFrameBase64 = ytData.frame_data;
+          if (ytData.audio_data) theaterLatestRawAudioBase64 = ytData.audio_data;
+          if (ytData.dialogue) videoAudioDialogue = ytData.dialogue;
+          if (ytData.full_transcript) watchTogetherVideoInfo.full_transcript = ytData.full_transcript;
+          if (ytData.title && (!watchTogetherVideoInfo.title || watchTogetherVideoInfo.title === 'YouTube Video')) {
+            watchTogetherVideoInfo.title = ytData.title;
+            watchTogetherVideoInfo.author = ytData.artist;
+          }
+        } else {
+          logTheaterTerminal('warn', 'YT_CONTEXT_WARN', `YouTube context warning: ${ytData.error || 'Unknown issue'}`);
+        }
+      } else {
+        logTheaterTerminal('warn', 'YT_CONTEXT_HTTP_ERR', `YouTube context endpoint returned HTTP ${ytRes.status}`);
+      }
+    } catch(e) {
+      logTheaterTerminal('error', 'YT_CONTEXT_FETCH_FAIL', `Could not reach /api/youtube_context: ${e.message}`);
+    }
+  }
+
+  const rawAudioPayload = theaterLatestRawAudioBase64;
+  const fullTranscriptSnippet = (watchTogetherVideoInfo && watchTogetherVideoInfo.full_transcript) ? watchTogetherVideoInfo.full_transcript.slice(0, 600) : '';
+  let imagePayload = clipResult.data || theaterLatestVideoFrameBase64 || null;
+  let prompt = '';
+
+  if (playbackState.isPaused) {
+    if (imagePayload) {
+      prompt = `[CO-WATCHING VIDEO - PAUSED AT TIMESTAMP ${min}m ${sec}s]
+- Video / Track: "${vTitle}"
+- Status: The user has intentionally PAUSED the video at ${min}m ${sec}s.
+- Attached Visuals: Freeze-frame snapshot of the paused screen.`;
+      if (videoAudioDialogue) {
+        prompt += `\n- Exact Spoken Dialogue / Subtitles around this scene: "${videoAudioDialogue}"`;
+      }
+      if (fullTranscriptSnippet) {
+        prompt += `\n- Full Video Dialogue / Lyrics Sequence:\n${fullTranscriptSnippet}`;
+      }
+      if (rawAudioPayload) {
+        prompt += `\n- Attached Audio: Raw audio clip around this scene is attached.`;
+      }
+      prompt += `\n- User said: "${userText}"\n\n[VISUAL DIRECTIVE]: Look closely at the attached screenshot frame. Reply to the user in character as their companion knowing the video is paused right now at this specific scene (${min}m ${sec}s) and addressing what you visually see and what they asked/said!`;
+    } else {
+      prompt = `[CO-WATCHING VIDEO - PAUSED AT TIMESTAMP ${min}m ${sec}s]
+- Video / Track: "${vTitle}"
+- Status: The user has intentionally PAUSED the video at ${min}m ${sec}s.`;
+      if (videoAudioDialogue) {
+        prompt += `\n- Exact Spoken Dialogue / Subtitles around this scene: "${videoAudioDialogue}"`;
+      }
+      if (fullTranscriptSnippet) {
+        prompt += `\n- Full Video Dialogue / Lyrics Sequence:\n${fullTranscriptSnippet}`;
+      }
+      if (rawAudioPayload) {
+        prompt += `\n- Attached Audio: Raw audio clip around this scene is attached.`;
+      }
+      prompt += `\n- User said: "${userText}"\n\nReply to the user in character as their companion knowing the video is paused right now at this specific scene (${min}m ${sec}s) and addressing what they asked/said!`;
+    }
+  } else {
+    if (imagePayload) {
+      prompt = `[CO-WATCHING VIDEO - CURRENTLY PLAYING AT ${min}m ${sec}s]
+- Video / Track: "${vTitle}"
+- Exact Live Timestamp: ${min}m ${sec}s in.
+- Attached Visuals: ${clipResult.isClipStrip ? 'A 3-panel chronological motion storyboard strip showing recent seconds of the video!' : 'A live snapshot frame captured directly from the video screen.'}`;
+      if (videoAudioDialogue) {
+        prompt += `\n- Exact Spoken Dialogue / Subtitles At This Second: "${videoAudioDialogue}"`;
+      }
+      if (fullTranscriptSnippet) {
+        prompt += `\n- Full Video Dialogue / Lyrics Sequence:\n${fullTranscriptSnippet}`;
+      }
+      if (rawAudioPayload) {
+        prompt += `\n- Attached Audio: Raw audio clip of the playing soundtrack / music / instruments is attached directly for you to hear.`;
+      }
+      prompt += `\n- User said: "${userText}"\n\n[VISUAL DIRECTIVE]: Look closely at the attached screenshot image at this exact second (${min}m ${sec}s). Answer the user's question with full awareness of what is visibly happening in the video image right now!`;
+    } else {
+      prompt = `[CO-WATCHING VIDEO - CURRENTLY PLAYING AT ${min}m ${sec}s]
+- Video / Track: "${vTitle}"
+- Exact Live Timestamp: ${min}m ${sec}s in.`;
+      if (videoAudioDialogue) {
+        prompt += `\n- Exact Spoken Dialogue / Subtitles At This Second: "${videoAudioDialogue}"`;
+      }
+      if (fullTranscriptSnippet) {
+        prompt += `\n- Full Video Dialogue / Lyrics Sequence:\n${fullTranscriptSnippet}`;
+      }
+      if (rawAudioPayload) {
+        prompt += `\n- Attached Audio: Raw audio clip of the playing soundtrack / music / instruments is attached directly for you to hear.`;
+      }
+      prompt += `\n- User said: "${userText}"\n\nReply in full character as their co-watching companion reacting to what you hear in the music/audio, what was spoken in the subtitles, and what they said!`;
+    }
+  }
+
+  try {
+    isTheaterVoiceProcessing = true;
+    const statusEl = $('theaterMicStatus');
+    if (statusEl && theaterContinuousEarActive) {
+      statusEl.innerHTML = '<span style="color:#e5c07b;">● 🤔 Thinking...</span>';
+    }
+
+    const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
+    const history = (chatMessages[activePersona.id] || []).slice(0, -1);
+
+    const t0 = Date.now();
+    logTheaterTerminal('info', 'USER_TURN_REQUEST', `Executing AI turn for "${activePersona.name}"...`);
+    const res = await executeAiChatRequest(prompt, sysPrompt, activePersona, history, imagePayload, rawAudioPayload);
+    const replyText = (res && res.reply) ? res.reply : "*reacts warmly and snuggles closer*";
+
+    logTheaterTerminal('info', 'USER_TURN_SUCCESS', `Turn finished in ${Date.now() - t0}ms: "${replyText.slice(0, 75)}..."`);
+    typewriteText('theaterReactionText', replyText);
+    appendChatMsg('assistant', replyText);
+    speakPersonaVoiceReply(replyText);
+  } catch(e) {
+    logTheaterTerminal('error', 'USER_TURN_ERROR', `Failed to process turn: ${e.message}`, e.stack);
+    typewriteText('theaterReactionText', "*smiles and watches along with you*");
+  } finally {
+    isTheaterVoiceProcessing = false;
+    const statusEl = $('theaterMicStatus');
+    if (statusEl && theaterContinuousEarActive) {
+      statusEl.innerHTML = '<span style="color:#61afef;">● 🎤 Listening for your voice...</span>';
+    }
+    if (theaterContinuousEarActive && theaterSpeechRec) {
+      try { theaterSpeechRec.start(); } catch(e) {}
+    }
+  }
+}
+
+function sendTheaterUserMessage(event) {
+  if (event) event.preventDefault();
+  const input = $('theaterChatInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  handleTheaterUserSpokenOrTypedMessage(text);
+}
+
+async function askCompanionAboutVideo() {
+  const vTitle = (watchTogetherVideoInfo && watchTogetherVideoInfo.title) ? watchTogetherVideoInfo.title : 'this video';
+  const state = getExactVideoPlaybackState();
+  const min = Math.floor(state.currentTime / 60);
+  const sec = Math.floor(state.currentTime % 60);
+  const q = state.isPaused ? `What do you think of this scene we're paused on (${min}m ${sec}s)?` : `What do you think of ${vTitle} right now?`;
+  await handleTheaterUserSpokenOrTypedMessage(q);
+}
+
+
+
+loadServerBots();
+
+// ==========================================
+// 🎧 MUSIC LOUNGE CO-LISTENING SUITE
+// ==========================================
+let musicLoungeCurrentInfo = null;
+let musicLoungeStartTime = 0; // { title, artist, url, type, coverUrl }
+let musicLoungeVibeInterval = null;
+
+function openMusicLounge() {
+  const modal = $('musicLoungeModal');
+  if (modal) {
+    modal.classList.add('open');
+    try {
+      if ('speechSynthesis' in window) window.speechSynthesis.resume();
+    } catch(e) {}
+    const pName = (activePersona && activePersona.name) ? activePersona.name : 'Yuna';
+    const badge = $('musicBotBadge');
+    if (badge) badge.innerText = `Music Lounge with ${pName}`;
+    if (!musicLoungeCurrentInfo) {
+      typewriteText('musicReactionText', `*puts on headphones and looks at you* What are we listening to? Paste a link or load a song!`);
+    }
+  }
+}
+
+window.openMusicLounge = openMusicLounge;
+setTimeout(() => {
+  const btn = document.getElementById('musicLoungeHeaderBtn');
+  if (btn) btn.addEventListener('click', openMusicLounge);
+}, 1000);
+
+
+function closeMusicLounge() {
+  const modal = $('musicLoungeModal');
+  if (modal) modal.classList.remove('open');
+  if (musicLoungeVibeInterval) {
+    clearInterval(musicLoungeVibeInterval);
+    musicLoungeVibeInterval = null;
+  }
+  const iframe = $('musicIframe');
+  const audio = $('musicHtml5Audio');
+  if (iframe) iframe.src = '';
+  if (audio) {
+    try { audio.pause(); audio.src = ''; } catch(e) {}
+  }
+  stopTheaterVideoAudioIngestion();
+}
+window.closeMusicLounge = closeMusicLounge;
+
+async function loadMusicSourceUrl() {
+  const input = $('musicUrlInput');
+  if (!input) return;
+  const url = input.value.trim();
+  if (!url) {
+    showToast('Please enter a Spotify, YouTube Music, or Audio URL');
+    return;
+  }
+
+  const iframe = $('musicIframe');
+  const audio = $('musicHtml5Audio');
+  const coverImg = $('musicCoverImg');
+  const defIcon = $('musicDefaultIcon');
+  
+  if (iframe) { iframe.style.display = 'none'; iframe.src = ''; }
+  if (audio) { audio.style.display = 'none'; audio.pause(); }
+  stopTheaterVideoAudioIngestion();
+
+  // Reset display
+  $('musicTrackTitle').innerText = 'Loading track...';
+  $('musicTrackArtist').innerText = 'Connecting source...';
+  $('musicTrackSource').innerText = url;
+
+  if (url.includes('spotify.com')) {
+    // Spotify Track, Album, Playlist
+    let embedUrl = url;
+    if (url.includes('/track/')) {
+      embedUrl = url.replace('/track/', '/embed/track/').split('?')[0] + '?utm_source=generator&theme=0';
+    } else if (url.includes('/album/')) {
+      embedUrl = url.replace('/album/', '/embed/album/').split('?')[0] + '?utm_source=generator&theme=0';
+    } else if (url.includes('/playlist/')) {
+      embedUrl = url.replace('/playlist/', '/embed/playlist/').split('?')[0] + '?utm_source=generator&theme=0';
+    } else if (url.includes('/episode/')) {
+      embedUrl = url.replace('/episode/', '/embed/episode/').split('?')[0] + '?utm_source=generator&theme=0';
+    }
+    
+    if (iframe) {
+      iframe.style.display = 'block';
+      iframe.style.height = url.includes('/track/') ? '152px' : '220px';
+      iframe.src = embedUrl;
+    }
+
+    musicLoungeStartTime = Date.now();
+    musicLoungeCurrentInfo = {
+      title: 'Spotify Track',
+      artist: 'Spotify',
+      url: url,
+      type: 'spotify',
+      coverUrl: null
+    };
+
+    $('musicTrackTitle').innerText = 'Spotify Co-Listening';
+    $('musicTrackArtist').innerText = 'Playing via Spotify Embed';
+    $('musicTrackSource').innerText = 'Spotify';
+
+    // Try fetching oEmbed metadata
+    try {
+      fetch(`https://open.spotify.com/oembed?url=${encodeURIComponent(url)}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data) {
+            if (data.title) $('musicTrackTitle').innerText = data.title;
+            if (data.author_name) $('musicTrackArtist').innerText = data.author_name;
+            if (data.thumbnail_url && coverImg) {
+              coverImg.src = data.thumbnail_url;
+              coverImg.style.display = 'block';
+              if (defIcon) defIcon.style.display = 'none';
+              musicLoungeCurrentInfo.coverUrl = data.thumbnail_url;
+            }
+            musicLoungeCurrentInfo.title = data.title || musicLoungeCurrentInfo.title;
+            musicLoungeCurrentInfo.artist = data.author_name || musicLoungeCurrentInfo.artist;
+          }
+        }).catch(e => {});
+    } catch(e) {}
+
+    typewriteText('musicReactionText', `*taps foot to the rhythm* Vibing with Spotify!`);
+    startMusicCommentaryVibeLoop();
+
+  } else if (url.includes('youtube.com') || url.includes('youtu.be') || url.includes('music.youtube.com')) {
+    // YouTube / YouTube Music
+    const videoId = (typeof extractYouTubeId === 'function') ? extractYouTubeId(url) : null;
+    if (videoId) {
+      if (iframe) {
+        iframe.style.display = 'block';
+        iframe.style.height = '152px';
+        iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
+      }
+      
+      const thumb = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+      if (coverImg) {
+        coverImg.src = thumb;
+        coverImg.style.display = 'block';
+        if (defIcon) defIcon.style.display = 'none';
+      }
+
+      musicLoungeStartTime = Date.now();
+    musicLoungeCurrentInfo = {
+        title: 'YouTube Track',
+        artist: 'YouTube Music',
+        url: url,
+        type: 'youtube',
+        coverUrl: thumb
+      };
+
+      // Fetch metadata from backend
+      try {
+        fetch('/api/youtube_context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: url, timestamp: 0 })
+        }).then(r => r.json()).then(data => {
+          if (data && data.ok) {
+            if (data.title) $('musicTrackTitle').innerText = data.title;
+            if (data.artist) $('musicTrackArtist').innerText = data.artist;
+            musicLoungeCurrentInfo.title = data.title || musicLoungeCurrentInfo.title;
+            musicLoungeCurrentInfo.artist = data.artist || musicLoungeCurrentInfo.artist;
+          }
+        }).catch(e => {});
+      } catch(e) {}
+
+      typewriteText('musicReactionText', `*sways gently* Love this track! Let's listen.`);
+      startMusicCommentaryVibeLoop();
+    } else {
+      showToast('Could not parse YouTube URL');
+    }
+  } else {
+    // Direct audio stream / MP3 URL
+    if (audio) {
+      audio.style.display = 'block';
+      audio.src = url;
+      audio.play().catch(e => {});
+      startTheaterVideoAudioIngestion(audio);
+    }
+    musicLoungeStartTime = Date.now();
+    musicLoungeCurrentInfo = {
+      title: url.split('/').pop().split('?')[0] || 'Audio Stream',
+      artist: 'Direct Stream',
+      url: url,
+      type: 'audio',
+      coverUrl: null
+    };
+    $('musicTrackTitle').innerText = musicLoungeCurrentInfo.title;
+    $('musicTrackArtist').innerText = 'Audio Stream';
+    typewriteText('musicReactionText', `*puts on headphones* Playing direct stream!`);
+    startMusicCommentaryVibeLoop();
+  }
+}
+window.loadMusicSourceUrl = loadMusicSourceUrl;
+
+function loadMusicLocalFile(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const objectUrl = URL.createObjectURL(file);
+  const audio = $('musicHtml5Audio');
+  const iframe = $('musicIframe');
+  const coverImg = $('musicCoverImg');
+  const defIcon = $('musicDefaultIcon');
+
+  if (iframe) { iframe.style.display = 'none'; iframe.src = ''; }
+  if (coverImg) coverImg.style.display = 'none';
+  if (defIcon) defIcon.style.display = 'block';
+
+  if (audio) {
+    audio.style.display = 'block';
+    audio.src = objectUrl;
+    audio.play().catch(e => {});
+    audio.onplay = () => startTheaterVideoAudioIngestion(audio);
+  }
+
+  musicLoungeStartTime = Date.now();
+    musicLoungeCurrentInfo = {
+    title: file.name.replace(/\.[^/.]+$/, ''),
+    artist: 'Local Audio File',
+    url: objectUrl,
+    type: 'file',
+    coverUrl: null
+  };
+
+  $('musicTrackTitle').innerText = musicLoungeCurrentInfo.title;
+  $('musicTrackArtist').innerText = 'Local File (48kHz High-Fidelity Pipeline)';
+  $('musicTrackSource').innerText = `${(file.size / (1024*1024)).toFixed(1)} MB • ${file.type || 'audio'}`;
+
+  typewriteText('musicReactionText', `*nods head to the beat* Nice file! Hearing it now.`);
+  startMusicCommentaryVibeLoop();
+}
+window.loadMusicLocalFile = loadMusicLocalFile;
+
+function startMusicCommentaryVibeLoop() {
+  if (musicLoungeVibeInterval) clearInterval(musicLoungeVibeInterval);
+  musicLoungeVibeInterval = setInterval(async () => {
+    const autoChime = $('musicAutoChimeIn');
+    const modal = $('musicLoungeModal');
+    if (!autoChime || !autoChime.checked || !modal || !modal.classList.contains('open')) return;
+    if (!musicLoungeCurrentInfo || !activePersona) return;
+
+    let prompt = `[MUSIC LOUNGE CO-LISTENING SESSION]
+- Current Track: "${musicLoungeCurrentInfo.title}" by "${musicLoungeCurrentInfo.artist}"
+- Source: ${musicLoungeCurrentInfo.type} (${musicLoungeCurrentInfo.url})
+- Setting: You and the user are relaxing in the Music Lounge with headphones on, listening to this music together.`;
+
+    let rawAudio = theaterLatestRawAudioBase64;
+    
+    // Fetch live youtube audio stream if available
+    if (musicLoungeCurrentInfo.type === 'youtube') {
+      try {
+        let curSec = Math.floor((Date.now() - musicLoungeStartTime) / 1000);
+        const ytRes = await fetch('/api/youtube_context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: musicLoungeCurrentInfo.url, timestamp: curSec })
+        });
+        if (ytRes.ok) {
+          const ytData = await ytRes.json();
+          if (ytData && ytData.ok && ytData.audio_data) {
+            rawAudio = ytData.audio_data;
+          }
+        }
+      } catch(e) {}
+    }
+
+    if (rawAudio) {
+      prompt += `\n- Live Audio Feed: You are hearing the high-fidelity music stream directly right now via the 48kHz audio pipeline!`;
+    }
+    prompt += `\n\nGive a very short, natural 1-sentence thought/reaction to the music vibe as their companion! (e.g. reacting to the melody, rhythm, lyrics, or mood)`;
+
+    try {
+      const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
+      const res = await executeAiChatRequest(prompt, sysPrompt, activePersona, [], null, rawAudio);
+      if (res && res.reply) {
+        typewriteText('musicReactionText', res.reply);
+        appendChatMsg('assistant', res.reply);
+        speakPersonaVoiceReply(res.reply);
+      }
+    } catch(e) {}
+  }, 45000); // Vibe check every 45s
+}
+
+async function sendMusicUserMessage(event) {
+  if (event) event.preventDefault();
+  const input = $('musicChatInput');
+  if (!input) return;
+  const userText = input.value.trim();
+  if (!userText || !activePersona) return;
+  input.value = '';
+
+  const pName = activePersona.name || 'Yuna';
+  typewriteText('musicReactionText', `*${pName} is listening to you and the music...*`, 20);
+  appendChatMsg('user', userText);
+
+  let prompt = `[MUSIC LOUNGE CHAT]
+- Current Track: "${musicLoungeCurrentInfo ? musicLoungeCurrentInfo.title : 'Music Playing'}" by "${musicLoungeCurrentInfo ? musicLoungeCurrentInfo.artist : 'Artist'}"
+- User says: "${userText}"
+- Context: You are both hanging out in the Music Lounge co-listening.`;
+
+  let rawAudio = theaterLatestRawAudioBase64;
+  if (musicLoungeCurrentInfo && musicLoungeCurrentInfo.type === 'youtube') {
+    try {
+      let curSec = Math.floor((Date.now() - musicLoungeStartTime) / 1000);
+      const ytRes = await fetch('/api/youtube_context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: musicLoungeCurrentInfo.url, timestamp: curSec })
+      });
+      if (ytRes.ok) {
+        const ytData = await ytRes.json();
+        if (ytData && ytData.ok && ytData.audio_data) {
+          rawAudio = ytData.audio_data;
+        }
+      }
+    } catch(e) {}
+  }
+
+  if (rawAudio) {
+    prompt += `\n- Live Audio Feed: You hear the music stream directly attached.`;
+  }
+  prompt += `\n\nReply in full character to the user as their companion sharing this music listening session.`;
+
+  try {
+    const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
+    const history = (chatMessages[activePersona.id] || []).slice(-4);
+    const res = await executeAiChatRequest(prompt, sysPrompt, activePersona, history, null, rawAudio);
+    if (res && res.reply) {
+      typewriteText('musicReactionText', res.reply);
+      appendChatMsg('assistant', res.reply);
+      speakPersonaVoiceReply(res.reply);
+    }
+  } catch(e) {
+    typewriteText('musicReactionText', `*smiles and listens along with you*`);
+  }
+}
+window.sendMusicUserMessage = sendMusicUserMessage;
+
+async function askCompanionAboutMusic() {
+  const track = musicLoungeCurrentInfo ? `"${musicLoungeCurrentInfo.title}" by ${musicLoungeCurrentInfo.artist}` : 'what we are listening to';
+  await sendMusicUserMessage({ preventDefault: () => {} });
+}
+window.askCompanionAboutMusic = askCompanionAboutMusic;
 
 loadServerBots();
 initBotPolling();
