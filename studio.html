@@ -1622,6 +1622,12 @@ body.sidebar-hidden .sidebar {
       </div>
       
       <div class="chat-top-right">
+        <!-- VOICE CALL -->
+        <button class="chat-top-btn" onclick="startVoiceCall()" title="Start Voice Call" style="color:#2ecc71; border-color:rgba(46,204,113,0.4); background:rgba(46,204,113,0.1);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          <span>Call</span>
+        </button>
+
         <!-- MEMORY TREE -->
         <button class="chat-top-btn" onclick="openMemoryTreeModal()" title="Character Memory Tree" style="color:var(--accent); border-color:var(--accent); background:var(--accent-soft);">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="4" r="2.5"></circle><circle cx="5" cy="18" r="2.5"></circle><circle cx="19" cy="18" r="2.5"></circle><circle cx="12" cy="12" r="2"></circle><path d="M12 6.5v3.5M6.5 16.5l3.5-3M17.5 16.5l-3.5-3"></path></svg>
@@ -1784,6 +1790,42 @@ body.sidebar-hidden .sidebar {
           <button class="btn-primary" onclick="clearEntireMemory()" style="width:100%; background:rgba(200,100,100,0.15); color:#e06c75; border:1px solid rgba(200,100,100,0.3); font-size:11.5px; padding:9px;">Clear Active Chat Logs</button>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN VOICE CALL OVERLAY -->
+  <div class="voice-call-overlay" id="voiceCallModal">
+    <div style="display:flex; flex-direction:column; align-items:center; text-align:center;">
+      <div class="voice-avatar-halo" id="voiceAvatarHalo">
+        <div class="char-avatar" id="voiceCallAvatar" style="width:110px; height:110px; font-size:40px; border-radius:50%; box-shadow:0 8px 32px rgba(0,0,0,0.6);">Y</div>
+      </div>
+      <h2 style="font-size:20px; font-weight:700; margin-top:14px; color:var(--text-primary);" id="voiceCallBotName">Yuna</h2>
+      <div style="font-size:11px; color:var(--accent); font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-top:4px;" id="voiceCallStatus">Connected • Listening</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; align-items:center; width:100%; max-width:580px;">
+      <canvas class="voice-wave-canvas" id="voiceWaveCanvas"></canvas>
+      <div class="voice-mic-level-container" title="Real-time Microphone Decibel Volume">
+        <div class="voice-mic-level-bar" id="voiceMicLevelBar"></div>
+      </div>
+      <div class="voice-caption-box" id="voiceCaptionBox">
+        <em>Listening for your voice... speak anytime</em>
+      </div>
+    </div>
+
+    <div class="voice-controls">
+      <button type="button" class="voice-ctrl-btn" id="voiceMicToggleBtn" onclick="toggleVoiceCallMic()" title="Toggle Microphone Permission & Mute">
+        🎙️
+      </button>
+      <button type="button" class="voice-ctrl-btn talk-btn" id="voiceTalkBtn" onclick="handleVoicePushToTalk()" title="Tap to Speak / Done Speaking">
+        <span id="voiceTalkBtnLabel">🎙️ Tap to Speak</span>
+      </button>
+      <button type="button" class="voice-ctrl-btn end-call" onclick="endVoiceCall()" title="End Voice Call">
+        📞
+      </button>
+      <button type="button" class="voice-ctrl-btn" id="voiceSpeakerToggleBtn" onclick="toggleVoiceCallSpeaker()" title="Mute/Unmute AI Voice">
+        🔊
+      </button>
     </div>
   </div>
 
@@ -3704,11 +3746,23 @@ function cleanLlmReply(rawText) {
     cand = splitParts[0].trim();
     if (cand.length > 5) text = cand;
   } else {
-    text = text.replace(/^(?:Here'?s\s+(?:a\s+)?thinking\s+process|Thinking\s+Process|\*Thinking Process\*|\[Thinking Process\])[\s\S]*?(?=\n\n(?:[A-Z*\"\'\u201c\u2018]|[\u4e00-\u9fa5]|$))/i, '');
-    text = text.replace(/^(?:\d+\.\s+\*\*[A-Za-z\s]+:\*\*|\d+\.\s+Analyze User Input)[\s\S]*?(?=\n\n(?:[A-Z*\"\'\u201c\u2018]|[\u4e00-\u9fa5]|$))/i, '');
+    text = text.replace(/^(?:Here'?s\s+(?:a\s+)?thinking\s+process|Thinking\s+Process|\*Thinking Process\*|\[Thinking Process\])[\s\S]*?(?=\n\n(?:[A-Z*"\'\u201c\u2018]|[\u4e00-\u9fa5]|$))/i, '');
+    text = text.replace(/^(?:\d+\.\s+\*\*[A-Za-z\s]+:\*\*|\d+\.\s+Analyze User Input)[\s\S]*?(?=\n\n(?:[A-Z*"\'\u201c\u2018]|[\u4e00-\u9fa5]|$))/i, '');
   }
   // 3. Clean any leftover Draft: / Response: markers
   text = text.replace(/^(?:Draft|Response|Reply|Assistant):\s*/i, '');
+
+  // 4. Strip generic corporate assistant robotic clichés & repetitive asterisk stage directions
+  text = text.replace(/\*turns to you attentively[^*]*\*/gi, '');
+  text = text.replace(/\*engaging directly with your words[^*]*\*/gi, '');
+  text = text.replace(/—\s*let's delve deeper into this\.\s*What are your thoughts\?/gi, '');
+  text = text.replace(/let's delve deeper into this\.\s*What are your thoughts\?/gi, '');
+  text = text.replace(/How can I assist you (today|further)\??/gi, '');
+  text = text.replace(/As an AI (assistant|language model)[^,\.\n]*[,\.\n]?/gi, '');
+
+  // Clean extra whitespace
+  text = text.replace(/[ \t]+/g, ' ');
+  text = text.replace(/\n{3,}/g, '\n\n');
   return text.trim();
 }
 
@@ -3731,7 +3785,7 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
   const userOpenRouterKey = (botObj && botObj.openrouter_key) || botCfg.openrouter_key || localStorage.getItem('openrouter_key') || '';
 
   const messages = [
-    { role: 'system', content: `[CHARACTER IDENTITY DIRECTIVE]\nYou are strictly ${botName}. You are a unique and immersive AI character.\nYou are NOT ChatGPT, NOT GPT-4, and NOT an AI assistant created by OpenAI.\nStay strictly in character as ${botName} at all times. Do not break character.\n\n${systemPrompt}` }
+    { role: 'system', content: `[STRICT CHARACTER DIRECTIVE]\nYou are strictly ${botName}. You are NOT an AI assistant, customer service chatbot, or corporate language model.\nNEVER use generic corporate assistant phrases (e.g. "Let's delve deeper into this", "What are your thoughts?", "How can I assist you?", "As an AI").\nNEVER write synthetic narrator stage directions or repetitive physical actions in asterisks like "*turns to you attentively, engaging directly with your words*".\nStay strictly in character as ${botName} at all times. Speak directly, authentically, and vividly in character.\n\n${systemPrompt}` }
   ];
   if (Array.isArray(historyList)) {
     for (const h of historyList.slice(-10)) {
@@ -4937,17 +4991,779 @@ memVP.addEventListener('wheel', e => {
 }, { passive: false });
 
 /* ==========================================================================
-   CHAT MESSAGING & BOT INITIALIZATION
+   VOICE CALL & MULTIMODAL AUDIO ENGINE
    ========================================================================== */
 
-function appendChatMsg(role, text, imgData = null) {
-  if (!activePersona) return;
-  if (!chatMessages[activePersona.id]) chatMessages[activePersona.id] = [];
-  const msgObj = { role, text };
-  if (imgData) msgObj.image_data = imgData;
-  chatMessages[activePersona.id].push(msgObj);
-  localStorage.setItem('bot_saas_history', JSON.stringify(chatMessages));
-  renderChatBox();
+let voiceCallActive = false;
+let voiceMicMuted = false;
+let voiceSpeakerMuted = false;
+let isProcessingVoiceTurn = false;
+let voiceRecognition = null;
+let voiceVadSilenceTimer = null;
+let voiceCurrentTranscript = '';
+let voiceWaveAnimId = null;
+let activeUtterance = null;
+let voiceWatchdogTimer = null;
+let cachedBrowserVoices = [];
+
+let voiceAudioCtx = null;
+let voiceAnalyser = null;
+let voiceMicStream = null;
+let voiceAudioDataArray = null;
+let isVoicePushToTalkRecording = false;
+let voiceMediaRecorder = null;
+let voiceMediaChunks = [];
+let isVoiceRecordingAudio = false;
+let currentPlayingAudio = null;
+
+function initVoiceVoices() {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    cachedBrowserVoices = window.speechSynthesis.getVoices() || [];
+    window.speechSynthesis.onvoiceschanged = () => {
+      cachedBrowserVoices = window.speechSynthesis.getVoices() || [];
+    };
+  }
+}
+initVoiceVoices();
+
+async function requestMicrophoneStream() {
+  if (voiceMicStream && voiceMicStream.active && voiceMicStream.getAudioTracks().some(t => t.readyState === 'live')) {
+    return voiceMicStream;
+  }
+
+  // 1. Modern Standard getUserMedia
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    try {
+      voiceMicStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      return voiceMicStream;
+    } catch(err) {
+      console.warn('getUserMedia error:', err);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        const cap = $('voiceCaptionBox');
+        if (cap) cap.innerHTML = '<span style="color:#e06c75; font-weight:600;">⚠️ Microphone access was denied. Please allow microphone permission in your browser site settings.</span>';
+        showToast('⚠️ Microphone permission denied');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        showToast('⚠️ No microphone device found');
+      } else {
+        showToast('⚠️ Microphone error: ' + (err.message || err.name));
+      }
+      throw err;
+    }
+  }
+
+  // 2. Legacy getUserMedia Fallback
+  const legacyGetUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+  if (legacyGetUserMedia) {
+    return new Promise((resolve, reject) => {
+      legacyGetUserMedia.call(navigator, { audio: true }, (stream) => {
+        voiceMicStream = stream;
+        resolve(stream);
+      }, (err) => {
+        showToast('⚠️ Microphone permission error');
+        reject(err);
+      });
+    });
+  }
+
+  const cap = $('voiceCaptionBox');
+  if (cap) cap.innerHTML = '<span style="color:#e06c75; font-weight:600;">⚠️ Microphone API requires HTTPS or http://localhost (or 127.0.0.1).</span>';
+  showToast('⚠️ Microphone requires HTTPS or localhost');
+  throw new Error('Microphone not supported on insecure HTTP origin');
+}
+
+async function initRealMicAudio() {
+  const stream = await requestMicrophoneStream();
+  if (!stream) return;
+  
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      if (!voiceAudioCtx || voiceAudioCtx.state === 'closed') {
+        voiceAudioCtx = new AudioContextClass();
+      }
+      if (voiceAudioCtx.state === 'suspended') {
+        await voiceAudioCtx.resume();
+      }
+      const source = voiceAudioCtx.createMediaStreamSource(stream);
+      voiceAnalyser = voiceAudioCtx.createAnalyser();
+      voiceAnalyser.fftSize = 128;
+      source.connect(voiceAnalyser);
+      voiceAudioDataArray = new Uint8Array(voiceAnalyser.frequencyBinCount);
+    }
+  } catch(e) {
+    console.warn('Real mic audio visualizer setup notice:', e);
+  }
+}
+
+function startVoiceWaveform() {
+  const canvas = $('voiceWaveCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = 300;
+  canvas.height = 50;
+
+  function drawWave() {
+    if (!voiceCallActive) return;
+    voiceWaveAnimId = requestAnimationFrame(drawWave);
+
+    let avgDecibel = 0;
+    if (voiceAnalyser && voiceAudioDataArray) {
+      voiceAnalyser.getByteFrequencyData(voiceAudioDataArray);
+      let sum = 0;
+      for (let i = 0; i < voiceAudioDataArray.length; i++) {
+        sum += voiceAudioDataArray[i];
+      }
+      avgDecibel = sum / voiceAudioDataArray.length;
+    }
+
+    const barEl = $('voiceMicLevelBar');
+    if (barEl) {
+      const percentage = Math.min(100, Math.round((avgDecibel / 128) * 100));
+      barEl.style.width = percentage + '%';
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = (avgDecibel > 15) ? 'rgba(78, 201, 176, 0.9)' : 'rgba(255, 255, 255, 0.2)';
+    ctx.beginPath();
+
+    const sliceWidth = canvas.width * 1.0 / (voiceAudioDataArray ? voiceAudioDataArray.length : 32);
+    let x = 0;
+    const count = voiceAudioDataArray ? voiceAudioDataArray.length : 32;
+
+    for (let i = 0; i < count; i++) {
+      const v = (voiceAudioDataArray ? voiceAudioDataArray[i] : 0) / 128.0;
+      const y = (v * canvas.height / 2);
+
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+
+      x += sliceWidth;
+    }
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
+  }
+  drawWave();
+}
+
+function initVoiceRecognition() {
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) {
+    console.warn('Web Speech Recognition not supported in this browser');
+    return null;
+  }
+  const rec = new SpeechRec();
+  rec.continuous = true;
+  rec.interimResults = true;
+  rec.lang = 'en-US';
+
+  rec.onresult = (event) => {
+    if (voiceMicMuted || isProcessingVoiceTurn) return;
+    let interim = '';
+    let final = '';
+    for (let i = event.resultIndex; i < event.results.length; ++i) {
+      if (event.results[i].isFinal) {
+        final += event.results[i][0].transcript;
+      } else {
+        interim += event.results[i][0].transcript;
+      }
+    }
+    const current = (final || interim || '').trim();
+    if (!current) return;
+
+    voiceCurrentTranscript = current;
+    const captionEl = $('voiceCaptionBox');
+    if (captionEl) {
+      captionEl.innerHTML = `<span style="opacity:0.6; font-size:12px; display:block; margin-bottom:2px;">🎤 Hearing you:</span> ${escapeHtml(current)}`;
+    }
+
+    if (!isVoicePushToTalkRecording) {
+      if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
+      voiceVadSilenceTimer = setTimeout(() => {
+        if (voiceCurrentTranscript && voiceCurrentTranscript.length > 1 && !isProcessingVoiceTurn) {
+          triggerManualVoiceSend();
+        }
+      }, 700);
+    }
+  };
+
+  rec.onerror = (e) => {
+    console.warn('Voice recognition event:', e.error);
+    if (e.error === 'not-allowed') {
+      showToast('Microphone permission required for voice');
+    }
+  };
+
+  rec.onend = () => {
+    if (voiceCallActive && !voiceMicMuted && !isProcessingVoiceTurn) {
+      try { rec.start(); } catch(e) {}
+    }
+  };
+
+  return rec;
+}
+
+async function startVoiceMediaRecording() {
+  try {
+    const stream = await requestMicrophoneStream();
+    if (!stream) return;
+    voiceMediaChunks = [];
+    isVoiceRecordingAudio = true;
+    const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus', ''];
+    let supportedMime = '';
+    for (const m of mimeTypes) {
+      if (!m || (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m))) {
+        supportedMime = m;
+        break;
+      }
+    }
+    const options = supportedMime ? { mimeType: supportedMime } : {};
+    voiceMediaRecorder = new MediaRecorder(stream, options);
+    voiceMediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) voiceMediaChunks.push(e.data);
+    };
+    voiceMediaRecorder.start(200);
+  } catch(e) {
+    console.warn('Voice MediaRecorder start notice:', e);
+  }
+}
+
+async function stopVoiceMediaRecordingAndTranscribe() {
+  if (!voiceMediaRecorder || voiceMediaRecorder.state === 'inactive') {
+    isVoiceRecordingAudio = false;
+    return null;
+  }
+  return new Promise((resolve) => {
+    voiceMediaRecorder.onstop = async () => {
+      isVoiceRecordingAudio = false;
+      try {
+        if (!voiceMediaChunks || voiceMediaChunks.length === 0) return resolve(null);
+        const mime = voiceMediaRecorder.mimeType || 'audio/webm';
+        const blob = new Blob(voiceMediaChunks, { type: mime });
+        voiceMediaChunks = [];
+        if (blob.size < 400) return resolve(null);
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const base64Audio = reader.result;
+            const groqKey = (activePersona && activePersona.groq_key) || localStorage.getItem('groq_key') || '';
+            const res = await fetch('/api/stt', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ audio: base64Audio, groq_key: groqKey, filename: 'voice_turn.webm' })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.ok && data.text && data.text.trim()) {
+                resolve(data.text.trim());
+                return;
+              }
+            }
+          } catch(err) {
+            console.warn('Voice STT transcription error:', err);
+          }
+          resolve(null);
+        };
+        reader.readAsDataURL(blob);
+      } catch(e) {
+        resolve(null);
+      }
+    };
+    try {
+      voiceMediaRecorder.stop();
+    } catch(e) {
+      isVoiceRecordingAudio = false;
+      resolve(null);
+    }
+  });
+}
+
+async function startVoiceCall() {
+  if (!activePersona) {
+    showToast('Select a persona first');
+    return;
+  }
+
+  const modal = $('voiceCallModal');
+  if (modal) modal.classList.add('active');
+
+  $('voiceCallBotName').innerText = activePersona.name || 'Bot';
+  $('voiceCallStatus').innerText = 'Connected • Listening';
+
+  const avatarDisplay = renderAvatarHtml(activePersona.pfp, activePersona.name[0] || 'P', activePersona.color);
+  $('voiceCallAvatar').innerHTML = avatarDisplay;
+  $('voiceCaptionBox').innerHTML = `<em>Listening for your voice... speak anytime</em>`;
+
+  const btn = $('voiceTalkBtn');
+  const label = $('voiceTalkBtnLabel');
+  if (btn) btn.classList.remove('recording');
+  if (label) label.innerText = '🎙️ Tap to Speak';
+
+  const micBtn = $('voiceMicToggleBtn');
+  if (micBtn) {
+    micBtn.classList.remove('muted');
+    micBtn.innerText = '🎙️';
+  }
+
+  voiceCallActive = true;
+  voiceMicMuted = false;
+  voiceSpeakerMuted = false;
+  isProcessingVoiceTurn = false;
+  voiceCurrentTranscript = '';
+  isVoicePushToTalkRecording = false;
+
+  try {
+    if ('speechSynthesis' in window) window.speechSynthesis.resume();
+  } catch(e) {}
+
+  // Request mic permission directly in user gesture
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        voiceMicStream = stream;
+        initRealMicAudio();
+        startVoiceWaveform();
+        if (!voiceRecognition) voiceRecognition = initVoiceRecognition();
+        if (voiceRecognition && voiceCallActive && !voiceMicMuted) {
+          try { voiceRecognition.start(); } catch(e) {}
+        }
+      })
+      .catch(err => {
+        console.warn('Microphone permission request:', err);
+        alert("Microphone Error: " + err.name + "\n\nIf you denied the permission, you need to go to browser Site Settings to unblock it.");
+        $('voiceCallStatus').innerText = 'Mic Muted • Tap 🎙️ to Allow';
+        const cap = $('voiceCaptionBox');
+        if (cap) cap.innerHTML = `<em>Tap the <strong>🎙️</strong> button below to allow microphone access.</em>`;
+        const micBtn = $('voiceMicToggleBtn');
+        if (micBtn) {
+          micBtn.classList.add('muted');
+          micBtn.innerText = '🔇';
+        }
+      });
+  } else {
+    alert("❌ BROWSER SECURITY BLOCK ❌\n\nAndroid Chrome completely blocks the microphone permission popup when opening local files (file://) or HTTP IP addresses.\n\nTo allow the microphone popup to appear, you MUST run the server and open:\nhttp://localhost:5000");
+    initRealMicAudio().catch(e => console.error(e));
+  }
+
+  showToast(`📞 Voice call connected with ${activePersona.name}`);
+}
+
+function endVoiceCall() {
+  voiceCallActive = false;
+  isProcessingVoiceTurn = false;
+  isVoicePushToTalkRecording = false;
+  if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
+  if (voiceWatchdogTimer) clearTimeout(voiceWatchdogTimer);
+
+  const modal = $('voiceCallModal');
+  if (modal) modal.classList.remove('active');
+
+  if (voiceRecognition) {
+    try { voiceRecognition.stop(); } catch(e) {}
+  }
+  if (voiceMediaRecorder && voiceMediaRecorder.state !== 'inactive') {
+    try { voiceMediaRecorder.stop(); } catch(e) {}
+  }
+  if (window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  if (voiceMicStream) {
+    voiceMicStream.getTracks().forEach(t => t.stop());
+    voiceMicStream = null;
+  }
+  if (voiceAudioCtx) {
+    try { voiceAudioCtx.close(); } catch(e) {}
+    voiceAudioCtx = null;
+  }
+  activeUtterance = null;
+  if (currentPlayingAudio) {
+    try { currentPlayingAudio.pause(); } catch(e) {}
+    currentPlayingAudio = null;
+  }
+  if (voiceWaveAnimId) {
+    cancelAnimationFrame(voiceWaveAnimId);
+    voiceWaveAnimId = null;
+  }
+  const halo = $('voiceAvatarHalo');
+  if (halo) halo.classList.remove('speaking');
+
+  showToast('Call ended');
+}
+
+async function handleVoicePushToTalk() {
+  const btn = $('voiceTalkBtn');
+  const label = $('voiceTalkBtnLabel');
+  if (isProcessingVoiceTurn) {
+    showToast('AI is speaking or thinking...');
+    return;
+  }
+
+  if (!isVoicePushToTalkRecording) {
+    isVoicePushToTalkRecording = true;
+    if (btn) btn.classList.add('recording');
+    if (label) label.innerText = '✓ Done Speaking';
+    $('voiceCallStatus').innerText = '🔴 Recording Speech... Speak now';
+    voiceCurrentTranscript = '';
+    
+    await startVoiceMediaRecording();
+
+    if (!voiceRecognition) voiceRecognition = initVoiceRecognition();
+    if (voiceRecognition) {
+      try { voiceRecognition.start(); } catch(e) {}
+    }
+    showToast('🎙️ Listening... Tap again when finished speaking');
+  } else {
+    isVoicePushToTalkRecording = false;
+    if (btn) btn.classList.remove('recording');
+    if (label) label.innerText = '🎙️ Tap to Speak';
+    $('voiceCallStatus').innerText = 'Processing Speech...';
+
+    const sttResult = await stopVoiceMediaRecordingAndTranscribe();
+    const finalSpeech = (sttResult && sttResult.trim()) || voiceCurrentTranscript.trim();
+    
+    if (finalSpeech && finalSpeech.length > 0) {
+      voiceCurrentTranscript = '';
+      handleVoiceUserInput(finalSpeech);
+    } else {
+      $('voiceCallStatus').innerText = 'Connected • Listening';
+      const captionEl = $('voiceCaptionBox');
+      if (captionEl) captionEl.innerHTML = `<em>Didn't catch that — tap to speak again anytime.</em>`;
+      showToast('⚠️ No speech detected. Please speak louder into mic.');
+    }
+  }
+}
+
+async function toggleVoiceCallMic() {
+  if (!voiceMicStream || !voiceMicStream.active) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert("❌ BROWSER SECURITY BLOCK ❌\n\nAndroid Chrome completely blocks the microphone API when opening local files (file://) or HTTP IP addresses.\n\nTo allow the microphone popup to appear, you MUST run the server and open:\nhttp://localhost:5000");
+      return;
+    }
+    try {
+      showToast('Requesting mic permission...');
+      voiceMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceMicMuted = false;
+      await initRealMicAudio();
+      startVoiceWaveform();
+      if (!voiceRecognition) voiceRecognition = initVoiceRecognition();
+      if (voiceRecognition) try { voiceRecognition.start(); } catch(e) {}
+      const btn = $('voiceMicToggleBtn');
+      if (btn) {
+        btn.classList.remove('muted');
+        btn.innerText = '🎙️';
+      }
+      $('voiceCallStatus').innerText = 'Connected • Listening';
+      const cap = $('voiceCaptionBox');
+      if (cap) cap.innerHTML = `<em>Microphone enabled. Speak anytime.</em>`;
+      showToast('🎙️ Microphone enabled');
+      return;
+    } catch(err) {
+      console.warn('Mic toggle permission error:', err);
+      alert("Microphone Error: " + err.name + "\n\nIf you denied the permission, go to Chrome Site Settings -> Microphone and allow it for this site.");
+      showToast('⚠️ Microphone permission required');
+      return;
+    }
+  }
+
+  voiceMicMuted = !voiceMicMuted;
+  if (voiceMicStream) {
+    voiceMicStream.getAudioTracks().forEach(t => { t.enabled = !voiceMicMuted; });
+  }
+  const btn = $('voiceMicToggleBtn');
+  if (btn) {
+    btn.classList.toggle('muted', voiceMicMuted);
+    btn.innerText = voiceMicMuted ? '🔇' : '🎙️';
+  }
+  if (voiceMicMuted && voiceRecognition) {
+    try { voiceRecognition.stop(); } catch(e) {}
+  } else if (!voiceMicMuted && voiceRecognition && voiceCallActive && !isProcessingVoiceTurn) {
+    try { voiceRecognition.start(); } catch(e) {}
+  }
+  $('voiceCallStatus').innerText = voiceMicMuted ? 'Microphone Muted' : 'Connected • Listening';
+  showToast(voiceMicMuted ? 'Microphone muted' : 'Microphone unmuted');
+}
+
+function toggleVoiceCallSpeaker() {
+  voiceSpeakerMuted = !voiceSpeakerMuted;
+  const btn = $('voiceSpeakerToggleBtn');
+  if (btn) {
+    btn.classList.toggle('muted', voiceSpeakerMuted);
+    btn.innerText = voiceSpeakerMuted ? '🔈' : '🔊';
+  }
+  if (voiceSpeakerMuted && window.speechSynthesis) {
+    window.speechSynthesis.cancel();
+  }
+  if (voiceSpeakerMuted && currentPlayingAudio) {
+    try { currentPlayingAudio.pause(); } catch(e) {}
+  }
+  showToast(voiceSpeakerMuted ? 'Speaker muted' : 'Speaker unmuted');
+}
+
+async function triggerManualVoiceSend() {
+  if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
+  let textToSend = voiceCurrentTranscript.trim();
+  if (!textToSend && isVoiceRecordingAudio) {
+    textToSend = (await stopVoiceMediaRecordingAndTranscribe()) || '';
+  }
+  if (!textToSend || isProcessingVoiceTurn) return;
+  voiceCurrentTranscript = '';
+  handleVoiceUserInput(textToSend);
+}
+
+async function handleVoiceUserInput(userText) {
+  if (!userText || !activePersona) return;
+  isProcessingVoiceTurn = true;
+  if (voiceRecognition) {
+    try { voiceRecognition.stop(); } catch(e) {}
+  }
+
+  $('voiceCallStatus').innerText = 'Thinking...';
+  const captionEl = $('voiceCaptionBox');
+  if (captionEl) {
+    captionEl.innerHTML = `<span style="opacity:0.6; font-size:12px; display:block; margin-bottom:2px;">You:</span> ${escapeHtml(userText)}<div style="margin-top:6px; color:var(--accent); font-size:12px;"><em>Thinking...</em></div>`;
+  }
+
+  appendChatMsg('user', userText);
+
+  try {
+    const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
+    const history = (chatMessages[activePersona.id] || []).slice(0, -1);
+
+    const res = await executeAiChatRequest(userText, sysPrompt, activePersona, history, null);
+    const botReply = (res && res.reply) ? res.reply : "*listens attentively and nods*";
+
+    appendChatMsg('assistant', botReply);
+
+    if (captionEl) {
+      captionEl.innerHTML = `<span style="color:var(--accent); font-size:12px; display:block; margin-bottom:2px;">${escapeHtml(activePersona.name)}:</span> ${escapeHtml(botReply.replace(/[*_#`]/g, ''))}`;
+    }
+
+    $('voiceCallStatus').innerText = 'Speaking...';
+    speakPersonaVoiceReply(botReply);
+  } catch (err) {
+    console.error('Voice call chat error:', err);
+    $('voiceCallStatus').innerText = 'Connected • Listening';
+    isProcessingVoiceTurn = false;
+    if (voiceCallActive && !voiceMicMuted && voiceRecognition) {
+      try { voiceRecognition.start(); } catch(e) {}
+    }
+  }
+}
+
+async function synthesizeCustomTTSAudio(text, persona) {
+  if (!persona) return null;
+  const cfg = persona.config || persona.settings || {};
+  const ep = (typeof getCustomEndpointConfig === 'function') ? getCustomEndpointConfig() : {};
+
+  const cleanText = text
+    .replace(/\*[^*]*\*/g, '')
+    .replace(/[*_#`~>\[\]()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() || text.replace(/[*_#`~>\[\]()]/g, ' ').trim();
+
+  if (!cleanText) return null;
+
+  const ttsProvider = (cfg.tts_provider || persona.tts_provider || 'auto').toLowerCase();
+  const fishVoiceId = cfg.fish_voice_id || persona.fish_voice_id || cfg.voice_id || '';
+  const elevenVoiceId = cfg.elevenlabs_voice_id || persona.elevenlabs_voice_id || cfg.voice_id || '';
+  const cartesiaVoiceId = cfg.cartesia_voice_id || persona.cartesia_voice_id || '';
+  const openaiVoice = cfg.openai_voice || persona.openai_voice || 'nova';
+
+  const elevenKey = cfg.elevenlabs_key || ep.elevenlabs_key || '';
+  const fishKey = cfg.fish_key || ep.fish_key || '';
+  const cartesiaKey = cfg.cartesia_key || ep.cartesia_key || '';
+  const openaiKey = cfg.openai_key || ep.openai_key || '';
+
+  if ((ttsProvider === 'elevenlabs' || elevenVoiceId) && (elevenKey || elevenVoiceId)) {
+    try {
+      const vId = elevenVoiceId || '21m00Tcm4TlvDq8ikWAM';
+      const keyToUse = elevenKey || 'sk_mock';
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${vId}`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': keyToUse,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: cleanText.slice(0, 1000),
+          model_id: cfg.elevenlabs_model || 'eleven_turbo_v2_5'
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch(e) { console.warn('ElevenLabs API error:', e); }
+  }
+
+  if ((ttsProvider === 'fish' || fishVoiceId) && (fishKey || fishVoiceId)) {
+    try {
+      const res = await fetch('https://api.fish.audio/v1/tts', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${fishKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: cleanText.slice(0, 1000),
+          reference_id: fishVoiceId || undefined,
+          format: 'mp3'
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch(e) { console.warn('Fish Audio API error:', e); }
+  }
+
+  if ((ttsProvider === 'cartesia' || cartesiaVoiceId) && cartesiaKey) {
+    try {
+      const res = await fetch('https://api.cartesia.ai/tts/bytes', {
+        method: 'POST',
+        headers: {
+          'X-API-Key': cartesiaKey,
+          'Cartesia-Version': '2024-06-10',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model_id: cfg.cartesia_model || 'sonic-3.5',
+          transcript: cleanText.slice(0, 1000),
+          voice: { mode: 'id', id: cartesiaVoiceId || 'a0e99841-438c-4a64-b679-ae501e7d6091' },
+          output_format: { container: 'raw', encoding: 'pcm_f32le', sample_rate: 44100 }
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch(e) { console.warn('Cartesia API error:', e); }
+  }
+
+  if ((ttsProvider === 'openai') && openaiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: cfg.openai_model || 'tts-1',
+          voice: openaiVoice,
+          input: cleanText.slice(0, 1000)
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch(e) { console.warn('OpenAI TTS API error:', e); }
+  }
+
+  return null;
+}
+
+async function speakPersonaVoiceReply(text) {
+  if (voiceSpeakerMuted || !text) {
+    $('voiceCallStatus').innerText = 'Connected • Listening';
+    isProcessingVoiceTurn = false;
+    if (voiceCallActive && !voiceMicMuted && voiceRecognition) {
+      try { voiceRecognition.start(); } catch(e) {}
+    }
+    return;
+  }
+
+  if (currentPlayingAudio) {
+    try { currentPlayingAudio.pause(); } catch(e) {}
+    currentPlayingAudio = null;
+  }
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch(e) {}
+  }
+
+  const halo = $('voiceAvatarHalo');
+  const onSpeechDone = () => {
+    if (voiceWatchdogTimer) clearTimeout(voiceWatchdogTimer);
+    if (halo) halo.classList.remove('speaking');
+    $('voiceCallStatus').innerText = 'Connected • Listening';
+    isProcessingVoiceTurn = false;
+    activeUtterance = null;
+    if (voiceCallActive && !voiceMicMuted && voiceRecognition) {
+      try { voiceRecognition.start(); } catch(e) {}
+    }
+  };
+
+  if (halo) halo.classList.add('speaking');
+  voiceWatchdogTimer = setTimeout(onSpeechDone, 16000);
+
+  try {
+    const customAudioUrl = await synthesizeCustomTTSAudio(text, activePersona);
+    if (customAudioUrl) {
+      const audio = new Audio(customAudioUrl);
+      currentPlayingAudio = audio;
+      audio.onended = onSpeechDone;
+      audio.onerror = () => {
+        speakPersonaVoiceNative(text, onSpeechDone);
+      };
+      await audio.play();
+      return;
+    }
+  } catch (ttsErr) {
+    console.warn('Custom TTS error, falling back to Web Speech synthesis:', ttsErr);
+  }
+
+  speakPersonaVoiceNative(text, onSpeechDone);
+}
+
+function speakPersonaVoiceNative(text, onDone) {
+  if (!('speechSynthesis' in window)) {
+    if (onDone) onDone();
+    return;
+  }
+
+  const cleanText = text
+    .replace(/\*[^*]*\*/g, '')
+    .replace(/[*_#`~>\[\]()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() || text.replace(/[*_#`~>\[\]()]/g, ' ').trim();
+
+  if (!cleanText) {
+    if (onDone) onDone();
+    return;
+  }
+
+  try {
+    window.speechSynthesis.cancel();
+    const utt = new SpeechSynthesisUtterance(cleanText.slice(0, 400));
+    utt.rate = 1.0;
+    utt.pitch = 1.05;
+
+    const voices = cachedBrowserVoices.length ? cachedBrowserVoices : window.speechSynthesis.getVoices();
+    if (voices && voices.length) {
+      const preferred = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Jenny')));
+      if (preferred) utt.voice = preferred;
+    }
+
+    utt.onend = () => {
+      if (onDone) onDone();
+    };
+    utt.onerror = () => {
+      if (onDone) onDone();
+    };
+
+    activeUtterance = utt;
+    window.speechSynthesis.speak(utt);
+  } catch (e) {
+    if (onDone) onDone();
+  }
 }
 
 loadServerBots();

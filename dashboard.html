@@ -389,19 +389,31 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
   </div>
 </div>
 
+<input type="file" id="deskCardInput" accept=".json,.png,image/png,application/json" style="display:none;" onchange="handleDeskCardFileUpload(event)">
+
 <div class="paper paper-bl" data-paper="bl">
   <div class="paper-clip"></div>
   <div class="paper-close">&#10005;</div>
-  <div class="paper-header">&#128030; Memory &amp; Context</div>
+  <div class="paper-header">&#127760; Lore &amp; Card Import</div>
   <div class="paper-body">
     <div class="paper-content">
-      <h3>Memory Profiling</h3>
-      <div style="font-size:11px; color:var(--ink-muted); line-height:1.6;">
-        User memory is tracked across conversations. The bot remembers:
-        <br>&bull; User facts and preferences
-        <br>&bull; Notable user quotes &amp; inside jokes
-        <br>&bull; Discord activities &amp; guild roles
-        <br>&bull; Scene context in servers &amp; DMs
+      <h3>Import Character Persona</h3>
+      <div style="font-size:11px; color:var(--ink-muted); margin-bottom:12px; line-height:1.5;">
+        Upload Chub, Janitor AI, or Tavern card files (.json, .png) or pull lore directly from Wiki / Fandom URLs. Automatically fills all bot settings.
+      </div>
+
+      <div class="paper-item" onclick="document.getElementById('deskCardInput').click()" style="justify-content:center; background:var(--accent-sage); color:#fff; border:none; margin-bottom:10px;">
+        <span style="font-weight:600; font-size:11px;">📁 UPLOAD CHARACTER FILE (.JSON, .PNG)</span>
+      </div>
+
+      <label style="font-size:10px; text-transform:uppercase; color:var(--ink-faint); margin-top:8px;">Pull Lore from Wiki Link</label>
+      <input type="url" id="deskWikiUrlInput2" placeholder="https://*.fandom.com/wiki/... or Wikipedia URL" style="margin-bottom:6px;">
+      <div class="paper-item" onclick="pullDeskPersonalityFromWiki('deskWikiUrlInput2')" style="justify-content:center; background:rgba(138,154,138,0.15); border-color:rgba(138,154,138,0.3); font-size:11px; font-weight:600;">
+        ⚡ PULL &amp; APPLY LORE
+      </div>
+
+      <div style="margin-top:14px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.06); font-size:10px; color:var(--ink-faint); line-height:1.5;">
+        Supports V1/V2 Character Cards &amp; Janitor exports (e.g. <code>main_sasaki-yukari_spec_v2.json</code>).
       </div>
     </div>
   </div>
@@ -880,6 +892,18 @@ function renderSettings(bot) {
     '</div>' +
     '<div id="settingsStatus" class="status" style="margin-bottom:10px;"></div>' +
 
+    '<div class="settings-group" style="background:rgba(138,154,138,0.08); border:1.5px solid rgba(138,154,138,0.25); border-radius:6px; padding:12px; margin-bottom:12px;">' +
+    '<div class="settings-group-title" style="color:var(--ink); font-weight:700; margin-bottom:8px;">🌐 Import Card / Wiki Lore</div>' +
+    '<div style="display:flex; gap:6px; margin-bottom:8px;">' +
+    '<div class="paper-item" onclick="document.getElementById(\'deskCardInput\').click()" style="flex:1; justify-content:center; background:var(--accent-sage); color:#fff; border:none; font-size:11px; font-weight:600; padding:8px;">📁 Upload File (.json, .png)</div>' +
+    '</div>' +
+    '<div style="font-size:10px; color:var(--ink-faint); margin-bottom:4px;">Or pull lore from Wiki / Fandom URL:</div>' +
+    '<div style="display:flex; gap:6px;">' +
+    '<input type="url" id="deskWikiUrlInput" placeholder="https://*.fandom.com/wiki/... or Wikipedia" style="flex:1; font-size:11px; padding:6px 8px;">' +
+    '<div class="paper-item" id="deskWikiPullBtn" onclick="pullDeskPersonalityFromWiki(\'deskWikiUrlInput\')" style="background:rgba(138,154,138,0.15); border-color:rgba(138,154,138,0.3); font-size:11px; font-weight:600; white-space:nowrap; padding:6px 12px;">⚡ Pull Lore</div>' +
+    '</div>' +
+    '</div>' +
+
     '<div class="settings-group"><div class="settings-group-title">Personality</div>' +
     mkRow("", mkArea("personality", 3, "How should your bot behave?")) +
     '</div>' +
@@ -1080,6 +1104,228 @@ function resetSettings() {
   currentBot.settings = getDefaultSettings();
   renderSettings(currentBot);
   setStatus("settingsStatus", "Defaults loaded. Click SAVE to apply.", "info");
+}
+
+/* ---------- CHARACTER CARD & WIKI IMPORTER ---------- */
+function extractPngTextChunks(arrayBuffer) {
+  try {
+    const view = new DataView(arrayBuffer);
+    if (view.getUint32(0) !== 0x89504E47 || view.getUint32(4) !== 0x0D0A1A0A) return null;
+    let offset = 8;
+    const chunks = {};
+    const decoder = new TextDecoder('utf-8');
+
+    while (offset < view.byteLength) {
+      if (offset + 8 > view.byteLength) break;
+      const length = view.getUint32(offset);
+      const type = String.fromCharCode(view.getUint8(offset + 4), view.getUint8(offset + 5), view.getUint8(offset + 6), view.getUint8(offset + 7));
+      const chunkDataOffset = offset + 8;
+      if (chunkDataOffset + length > view.byteLength) break;
+
+      if (type === 'tEXt' || type === 'iTXt') {
+        const chunkBytes = new Uint8Array(arrayBuffer, chunkDataOffset, length);
+        const nullIdx = chunkBytes.indexOf(0);
+        if (nullIdx !== -1) {
+          const keyword = decoder.decode(chunkBytes.subarray(0, nullIdx)).toLowerCase();
+          if (['chara', 'ccv3', 'character'].includes(keyword)) {
+            let rawStr = '';
+            if (type === 'tEXt') {
+              rawStr = decoder.decode(chunkBytes.subarray(nullIdx + 1)).trim();
+            } else {
+              let textStart = nullIdx + 3;
+              let nullCount = 0;
+              for (let i = textStart; i < chunkBytes.length && nullCount < 2; i++) {
+                if (chunkBytes[i] === 0) { nullCount++; textStart = i + 1; }
+              }
+              rawStr = decoder.decode(chunkBytes.subarray(textStart)).trim();
+            }
+            if (rawStr.startsWith('{')) chunks[keyword] = rawStr;
+            else {
+              try { chunks[keyword] = decodeURIComponent(escape(atob(rawStr))); }
+              catch (e) { try { chunks[keyword] = atob(rawStr); } catch (e2) {} }
+            }
+          }
+        }
+      }
+      offset += 12 + length;
+    }
+    return chunks;
+  } catch (e) { return null; }
+}
+
+function parseCharacterCardData(raw, sourceFileName) {
+  let data = raw;
+  if (typeof data === 'string') {
+    try { data = JSON.parse(data); } catch (e) {}
+  }
+  if (!data || typeof data !== 'object') return null;
+
+  const d = (data.spec === 'chara_card_v2' || data.spec_version === '2.0' || data.data) ? (data.data || {}) : data;
+  const name = (d.name || d.char_name || d.bot_name || data.name || (sourceFileName ? sourceFileName.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ') : '') || 'New Character').trim();
+  const rawDesc = d.description || d.char_desc || d.desc || data.description || '';
+  const rawPers = d.personality || d.char_personality || d.personality_summary || data.personality || '';
+  const rawScenario = d.scenario || d.char_scenario || data.scenario || '';
+  const rawGreeting = d.first_mes || d.greeting || d.first_message || d.initial_message || data.first_mes || ("*looks up and smiles* Hello, I am " + name + ".");
+  const rawExamples = d.mes_example || d.example_dialogue || d.examples || data.mes_example || '';
+  const rawSysPrompt = d.system_prompt || data.system_prompt || '';
+  const rawAvatar = d.avatar || d.avatar_url || d.pfp || data.avatar || data.avatar_url || data.pfp || '';
+  const tags = Array.isArray(d.tags) ? d.tags : (Array.isArray(data.tags) ? data.tags : []);
+
+  let role = d.role || data.role || '';
+  if (!role && tags.length > 0) {
+    const cleanTags = tags.filter(t => t && String(t).length < 20 && !['NSFW', 'ROOT', 'OAI', 'TAVERN'].includes(String(t).toUpperCase()));
+    if (cleanTags.length > 0) role = cleanTags.slice(0, 2).join(' • ');
+  }
+  if (!role) role = 'AI Persona';
+
+  let shortDesc = rawPers ? rawPers.slice(0, 140) : (rawDesc ? rawDesc.slice(0, 140) : `${name} — ${role}`);
+
+  let promptParts = [];
+  if (rawSysPrompt) promptParts.push(rawSysPrompt.trim());
+  promptParts.push(`[Character: ${name}]`);
+  if (role) promptParts.push(`[Role: ${role}]`);
+  if (rawPers) promptParts.push(`[Personality & Traits:\n${rawPers.trim()}]`);
+  if (rawDesc) promptParts.push(`[Description & Background:\n${rawDesc.trim()}]`);
+  if (rawScenario) promptParts.push(`[Scenario & Setting:\n${rawScenario.trim()}]`);
+  if (rawExamples) promptParts.push(`[Example Dialogue:\n${rawExamples.trim()}]`);
+
+  const fullPrompt = promptParts.join('\n\n');
+
+  return {
+    name: name,
+    role: role,
+    desc: shortDesc,
+    greeting: rawGreeting,
+    personality: fullPrompt,
+    raw_personality: rawPers,
+    raw_description: rawDesc,
+    scenario: rawScenario,
+    example_dialogue: rawExamples,
+    avatar_url: rawAvatar,
+    tags: tags
+  };
+}
+
+async function applyCardToDeskSettings(card) {
+  if (!card) return;
+  if (currentBot) {
+    currentBot.bot_name = card.name || currentBot.bot_name;
+    if (!currentBot.settings) currentBot.settings = getDefaultSettings();
+    currentBot.settings.personality = card.personality || currentBot.settings.personality;
+    currentBot.settings.desc = card.desc || currentBot.settings.desc;
+    currentBot.settings.greeting = card.greeting || currentBot.settings.greeting;
+    if (card.avatar_url) {
+      currentBot.settings.avatar_url = card.avatar_url;
+      currentBot.settings.pfp = card.avatar_url;
+    }
+    renderSettings(currentBot);
+    showDashboard(currentBot);
+    await saveSettings();
+    updateTerminal('Imported character: ' + card.name, 'Personality & Avatar applied to bot', 'Synced');
+    showToast(`✓ Imported character "${card.name}" into bot settings!`);
+  } else {
+    updateTerminal('Card imported: ' + card.name, 'Connect a bot token to activate this persona', '');
+    showToast(`✓ Character "${card.name}" loaded! Connect a bot token to apply.`);
+    openPaperByClass('paper-top');
+  }
+}
+
+async function handleDeskCardFileUpload(e) {
+  const file = e.target ? (e.target.files && e.target.files[0]) : e;
+  if (!file) return;
+
+  const fname = file.name || 'character_card';
+  const ext = fname.toLowerCase().slice(fname.lastIndexOf('.'));
+  showToast(`Reading character file: ${fname}...`);
+
+  if (ext === '.json') {
+    try {
+      const text = await file.text();
+      const rawJson = JSON.parse(text);
+      const card = parseCharacterCardData(rawJson, fname);
+      if (card) {
+        await applyCardToDeskSettings(card);
+      } else {
+        showToast('Could not find character fields in JSON.');
+      }
+    } catch (err) {
+      showToast('Error reading JSON: ' + err.message);
+    }
+  } else if (ext === '.png') {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const chunks = extractPngTextChunks(arrayBuffer);
+      let cardData = null;
+      if (chunks) {
+        const rawJsonStr = chunks.chara || chunks.ccv3 || chunks.character;
+        if (rawJsonStr) {
+          try { cardData = JSON.parse(rawJsonStr); } catch (pe) {}
+        }
+      }
+      if (cardData) {
+        const card = parseCharacterCardData(cardData, fname);
+        await applyCardToDeskSettings(card);
+      } else {
+        showToast(`Loaded PNG "${fname}" (No embedded character card found).`);
+      }
+    } catch (err) {
+      showToast('Error processing PNG: ' + err.message);
+    }
+  }
+  if (e.target && e.target.value) e.target.value = '';
+}
+
+async function pullDeskPersonalityFromWiki(inputElemId = 'deskWikiUrlInput') {
+  const inp = $(inputElemId) || $('deskWikiUrlInput') || $('deskWikiUrlInput2');
+  const url = inp ? inp.value.trim() : '';
+  if (!url) {
+    showToast('Enter a wiki or character link first');
+    if (inp) inp.focus();
+    return;
+  }
+
+  showToast('Fetching wiki lore and generating personality...');
+  updateTerminal('Pulling lore from URL...', url.slice(0, 45) + '...', '');
+
+  try {
+    const res = await fetch('/api/pull_personality', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url })
+    });
+    const data = await res.json();
+    if (data && data.ok && data.character) {
+      await applyCardToDeskSettings(data.character);
+      showToast(`✓ Synthesized character "${data.character.name}" from Wiki!`);
+    } else {
+      const wikiMatch = url.match(/wikipedia\.org\/wiki\/([^#?]+)/i);
+      if (wikiMatch) {
+        const pageTitle = decodeURIComponent(wikiMatch[1]);
+        const wres = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`);
+        if (wres.ok) {
+          const wdata = await wres.json();
+          const wtitle = wdata.title || pageTitle.replace(/_/g, ' ');
+          const wextract = wdata.extract || '';
+          const wimg = (wdata.originalimage || wdata.thumbnail || {}).source || '';
+          const fallbackCard = {
+            name: wtitle,
+            role: 'Historical / Character Persona',
+            desc: wextract.slice(0, 140),
+            greeting: `*looks up and greets you calmly* Greetings. I am ${wtitle}.`,
+            personality: `[Character: ${wtitle}]\n[Lore & Background:\n${wextract}]`,
+            avatar_url: wimg
+          };
+          await applyCardToDeskSettings(fallbackCard);
+          showToast(`✓ Pulled Wikipedia summary for "${wtitle}"!`);
+          return;
+        }
+      }
+      throw new Error((data && data.error) || 'Failed to extract lore from link');
+    }
+  } catch (err) {
+    showToast('Pull failed: ' + err.message);
+    updateTerminal('Pull lore error', err.message, '');
+  }
 }
 
 /* ---------- PAPER UI ---------- */

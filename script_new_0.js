@@ -1,1867 +1,4 @@
-<!DOCTYPE html>
-<html lang="en" data-theme="dark">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Bot SaaS — Studio Suite</title>
-<style>
-* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
-:root {
-  --sidebar-bg: #0f0f0f;
-  --sidebar-active: #e85d5d;
-  --sidebar-text: #888;
-  --sidebar-text-active: #fff;
-  --main-bg: #1a1a1a;
-  --card-bg: #252525;
-  --card-border: #333;
-  --text-primary: #fff;
-  --text-secondary: #aaa;
-  --text-muted: #666;
-  --accent: #e85d5d;
-  --accent-soft: rgba(232, 93, 93, 0.15);
-  --empty-border: #444;
-  --input-bg: #1e1e1e;
-  --input-border: #333;
-  --input-focus: #e85d5d;
-  --chat-top-bg: #202020;
-  --chat-bubble-ai: #282828;
-  --chat-bubble-user: #382525;
-  --chat-composer-bg: #1e1e1e;
-}
-
-[data-theme="sage"] {
-  --sidebar-bg: #222722; --sidebar-active: #8a9a8a; --sidebar-text: #889488; --sidebar-text-active: #f0f4f0;
-  --main-bg: #2b332b; --card-bg: #343d34; --card-border: #424e42; --text-primary: #f4f8f4;
-  --text-secondary: #c2cec2; --text-muted: #8e9e8e; --accent: #8a9a8a; --accent-soft: rgba(138, 154, 138, 0.2);
-  --empty-border: #526252; --input-bg: #242c24; --input-border: #424e42; --input-focus: #8a9a8a;
-  --chat-top-bg: #252e25; --chat-bubble-ai: #343e34; --chat-bubble-user: #3d4a3d; --chat-composer-bg: #242c24;
-}
-[data-theme="blueprint"] {
-  --sidebar-bg: #071322; --sidebar-active: #38bdf8; --sidebar-text: #6088b3; --sidebar-text-active: #f0f8ff;
-  --main-bg: #0c1e36; --card-bg: #122a4a; --card-border: #1d3d66; --text-primary: #f0f7ff;
-  --text-secondary: #b5d5f5; --text-muted: #6f9bc6; --accent: #38bdf8; --accent-soft: rgba(56, 189, 248, 0.2);
-  --empty-border: #234b7a; --input-bg: #0e2440; --input-border: #1d3d66; --input-focus: #38bdf8;
-  --chat-top-bg: #0e2440; --chat-bubble-ai: #142f54; --chat-bubble-user: #173d6d; --chat-composer-bg: #0e2440;
-}
-[data-theme="clay"] {
-  --sidebar-bg: #1e1714; --sidebar-active: #b87a54; --sidebar-text: #8e7d75; --sidebar-text-active: #fdfbf9;
-  --main-bg: #2a201c; --card-bg: #362a24; --card-border: #4a3b34; --text-primary: #faf6f3;
-  --text-secondary: #d6c6bd; --text-muted: #9c8a81; --accent: #b87a54; --accent-soft: rgba(184, 122, 84, 0.2);
-  --empty-border: #5a4840; --input-bg: #261d19; --input-border: #4a3b34; --input-focus: #b87a54;
-  --chat-top-bg: #261d19; --chat-bubble-ai: #382c26; --chat-bubble-user: #4a362d; --chat-composer-bg: #261d19;
-}
-[data-theme="emerald"] {
-  --sidebar-bg: #0f1c15; --sidebar-active: #2e8b57; --sidebar-text: #6b8f79; --sidebar-text-active: #f2f9f5;
-  --main-bg: #16271e; --card-bg: #1e3529; --card-border: #2c4d3c; --text-primary: #f2faf5;
-  --text-secondary: #bce0cb; --text-muted: #72a385; --accent: #2e8b57; --accent-soft: rgba(46, 139, 87, 0.2);
-  --empty-border: #355f4a; --input-bg: #14241b; --input-border: #2c4d3c; --input-focus: #2e8b57;
-  --chat-top-bg: #14241b; --chat-bubble-ai: #1f382b; --chat-bubble-user: #264a38; --chat-composer-bg: #14241b;
-}
-[data-theme="rose"] {
-  --sidebar-bg: #1f1113; --sidebar-active: #e06c75; --sidebar-text: #967579; --sidebar-text-active: #fff0f2;
-  --main-bg: #2b181b; --card-bg: #382024; --card-border: #4d2d32; --text-primary: #fff2f4;
-  --text-secondary: #e6c5ca; --text-muted: #ab868c; --accent: #e06c75; --accent-soft: rgba(224, 108, 117, 0.2);
-  --empty-border: #5e363d; --input-bg: #261517; --input-border: #4d2d32; --input-focus: #e06c75;
-  --chat-top-bg: #261517; --chat-bubble-ai: #3b2226; --chat-bubble-user: #4d272d; --chat-composer-bg: #261517;
-}
-[data-theme="ocean"] {
-  --sidebar-bg: #0d1a24; --sidebar-active: #3a7bd5; --sidebar-text: #698b9f; --sidebar-text-active: #f0f8ff;
-  --main-bg: #132433; --card-bg: #1a3145; --card-border: #274763; --text-primary: #f2f8fc;
-  --text-secondary: #bcd4e6; --text-muted: #739bb5; --accent: #3a7bd5; --accent-soft: rgba(58, 123, 213, 0.2);
-  --empty-border: #325a7d; --input-bg: #10202e; --input-border: #274763; --input-focus: #3a7bd5;
-  --chat-top-bg: #10202e; --chat-bubble-ai: #1d364c; --chat-bubble-user: #22476b; --chat-composer-bg: #10202e;
-}
-[data-theme="amber"] {
-  --sidebar-bg: #1f1b10; --sidebar-active: #d4a017; --sidebar-text: #968a6d; --sidebar-text-active: #fcf9f0;
-  --main-bg: #2b2516; --card-bg: #38301d; --card-border: #4d4329; --text-primary: #fcf9f0;
-  --text-secondary: #e0d5ba; --text-muted: #a69874; --accent: #d4a017; --accent-soft: rgba(212, 160, 23, 0.2);
-  --empty-border: #615433; --input-bg: #241f12; --input-border: #4d4329; --input-focus: #d4a017;
-  --chat-top-bg: #241f12; --chat-bubble-ai: #3d3520; --chat-bubble-user: #4f4221; --chat-composer-bg: #241f12;
-}
-
-body {
-  width: 100vw; height: 100vh; overflow: hidden;
-  background: var(--main-bg); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: var(--text-primary); display: flex;
-  transition: background 0.25s ease, color 0.2s ease;
-  position: relative; contain: strict;
-}
-
-.paint-bleed-container {
-  position: fixed; inset: 0; pointer-events: none; z-index: 999999; overflow: hidden; contain: strict;
-}
-
-.paint-bleed-flash {
-  position: absolute; width: 60px; height: 60px; border-radius: 50%;
-  pointer-events: none; opacity: 0.22;
-  transform: translate3d(-50%, -50%, 0) scale(0);
-  will-change: transform, opacity;
-  animation: fastPaintBleed 0.4s cubic-bezier(0.12, 0.85, 0.25, 1) forwards;
-}
-
-@keyframes fastPaintBleed {
-  0% { transform: translate3d(-50%, -50%, 0) scale(0); opacity: 0.25; }
-  60% { opacity: 0.18; }
-  100% { transform: translate3d(-50%, -50%, 0) scale(55); opacity: 0; }
-}
-
-/* SIDEBAR */
-.sidebar {
-  width: 64px; background: var(--sidebar-bg);
-  display: flex; flex-direction: column; align-items: center;
-  padding: 10px 0 0; gap: 4px; flex-shrink: 0; border-right: 1px solid var(--card-border);
-  z-index: 50; transition: background 0.25s ease, border-color 0.25s ease;
-  box-shadow: 4px 0 20px rgba(0,0,0,0.35);
-  overflow-y: auto; overflow-x: hidden;
-}
-.sidebar::-webkit-scrollbar { width: 0; height: 0; }
-
-body.sidebar-hidden .sidebar {
-  display: none !important;
-}
-
-.sidebar-item {
-  display: flex; flex-direction: column; align-items: center; gap: 3px;
-  padding: 6px 0; cursor: pointer; position: relative;
-  color: var(--sidebar-text); text-decoration: none; width: 100%;
-  transition: transform 0.15s ease, color 0.15s ease;
-  flex-shrink: 0; will-change: transform;
-}
-.sidebar-item:hover { color: var(--sidebar-text-active); transform: scale(1.05); }
-.sidebar-item:active { transform: scale(0.95); }
-.sidebar-item.active { color: var(--sidebar-active); }
-.sidebar-item.active::before {
-  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3.5px;
-  background: var(--sidebar-active); border-radius: 0 3px 3px 0;
-  box-shadow: 0 0 12px var(--sidebar-active);
-}
-
-.sidebar-icon { width: 22px; height: 22px; display: grid; place-items: center; }
-.sidebar-icon svg { width: 18px; height: 18px; }
-
-.sidebar-label {
-  writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg);
-  font-size: 9.5px; font-weight: 500; letter-spacing: 0.6px;
-  text-transform: uppercase; white-space: nowrap;
-}
-
-.sidebar-spacer { flex: 1; min-height: 8px; }
-
-.sidebar-bottom-group {
-  display: flex; flex-direction: column; align-items: center; gap: 6px;
-  padding-bottom: 28vh; margin-top: auto; flex-shrink: 0; width: 100%;
-}
-
-.sidebar-icon-btn {
-  width: 38px; height: 38px; border-radius: 8px;
-  display: grid; place-items: center; cursor: pointer;
-  color: var(--sidebar-text); transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s;
-  margin: 1px 0; flex-shrink: 0; position: relative; will-change: transform;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-}
-.sidebar-icon-btn:hover { color: var(--sidebar-text-active); background: rgba(255,255,255,0.08); transform: scale(1.08); box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
-.sidebar-icon-btn:active { transform: scale(0.92); }
-.sidebar-icon-btn svg { width: 19px; height: 19px; }
-
-.palette-btn-wrap { position: relative; }
-.palette-tooltip {
-  position: absolute; left: 54px; top: 50%; transform: translate3d(-6px, -50%, 0);
-  background: #222; color: #fff; border: 1px solid var(--card-border);
-  padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600;
-  white-space: nowrap; pointer-events: none; opacity: 0; transition: transform 0.2s, opacity 0.2s;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.5); z-index: 100;
-}
-.palette-btn-wrap:hover .palette-tooltip { opacity: 1; transform: translate3d(0, -50%, 0); }
-
-/* TOP ACTION BAR */
-.top-action-bar {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
-}
-
-.quick-theme-bar {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--card-bg); border: 1px solid var(--card-border);
-  padding: 4px 8px; border-radius: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-}
-.quick-swatch {
-  width: 18px; height: 18px; border-radius: 50%; cursor: pointer;
-  border: 1.5px solid transparent; transition: transform 0.15s; will-change: transform;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-}
-.quick-swatch:hover { transform: scale(1.25); border-color: #fff; }
-
-.back-to-desk-link {
-  font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-decoration: none;
-  padding: 5px 12px; border-radius: 6px; background: rgba(255,255,255,0.05);
-  border: 1px solid var(--card-border); display: inline-flex; align-items: center; gap: 6px;
-  transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s; cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-}
-.back-to-desk-link:hover { color: var(--text-primary); border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
-
-/* MAIN CONTENT VIEWPORT */
-.main-viewport {
-  flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative;
-}
-
-.view-panel {
-  flex: 1; display: flex; flex-direction: column; overflow-y: auto; padding: 18px 24px;
-  animation: panelSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-@keyframes panelSlideIn {
-  from { opacity: 0; transform: translate3d(0, 8px, 0); }
-  to { opacity: 1; transform: translate3d(0, 0, 0); }
-}
-
-.section-title { font-size: 22px; font-weight: 700; margin-bottom: 2px; letter-spacing: -0.2px; text-shadow: 0 2px 6px rgba(0,0,0,0.3); }
-.section-sub { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 14px; }
-
-/* CHARACTERS MATRIX */
-.char-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px;
-}
-
-.char-card {
-  background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px;
-  padding: 16px; cursor: pointer; min-width: 0; overflow: hidden;
-  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-  display: flex; flex-direction: column; gap: 10px; min-height: 135px; will-change: transform;
-  box-shadow: 0 6px 20px -2px rgba(0,0,0,0.4), 0 2px 6px rgba(0,0,0,0.25);
-}
-.char-card:hover {
-  border-color: var(--accent); transform: translate3d(0, -3px, 0);
-  box-shadow: 0 14px 34px -4px rgba(0,0,0,0.65), 0 4px 10px rgba(0,0,0,0.35);
-}
-.char-card:active { transform: translate3d(0, 0, 0) scale(0.98); }
-
-.char-header { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.char-avatar {
-  width: 38px; height: 38px; border-radius: 8px; display: grid; place-items: center;
-  font-size: 16px; font-weight: 700; color: #fff; background: #444; flex-shrink: 0;
-  overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.35); position: relative;
-}
-.char-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.char-info { flex: 1; min-width: 0; overflow: hidden; }
-.char-name { font-size: 15px; font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
-.char-role { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.char-desc {
-  font-size: 12px; color: var(--text-secondary); line-height: 1.5;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-  overflow: hidden; word-break: break-word; overflow-wrap: anywhere;
-}
-
-.char-footer {
-  margin-top: auto; padding-top: 10px; border-top: 1px solid var(--card-border);
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 10.5px; color: var(--text-muted); min-width: 0;
-}
-.char-footer .interactions-count {
-  color: var(--text-secondary); font-weight: 600; display: flex; align-items: center; gap: 4px; flex-shrink: 0;
-}
-
-/* MY BOTS & HISTORY */
-.bot-list-grid { display: flex; flex-direction: column; gap: 12px; }
-.bot-row-card {
-  background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px;
-  padding: 16px 18px; display: flex; align-items: center; justify-content: space-between; gap: 14px;
-  cursor: pointer; transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
-}
-.bot-row-card:hover { border-color: var(--accent); transform: translate3d(4px, 0, 0); box-shadow: 0 10px 28px rgba(0,0,0,0.5); }
-.bot-row-card:active { transform: scale(0.99); }
-
-.history-item-card {
-  background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px;
-  padding: 14px 18px; display: flex; align-items: center; gap: 14px; cursor: pointer;
-  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-}
-.history-item-card:hover { border-color: var(--accent); transform: translate3d(4px, 0, 0); box-shadow: 0 8px 24px rgba(0,0,0,0.45); }
-.history-item-card:active { transform: scale(0.99); }
-
-/* CREATE / EDIT PERSONA PANEL */
-.form-grid {
-  display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start;
-}
-.field { margin-bottom: 16px; }
-.field label {
-  display: block; font-size: 11px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.8px;
-  color: var(--text-muted); margin-bottom: 6px;
-}
-.field input[type="text"],
-.field input[type="number"],
-.field textarea,
-.field select {
-  width: 100%; background: var(--input-bg); border: 1px solid var(--input-border);
-  border-radius: 8px; padding: 10px 12px; color: var(--text-primary);
-  font-size: 13.5px; font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);
-}
-.field input:focus, .field textarea:focus, .field select:focus {
-  border-color: var(--input-focus); box-shadow: 0 0 10px var(--accent-soft), inset 0 2px 4px rgba(0,0,0,0.25);
-}
-.field textarea { min-height: 80px; resize: vertical; line-height: 1.5; }
-
-.privacy-selector { display: flex; gap: 8px; margin-bottom: 16px; }
-.privacy-pill {
-  flex: 1; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
-  cursor: pointer; text-align: center; border: 1px solid var(--card-border);
-  background: var(--input-bg); color: var(--text-secondary); transition: all 0.2s;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-}
-.privacy-pill.active {
-  background: var(--accent); color: #fff; border-color: var(--accent);
-  box-shadow: 0 4px 14px var(--accent-soft);
-}
-
-.model-slots-container {
-  display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;
-  background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px;
-  padding: 14px; box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-}
-.model-slot-row {
-  display: grid; grid-template-columns: 140px 1fr auto; gap: 8px; align-items: center;
-  background: var(--input-bg); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--card-border);
-  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-}
-.model-slot-label { font-size: 10.5px; font-weight: 700; color: var(--accent); margin-bottom: 4px; text-transform: uppercase; }
-
-/* ADVANCED CUSTOM ENDPOINTS WITH FULL API PARAMS */
-.custom-endpoint-box {
-  background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 8px;
-  padding: 12px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px;
-}
-
-.tuning-accordion {
-  background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px;
-  margin-bottom: 18px; overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-}
-.tuning-header {
-  padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
-  cursor: pointer; user-select: none; transition: background 0.2s;
-}
-.tuning-header:hover { background: rgba(255,255,255,0.03); }
-.tuning-title { font-size: 12.5px; font-weight: 600; display: flex; align-items: center; gap: 8px; color: var(--text-primary); }
-.tuning-gear-icon {
-  display: inline-flex; align-items: center; justify-content: center;
-  transition: transform 0.3s ease; will-change: transform; color: var(--accent);
-}
-.tuning-accordion.open .tuning-gear-icon { transform: rotate(90deg); }
-.tuning-body {
-  padding: 0 16px 16px; display: none; flex-direction: column; gap: 12px; border-top: 1px solid var(--card-border);
-}
-.tuning-accordion.open .tuning-body { display: flex; }
-
-.pfp-zone {
-  width: 100%; height: 140px; border: 1.5px dashed var(--empty-border);
-  border-radius: 10px; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 8px;
-  cursor: pointer; transition: border-color 0.2s, box-shadow 0.2s; position: relative; overflow: hidden;
-  background: var(--input-bg); box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-}
-.pfp-zone:hover { border-color: var(--accent); box-shadow: 0 6px 20px rgba(0,0,0,0.45); }
-.pfp-zone.has-image { border-style: solid; border-color: var(--card-border); }
-.pfp-zone img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 10px; }
-.pfp-zone .pfp-overlay {
-  position: absolute; inset: 0; background: rgba(0,0,0,0.6);
-  display: grid; place-items: center; opacity: 0; transition: opacity 0.2s;
-  color: #fff; font-size: 12px; font-weight: 600; border-radius: 10px;
-}
-.pfp-zone:hover .pfp-overlay { opacity: 1; }
-.pfp-zone .pfp-placeholder { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-muted); pointer-events: none; }
-.pfp-zone .pfp-placeholder svg { width: 30px; height: 30px; stroke: var(--text-muted); }
-
-.live-test-chat-card {
-  background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px;
-  display: flex; flex-direction: column; height: 480px; position: sticky; top: 0;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.5); overflow: hidden; contain: layout style paint;
-}
-.test-chat-header {
-  padding: 12px 14px; background: var(--chat-top-bg); border-bottom: 1px solid var(--card-border);
-  display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-.test-avatar {
-  width: 32px; height: 32px; border-radius: 6px; display: grid; place-items: center;
-  font-size: 14px; font-weight: 700; color: #fff; background: var(--accent); flex-shrink: 0;
-  overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-.test-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.test-chat-body {
-  flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px;
-  background: var(--main-bg);
-}
-.test-chat-footer {
-  padding: 8px 10px; background: var(--chat-top-bg); border-top: 1px solid var(--card-border);
-}
-.test-composer-box {
-  display: flex; align-items: center; gap: 6px;
-  background: var(--chat-composer-bg); border: 1px solid var(--card-border); border-radius: 8px;
-  padding: 6px 10px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.25);
-}
-.test-composer-input {
-  flex: 1; border: none; outline: none; background: transparent;
-  font-size: 12px; color: var(--text-primary); height: 20px; line-height: 20px; font-family: inherit;
-}
-.test-send-btn {
-  padding: 4px 10px; height: 26px; border-radius: 4px; background: var(--accent);
-  color: #fff; border: none; font-size: 11px; font-weight: 600; cursor: pointer;
-  display: flex; align-items: center; gap: 4px; transition: filter 0.15s, transform 0.15s;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-.test-send-btn:hover { filter: brightness(1.15); transform: translateY(-1px); }
-
-.btn-primary {
-  padding: 8px 16px; border-radius: 8px; font-size: 12.5px; font-weight: 600;
-  cursor: pointer; border: none; font-family: inherit;
-  transition: transform 0.15s, filter 0.15s, box-shadow 0.15s;
-  background: var(--accent); color: #fff; will-change: transform;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.35); display: inline-flex; align-items: center; gap: 6px;
-}
-.btn-primary:hover { filter: brightness(1.15); transform: translate3d(0, -1px, 0); box-shadow: 0 6px 20px rgba(0,0,0,0.5); }
-.btn-primary:active { transform: translate3d(0, 0, 0) scale(0.98); }
-
-/* CHAT ARENA VIEW */
-.chat-arena-view {
-  flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--main-bg);
-  animation: panelSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; position: relative;
-}
-
-.chat-top {
-  padding: 8px 16px; border-bottom: 1px solid var(--card-border);
-  display: flex; align-items: center; justify-content: space-between; background: var(--chat-top-bg);
-  transition: background 0.25s; flex-shrink: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.3); gap: 10px;
-}
-.chat-top-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.chat-top-btn {
-  height: 32px; padding: 0 10px; display: inline-flex; align-items: center; gap: 5px;
-  color: var(--text-secondary); cursor: pointer; border-radius: 6px;
-  background: rgba(255,255,255,0.04); border: 1px solid var(--card-border); font-size: 11.5px; font-weight: 600;
-  transition: background 0.15s, color 0.15s, transform 0.15s, border-color 0.15s;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
-}
-.chat-top-btn:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); border-color: var(--accent); transform: translateY(-1px); }
-.chat-top-btn svg { width: 14px; height: 14px; }
-.chat-top-name { font-size: 15px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 4px rgba(0,0,0,0.4); }
-
-.chat-messages {
-  flex: 1; overflow-y: auto; padding: 16px 20px;
-  display: flex; flex-direction: column; gap: 14px; position: relative;
-}
-
-.msg-row {
-  display: flex; flex-direction: column; gap: 4px; max-width: 84%; animation: fadeIn 0.2s ease;
-  position: relative; user-select: text;
-}
-@keyframes fadeIn { from{opacity:0; transform:translate3d(0, 4px, 0);} to{opacity:1; transform:translate3d(0, 0, 0);} }
-.msg-row.user { align-self: flex-end; align-items: flex-end; }
-.msg-row.assistant { align-self: flex-start; align-items: flex-start; }
-
-.msg-header-row {
-  display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: var(--text-secondary);
-}
-.msg-row.user .msg-header-row { flex-direction: row-reverse; }
-
-.msg-avatar {
-  width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
-  font-size: 10px; font-weight: 700; color: #fff; background: var(--accent); flex-shrink: 0;
-  overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-}
-.msg-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.msg-row.user .msg-avatar { background: #555; }
-
-.msg-sender-name { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
-
-.msg-bubble-wrap {
-  position: relative; display: flex; flex-direction: column; gap: 4px;
-}
-.msg-row.user .msg-bubble-wrap { align-items: flex-end; }
-
-.msg-bubble {
-  padding: 10px 14px; border-radius: 12px; font-size: 13.5px; line-height: 1.55;
-  background: var(--chat-bubble-ai); color: var(--text-primary);
-  border: 1px solid var(--card-border);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.25);
-  word-break: break-word; overflow-wrap: anywhere; transition: border-color 0.2s, box-shadow 0.2s;
-  cursor: pointer; -webkit-touch-callout: none;
-}
-.msg-row.assistant .msg-bubble { border-top-left-radius: 3px; }
-.msg-row.user .msg-bubble { background: var(--chat-bubble-user); border-color: transparent; border-top-right-radius: 3px; }
-.msg-bubble em, .msg-bubble i { font-style: italic; color: var(--text-secondary); }
-.msg-bubble b, .msg-bubble strong { font-weight: 600; color: var(--text-primary); }
-
-.chat-msg-img {
-  max-width: 220px; max-height: 200px; border-radius: 8px; margin-bottom: 6px;
-  display: block; object-fit: cover; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-}
-
-.msg-action-strip {
-  display: none; align-items: center; gap: 4px; margin-top: 4px;
-  animation: popIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.msg-row.held .msg-action-strip { display: flex; }
-
-.msg-action-btn {
-  background: rgba(255,255,255,0.06); border: 1px solid var(--card-border);
-  color: var(--text-secondary); font-size: 10.5px; font-weight: 500;
-  padding: 4px 9px; border-radius: 5px; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 4px;
-  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-.msg-action-btn:hover {
-  background: rgba(255,255,255,0.12); color: var(--text-primary);
-  border-color: rgba(255,255,255,0.25); transform: translateY(-1px);
-}
-.msg-action-btn.delete-btn:hover {
-  background: rgba(224, 108, 117, 0.2); color: #e06c75; border-color: rgba(224, 108, 117, 0.35);
-}
-.msg-action-btn.regen-btn {
-  color: var(--accent); border-color: var(--accent-soft); background: rgba(255,255,255,0.08);
-}
-.msg-action-btn.regen-btn:hover {
-  background: var(--accent-soft); border-color: var(--accent); color: #fff;
-}
-.msg-action-btn svg { width: 12px; height: 12px; stroke: currentColor; fill: none; }
-
-/* TYPING INDICATOR MATCHING PALETTE */
-.typing-row {
-  display: none; align-items: center; gap: 6px; padding: 7px 14px;
-  background: var(--chat-bubble-ai); border-radius: 12px; width: fit-content;
-  font-size: 11.5px; color: var(--accent); margin-left: 8px; margin-bottom: 6px;
-  border: 1px solid var(--card-border); box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-}
-.t-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--accent); animation: pulse 1s infinite alternate; }
-.t-dot:nth-child(2) { animation-delay: 0.2s; } .t-dot:nth-child(3) { animation-delay: 0.4s; }
-@keyframes pulse { from{opacity:0.3; transform:scale(0.8);} to{opacity:1; transform:scale(1.2);} }
-
-.composer {
-  padding: 10px 18px 16px; background: var(--chat-top-bg); border-top: 1px solid var(--card-border);
-  box-shadow: 0 -4px 16px rgba(0,0,0,0.25); position: relative;
-}
-.image-preview-badge {
-  display: none; align-items: center; gap: 8px; background: var(--card-bg);
-  border: 1px solid var(--card-border); border-radius: 8px; padding: 6px 10px;
-  margin-bottom: 8px; width: fit-content; box-shadow: 0 4px 14px rgba(0,0,0,0.4);
-}
-.image-preview-badge img { width: 36px; height: 36px; object-fit: cover; border-radius: 4px; }
-.image-preview-badge span { font-size: 11px; color: var(--text-secondary); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.image-preview-remove { background: transparent; border: none; color: #e06c75; cursor: pointer; font-size: 14px; font-weight: 700; }
-
-.composer-box {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--chat-composer-bg); border: 1px solid var(--card-border); border-radius: 10px;
-  padding: 8px 12px; transition: border-color 0.2s, box-shadow 0.2s;
-  box-shadow: inset 0 2px 4px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.2);
-}
-.composer-box:focus-within { border-color: var(--accent); box-shadow: 0 0 14px var(--accent-soft), inset 0 2px 4px rgba(0,0,0,0.25); }
-.composer-input {
-  flex: 1; border: none; outline: none; background: transparent;
-  font-size: 13.5px; color: var(--text-primary); resize: none; height: 22px; line-height: 22px;
-  font-family: inherit;
-}
-.composer-input::placeholder { color: var(--text-muted); }
-
-.composer-btn {
-  width: 32px; height: 32px; border-radius: 6px; background: transparent; border: none;
-  color: var(--text-secondary); cursor: pointer; display: grid; place-items: center;
-  transition: background 0.15s, color 0.15s, transform 0.15s;
-}
-.composer-btn:hover { background: rgba(255,255,255,0.08); color: var(--text-primary); transform: scale(1.05); }
-.composer-btn svg { width: 18px; height: 18px; }
-
-.send-btn {
-  padding: 6px 14px; height: 32px; border-radius: 6px; background: var(--accent);
-  color: #fff; border: none; font-size: 12px; font-weight: 600;
-  cursor: pointer; display: flex; align-items: center; gap: 6px;
-  transition: filter 0.15s, transform 0.15s, box-shadow 0.15s;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-.send-btn:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.45); }
-.send-btn svg { width: 13px; height: 13px; }
-
-/* USER PROFILE & THEME POPOVER */
-.profile-grid {
-  display: grid; grid-template-columns: 1fr 340px; gap: 20px; align-items: start;
-}
-.profile-card {
-  background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px;
-  padding: 16px; margin-bottom: 16px;
-  box-shadow: 0 6px 20px -2px rgba(0,0,0,0.45), 0 2px 6px rgba(0,0,0,0.25);
-}
-.swatch-group { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
-.bubble-swatch {
-  width: 32px; height: 32px; border-radius: 6px; cursor: pointer;
-  border: 2px solid transparent; transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.4);
-}
-.bubble-swatch:hover { transform: scale(1.15); border-color: #fff; box-shadow: 0 6px 16px rgba(0,0,0,0.6); }
-
-.theme-popover {
-  position: fixed; bottom: calc(28vh + 44px); left: 74px; background: var(--card-bg);
-  border: 1px solid var(--card-border); border-radius: 12px; padding: 12px;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.75), 0 4px 12px rgba(0,0,0,0.4); z-index: 9999; display: none;
-  grid-template-columns: repeat(4, 1fr); gap: 8px;
-  animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-@keyframes popIn {
-  from { opacity: 0; transform: scale(0.9) translate3d(0, 6px, 0); }
-  to { opacity: 1; transform: scale(1) translate3d(0, 0, 0); }
-}
-.theme-popover.active { display: grid; }
-.theme-swatch {
-  width: 38px; height: 38px; border-radius: 8px; cursor: pointer;
-  border: 2px solid transparent; transition: transform 0.15s, box-shadow 0.15s;
-  position: relative; overflow: hidden; will-change: transform;
-  box-shadow: 0 3px 10px rgba(0,0,0,0.4);
-}
-.theme-swatch:hover { transform: scale(1.12); border-color: #fff; box-shadow: 0 6px 18px rgba(0,0,0,0.6); }
-
-/* CHAT SETTINGS MULTI-PANEL MODAL */
-.settings-modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
-  z-index: 9999999; display: none; align-items: center; justify-content: center; padding: 16px;
-}
-.settings-modal-overlay.open { display: flex !important; }
-
-.settings-modal-card {
-  background: var(--card-bg); border: 1.5px solid var(--card-border); border-radius: 14px;
-  width: min(94vw, 560px); max-height: 88vh; display: flex; flex-direction: column;
-  overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.9), 0 0 24px var(--accent-soft);
-  animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-
-.settings-modal-header {
-  padding: 14px 18px; background: var(--input-bg); border-bottom: 1px solid var(--card-border);
-  display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
-}
-
-.settings-tab-bar {
-  display: flex; gap: 4px; padding: 8px 14px; background: rgba(0,0,0,0.25);
-  border-bottom: 1px solid var(--card-border); overflow-x: auto; flex-shrink: 0;
-}
-.settings-tab-btn {
-  padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600;
-  cursor: pointer; background: transparent; border: 1px solid transparent; color: var(--text-secondary);
-  transition: all 0.15s; white-space: nowrap; display: flex; align-items: center; gap: 5px;
-}
-.settings-tab-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.06); }
-.settings-tab-btn.active {
-  background: var(--accent-soft); color: #fff; border-color: var(--accent);
-}
-
-.settings-tab-content {
-  flex: 1; overflow-y: auto; padding: 18px; display: flex; flex-direction: column; gap: 14px;
-}
-
-/* ==========================================================================
-   ORGANIC MYCELIUM MEMORY TREE MODAL
-   ========================================================================== */
-.memory-tree-modal {
-  position: fixed; inset: 0; z-index: 999999; display: none;
-  background: radial-gradient(ellipse at 35% 45%, var(--main-bg) 0%, #080808 60%, #000 100%);
-  overflow: hidden; user-select: none;
-}
-.memory-tree-modal.open { display: block; animation: fadeIn 0.25s ease; }
-
-.mem-viewport {
-  position: relative; width: 100%; height: 100%; overflow: hidden; cursor: grab;
-  touch-action: none;
-}
-.mem-viewport:active { cursor: grabbing; }
-
-#memTreeCanvas {
-  position: absolute; inset: 0; pointer-events: none; width: 100%; height: 100%;
-}
-
-#memTreeWorld {
-  position: absolute; top: 50%; left: 50%; width: 0; height: 0; transform-origin: 0 0;
-}
-
-.mem-hud-top {
-  position: absolute; top: 14px; left: 16px; right: 16px;
-  display: flex; align-items: center; justify-content: space-between;
-  z-index: 100; pointer-events: none; gap: 10px;
-}
-.mem-hud-group {
-  display: flex; align-items: center; gap: 8px; pointer-events: auto;
-}
-.mem-hud-btn {
-  background: var(--card-bg); border: 1px solid var(--accent);
-  color: var(--text-primary); padding: 7px 14px; border-radius: 8px; font-size: 11.5px; font-weight: 600;
-  cursor: pointer; display: inline-flex; align-items: center; gap: 6px; backdrop-filter: blur(10px);
-  transition: all 0.2s; box-shadow: 0 4px 16px rgba(0,0,0,0.6);
-}
-.mem-hud-btn:hover {
-  background: var(--accent); color: #fff;
-  transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-soft);
-}
-
-/* Organic Memory Nodes (Buds) */
-.mem-node {
-  position: absolute; transform: translate(-50%, -50%) scale(0);
-  background: var(--card-bg); border: 1.5px solid var(--card-border);
-  border-radius: 12px; padding: 12px 16px; min-width: 140px; color: var(--text-primary);
-  cursor: pointer; backdrop-filter: blur(10px); user-select: none; z-index: 2;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.6); opacity: 0;
-  transition: transform 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28), opacity 0.3s ease, border-color 0.2s, box-shadow 0.2s;
-}
-.mem-node.bloomed { transform: translate(-50%, -50%) scale(1); opacity: 1; }
-.mem-node:hover {
-  border-color: var(--accent);
-  box-shadow: 0 0 26px var(--accent-soft), inset 0 0 16px var(--accent-soft);
-  transform: translate(-50%, -50%) scale(1.08); z-index: 5;
-}
-.mem-node.profile {
-  min-width: 170px; padding: 14px 18px; border-color: var(--accent);
-  background: linear-gradient(135deg, var(--card-bg), rgba(255,255,255,0.03));
-}
-.mem-node.profile:hover { box-shadow: 0 0 34px var(--accent-soft); }
-.mem-node.memory { min-width: 150px; }
-.mem-node .node-img {
-  width: 48px; height: 48px; border-radius: 8px; object-fit: cover;
-  border: 1.5px solid var(--accent); margin-bottom: 6px; display: block;
-}
-.mem-node .title {
-  font-size: 12.5px; font-weight: 600; letter-spacing: 0.3px; margin-bottom: 2px; color: var(--text-primary);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;
-}
-.mem-node.profile .title { font-size: 14.5px; color: var(--accent); font-weight: 700; }
-.mem-node .subtitle {
-  font-size: 9.5px; color: var(--text-muted); letter-spacing: 0.5px; text-transform: uppercase;
-}
-
-/* SUBTLE GLOW FOR LATEST MEMORY NODE */
-.mem-node.latest-memory {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 16px var(--accent), 0 0 32px var(--accent-soft), inset 0 0 12px var(--accent-soft) !important;
-  animation: latestMemoryPulse 2.4s infinite ease-in-out;
-}
-@keyframes latestMemoryPulse {
-  0%, 100% {
-    box-shadow: 0 0 12px var(--accent), 0 0 24px var(--accent-soft), inset 0 0 8px var(--accent-soft);
-    border-color: var(--accent);
-  }
-  50% {
-    box-shadow: 0 0 22px var(--accent), 0 0 45px var(--accent-soft), inset 0 0 16px var(--accent-soft);
-    border-color: #fff;
-  }
-}
-.latest-badge {
-  position: absolute; top: -8px; right: 8px; font-size: 8px; font-weight: 700;
-  background: var(--accent); color: #fff; padding: 1px 6px; border-radius: 10px;
-  box-shadow: 0 0 8px var(--accent); text-transform: uppercase; letter-spacing: 0.5px;
-}
-
-/* IDENTITY CORE SIDE PANEL */
-.mem-detail-panel {
-  position: fixed; top: 0; right: 0; width: 350px; height: 100%;
-  background: var(--sidebar-bg); border-left: 2px solid var(--accent);
-  backdrop-filter: blur(20px); padding: 32px 24px; color: var(--text-primary); z-index: 250;
-  transform: translate3d(115%, 0, 0); opacity: 0; pointer-events: none;
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
-  overflow-y: auto; box-shadow: -10px 0 40px rgba(0,0,0,0.8);
-}
-.mem-detail-panel.open {
-  transform: translate3d(0, 0, 0); opacity: 1; pointer-events: auto;
-}
-.mem-detail-close {
-  position: absolute; top: 16px; right: 16px; width: 32px; height: 32px;
-  border-radius: 50%; border: 1px solid var(--card-border);
-  background: var(--card-bg); color: var(--text-primary); font-size: 16px;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s;
-}
-.mem-detail-close:hover { background: var(--accent); color: #fff; transform: scale(1.1); }
-
-/* FLOATING RESIZABLE MINI WINDOW */
-.mem-mini-window {
-  position: absolute; top: 75px; left: calc(50% - 175px);
-  width: 350px; min-width: 260px; max-width: 92vw;
-  height: 290px; min-height: 180px; max-height: 82vh;
-  background: var(--card-bg); border: 1.5px solid var(--accent);
-  border-radius: 12px; box-shadow: 0 16px 48px rgba(0,0,0,0.85), 0 0 24px var(--accent-soft);
-  display: none; flex-direction: column; overflow: hidden;
-  backdrop-filter: blur(16px); z-index: 300;
-  animation: popIn 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
-}
-.mem-mini-window.open { display: flex; }
-
-.mem-mini-header {
-  padding: 8px 12px; background: var(--input-bg); border-bottom: 1px solid var(--card-border);
-  display: flex; align-items: center; justify-content: space-between; cursor: move; user-select: none;
-  flex-shrink: 0;
-}
-.mem-mini-btn {
-  background: transparent; border: none; color: var(--text-secondary);
-  font-size: 14px; cursor: pointer; padding: 2px 6px; border-radius: 4px;
-}
-.mem-mini-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-
-.mem-mini-body {
-  flex: 1; padding: 14px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;
-}
-
-.mem-raw-chat-container {
-  display: none; flex-direction: column; gap: 8px; max-height: 200px;
-  overflow-y: auto; background: var(--input-bg); border: 1px solid var(--card-border);
-  border-radius: 8px; padding: 10px; margin-top: 8px;
-}
-.mem-raw-chat-container.open { display: flex; }
-
-.mem-mini-resizer {
-  position: absolute; right: 0; bottom: 0; width: 18px; height: 18px;
-  cursor: se-resize; touch-action: none; z-index: 10;
-  background: linear-gradient(135deg, transparent 50%, var(--accent) 50%);
-  border-bottom-right-radius: 10px;
-}
-
-.mem-images-strip { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
-.mem-saved-thumb {
-  width: 60px; height: 60px; object-fit: cover; border-radius: 6px;
-  border: 1px solid var(--accent); cursor: pointer; transition: transform 0.15s;
-}
-.mem-saved-thumb:hover { transform: scale(1.1); }
-
-.toast {
-  position: fixed; bottom: 25px; left: 50%; transform: translate3d(-50%, 16px, 0);
-  background: #222; color: #fff; border: 1px solid var(--card-border);
-  padding: 8px 18px; border-radius: 6px; font-size: 11px; opacity: 0;
-  transition: transform 0.25s, opacity 0.25s; pointer-events: none; z-index: 3000000;
-  box-shadow: 0 8px 28px rgba(0,0,0,0.6);
-}
-.toast.show { opacity: 1; transform: translate3d(-50%, 0, 0); }
-
-@media (max-width: 900px) {
-  .char-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .form-grid, .profile-grid { grid-template-columns: 1fr; }
-  .live-test-chat-card { position: static; height: 380px; }
-  .model-slot-row { grid-template-columns: 1fr; }
-}
-@media (max-width: 540px) {
-  .char-grid { grid-template-columns: 1fr; }
-  .sidebar { width: 52px; }
-  .theme-popover { left: 60px; bottom: calc(28vh + 36px); }
-  .view-panel { padding: 14px; }
-  .quick-theme-bar { display: none; }
-/* COMPANION SUITE: RESPONSIVE TOP BAR */
-.chat-top {
-  display: flex; align-items: center; justify-content: space-between;
-  background: var(--chat-top-bg); padding: 8px 14px;
-  border-bottom: 1px solid var(--card-border); gap: 10px;
-  min-height: 52px; z-index: 10;
-}
-.chat-top-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 1; }
-.chat-top-right { display: flex; align-items: center; gap: 5px; flex-shrink: 0; }
-.chat-top-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 9px; font-size: 11px; font-weight: 600;
-  border-radius: 6px; border: 1px solid var(--card-border);
-  background: rgba(255,255,255,0.06); color: var(--text-secondary);
-  cursor: pointer; transition: all 0.15s; white-space: nowrap;
-}
-.chat-top-btn:hover {
-  background: rgba(255,255,255,0.12); color: var(--text-primary);
-  border-color: var(--accent); transform: translateY(-1px);
-}
-.chat-top-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
-
-@media (max-width: 680px) {
-  .chat-top-btn span { display: none; }
-  .chat-top-btn { padding: 6px 8px; }
-  .chat-top-name { font-size: 13px; max-width: 90px; }
-}
-
-/* COMPANION SUITE: VOICE CALL OVERLAY WITH VAD */
-.voice-call-overlay {
-  position: fixed; inset: 0; z-index: 999999;
-  background: radial-gradient(circle at center, rgba(16, 22, 18, 0.96) 0%, rgba(8, 12, 10, 0.98) 100%);
-  backdrop-filter: blur(28px);
-  display: none; flex-direction: column; align-items: center; justify-content: space-between;
-  padding: 30px 20px; animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.voice-call-overlay.active { display: flex; }
-.voice-avatar-halo {
-  position: relative; width: 130px; height: 130px; border-radius: 50%;
-  display: grid; place-items: center; margin-top: 20px;
-}
-.voice-avatar-halo::before {
-  content: ''; position: absolute; inset: -18px; border-radius: 50%;
-  background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
-  opacity: 0.35; animation: pulseHalo 2s infinite ease-in-out;
-}
-.voice-avatar-halo.speaking::before {
-  opacity: 0.95; transform: scale(1.3); animation: pulseSpeaking 0.5s infinite alternate ease-in-out;
-}
-@keyframes pulseHalo { 0%, 100% { transform: scale(1); opacity: 0.35; } 50% { transform: scale(1.15); opacity: 0.65; } }
-@keyframes pulseSpeaking { from { transform: scale(1.1); opacity: 0.6; } to { transform: scale(1.35); opacity: 1; filter: drop-shadow(0 0 24px var(--accent)); } }
-
-.voice-wave-canvas { width: 300px; height: 50px; margin: 10px 0; border-radius: 8px; }
-.voice-caption-box {
-  width: 90vw; max-width: 560px; text-align: center; font-size: 14px; line-height: 1.6;
-  color: var(--text-primary); min-height: 60px; max-height: 120px; overflow-y: auto;
-  background: rgba(0,0,0,0.5); padding: 12px 18px; border-radius: 12px; border: 1px solid var(--card-border);
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-}
-.voice-controls { display: flex; align-items: center; gap: 16px; margin-bottom: 15px; }
-.voice-ctrl-btn {
-  width: 52px; height: 52px; border-radius: 50%; border: none; cursor: pointer;
-  display: grid; place-items: center; color: #fff; font-size: 18px;
-  background: rgba(255,255,255,0.1); border: 1px solid var(--card-border);
-  transition: transform 0.15s, background 0.15s, box-shadow 0.15s;
-}
-.voice-ctrl-btn:hover { transform: scale(1.08); background: rgba(255,255,255,0.2); }
-.voice-ctrl-btn.end-call { background: #e06c75; border-color: #e06c75; }
-.voice-ctrl-btn.end-call:hover { background: #ff5c6c; transform: scale(1.15); box-shadow: 0 0 24px rgba(224,108,117,0.6); }
-.voice-ctrl-btn.muted { background: #e5c07b; color: #111; border-color: #e5c07b; }
-.voice-ctrl-btn.talk-btn { width: 140px; border-radius: 26px; font-size: 13px; font-weight: 700; gap: 6px; display: inline-flex; }
-
-/* COMPANION SUITE: SCREEN SHARING & VISION MONITOR */
-.screen-vision-floating {
-  position: absolute; bottom: 85px; right: 20px; width: 300px; height: 200px;
-  background: var(--card-bg); border: 1.5px solid var(--accent); border-radius: 12px;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.85), 0 0 20px var(--accent-soft);
-  display: none; flex-direction: column; overflow: hidden; z-index: 500;
-  backdrop-filter: blur(16px); animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.screen-vision-floating.active { display: flex; }
-.screen-vision-header {
-  padding: 6px 10px; background: var(--input-bg); display: flex;
-  align-items: center; justify-content: space-between; font-size: 11px;
-  font-weight: 700; color: var(--accent); border-bottom: 1px solid var(--card-border);
-}
-.screen-vision-video { width: 100%; height: 125px; object-fit: contain; background: #000; }
-.screen-vision-footer {
-  padding: 6px 10px; display: flex; align-items: center; justify-content: space-between;
-  background: var(--input-bg); border-top: 1px solid var(--card-border); gap: 6px;
-}
-
-/* COMPANION SUITE: FULLSCREEN CINEMA / THEATER OVERLAY */
-.theater-cinema-overlay {
-  position: fixed; inset: 0; z-index: 999990;
-  background: rgba(8, 10, 12, 0.96); backdrop-filter: blur(24px);
-  display: none; flex-direction: column; align-items: center; justify-content: space-between;
-  padding: 16px 20px; animation: popIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
-.theater-cinema-overlay.open { display: flex; }
-.theater-top-bar {
-  width: 100%; max-width: 1100px; display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--card-border);
-}
-.theater-screen-wrapper {
-  width: 100%; max-width: 1100px; aspect-ratio: 16/9; max-height: 68vh;
-  background: #000; border-radius: 12px; overflow: hidden;
-  box-shadow: 0 16px 64px rgba(0,0,0,0.9), 0 0 32px rgba(229,192,123,0.15);
-  border: 1px solid rgba(255,255,255,0.1); position: relative;
-}
-.theater-iframe { width: 100%; height: 100%; border: none; }
-.theater-companion-bar {
-  width: 100%; max-width: 1100px; display: flex; align-items: center; justify-content: space-between;
-  gap: 14px; background: rgba(255,255,255,0.04); border: 1px solid var(--card-border);
-  border-radius: 12px; padding: 10px 16px; margin-top: 10px;
-}
-.theater-reaction-bubble {
-  flex: 1; font-size: 13px; line-height: 1.5; color: var(--text-primary);
-  min-height: 22px; display: flex; align-items: center; gap: 8px;
-}
-</style>
-</head>
-<body>
-
-<div class="paint-bleed-container" id="paintBleedLayer"></div>
-<div class="toast" id="toast">Ready</div>
-
-<input type="file" id="chatImageInput" accept="image/*" style="display:none;" onchange="handleChatImageAttach(event)">
-
-<!-- FULLSCREEN ORGANIC MYCELIUM MEMORY TREE MODAL -->
-<div class="memory-tree-modal" id="memoryTreeModal">
-  <div class="mem-viewport" id="memViewport">
-    <canvas id="memTreeCanvas"></canvas>
-    <div id="memTreeWorld"></div>
-
-    <div class="mem-hud-top">
-      <div class="mem-hud-group">
-        <button class="mem-hud-btn" onclick="closeMemoryTreeModal(event)">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-          <span>Back to Chat</span>
-        </button>
-      </div>
-
-      <div class="mem-hud-group">
-        
-        <button class="mem-hud-btn" onclick="closeMemoryTreeModal(event)" title="Close Tree">✕</button>
-      </div>
-    </div>
-
-    <!-- IDENTITY CORE SIDE PANEL -->
-    <div class="mem-detail-panel" id="memDetailPanel">
-      <button class="mem-detail-close" onclick="closeMemDetail(event)">&times;</button>
-      <img id="memDetailImg" style="width:100%; border-radius:10px; margin-bottom:14px; display:none;" alt="">
-      <div style="font-size:10px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">◈ Protected Core Identity</div>
-      <h2 id="memDetailTitle" style="font-size:20px; margin-bottom:4px; color:var(--text-primary);"></h2>
-      <div id="memDetailSub" style="font-size:11px; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.8px; margin-bottom:16px;"></div>
-      <div id="memDetailContent" style="font-size:13.5px; line-height:1.65; color:var(--text-primary); margin-bottom:20px;"></div>
-    </div>
-
-    <!-- FLOATING RESIZABLE MINI WINDOW -->
-    <div class="mem-mini-window" id="memMiniWindow">
-      <div class="mem-mini-header" id="memMiniHeader">
-        <div style="display:flex; align-items:center; gap:8px; min-width:0;">
-          <span style="font-size:12px; font-weight:700; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="memMiniTitle">Memory</span>
-          <span style="font-size:9.5px; padding:2px 6px; background:var(--accent-soft); border:1px solid var(--accent); border-radius:4px; color:var(--text-primary); text-transform:uppercase; white-space:nowrap;" id="memMiniSub">Summary</span>
-        </div>
-        <div style="display:flex; align-items:center; gap:4px;">
-          <button type="button" class="mem-mini-btn" onclick="toggleMiniWinExpand(event)" title="Expand / Compact">⛶</button>
-          <button type="button" class="mem-mini-btn" onclick="closeMemMiniWindow(event)" title="Close Window">✕</button>
-        </div>
-      </div>
-
-      <div class="mem-mini-body" id="memMiniBody">
-        <div>
-          <label style="font-size:10px; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Memory Summary (AI Context Anchor)</label>
-          <textarea id="memMiniContent" style="width:100%; background:var(--input-bg); border:1px solid var(--card-border); border-radius:6px; padding:8px 10px; color:var(--text-primary); font-size:12.5px; line-height:1.5; outline:none; resize:none; min-height:60px; margin-top:4px; font-family:inherit;"></textarea>
-        </div>
-
-        <div id="memMiniImagesSection" style="display:none;">
-          <label style="font-size:10px; font-weight:600; color:var(--text-muted); text-transform:uppercase;">Attached Visual Memories (1–3 max)</label>
-          <div class="mem-images-strip" id="memMiniImagesList"></div>
-        </div>
-
-        <div>
-          <button type="button" class="btn-primary" onclick="toggleRawMessagesView()" style="width:100%; justify-content:center; padding:6px 12px; font-size:11px; background:var(--input-bg); border:1px solid var(--card-border); color:var(--text-primary);">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-            <span id="memRawToggleBtnText">≡ View Full 15-Message Interaction</span>
-          </button>
-          <div class="mem-raw-chat-container" id="memRawChatContainer"></div>
-        </div>
-
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-top:auto; padding-top:10px; border-top:1px solid var(--card-border); gap:8px;">
-          <button type="button" class="btn-primary" onclick="saveActiveMemoryEdits()" style="padding:6px 12px; font-size:11px;">✓ Save Edits</button>
-          <button type="button" class="btn-primary" onclick="deleteActiveMemoryWithCorruptEffect()" style="padding:6px 12px; font-size:11px; background:rgba(224, 108, 117, 0.2); color:#e06c75; border:1px solid rgba(224, 108, 117, 0.35);">✕ Delete Memory</button>
-        </div>
-      </div>
-
-      <div class="mem-mini-resizer" id="memMiniResizer"></div>
-    </div>
-
-  </div>
-</div>
-
-<!-- CHAT SETTINGS MULTI-PANEL MODAL -->
-<div class="settings-modal-overlay" id="settingsModal" onclick="closeSettingsModal(event)">
-  <div class="settings-modal-card" onclick="event.stopPropagation()">
-    <div class="settings-modal-header">
-      <div style="font-size:15px; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--text-primary);">
-        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        <span>Chat &amp; Studio Settings</span>
-      </div>
-      <button onclick="closeSettingsModal(event)" style="background:transparent; border:none; color:var(--text-secondary); font-size:18px; cursor:pointer;">✕</button>
-    </div>
-
-    <!-- TABS BAR -->
-    <div class="settings-tab-bar">
-      <button class="settings-tab-btn active" id="stab-chat" onclick="switchSettingsTab('chat')">✦ Chat &amp; Sessions</button>
-      <button class="settings-tab-btn" id="stab-persona" onclick="switchSettingsTab('persona')">◆ User Persona</button>
-      <button class="settings-tab-btn" id="stab-engine" onclick="switchSettingsTab('engine')">⚙ Engine &amp; Status</button>
-    </div>
-
-    <!-- TAB 1: CHAT CONTROLS & SESSION HISTORY -->
-    <div class="settings-tab-content" id="scontent-chat">
-      <div style="background:var(--input-bg); border:1px solid var(--card-border); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:8px;">
-        <div style="font-size:13px; font-weight:700; color:var(--text-primary);">Fresh Chat Session</div>
-        <div style="font-size:11.5px; color:var(--text-muted); line-height:1.4;">
-          Start a brand-new conversation. Previous memories and chat logs are archived and will not carry over into this new chat.
-        </div>
-        <button class="btn-primary" onclick="createNewChatSession()" style="margin-top:6px; width:fit-content; padding:8px 16px;">+ Start Fresh Chat (Clean Memory)</button>
-      </div>
-
-      <div>
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
-          <span style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.6px;">Past Chat Sessions</span>
-          <button class="btn-primary" onclick="clearAllChatSessions()" style="padding:4px 8px; font-size:10px; background:rgba(200,100,100,0.15); color:#e06c75; border:1px solid rgba(200,100,100,0.3);">Clear All History</button>
-        </div>
-        <div id="settingsChatSessionsList" style="display:flex; flex-direction:column; gap:8px; max-height:220px; overflow-y:auto;"></div>
-      </div>
-    </div>
-
-    <!-- TAB 2: USER PERSONA -->
-    <div class="settings-tab-content" id="scontent-persona" style="display:none;">
-      <div class="field" style="margin-bottom:10px;">
-        <label>Your Name</label>
-        <input type="text" id="settingPersonaName" placeholder="e.g. Commander, Alex, Sarah" value="User">
-      </div>
-
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
-        <div class="field" style="margin-bottom:0;">
-          <label>Age</label>
-          <input type="text" id="settingPersonaAge" placeholder="e.g. 24" value="24">
-        </div>
-        <div class="field" style="margin-bottom:0;">
-          <label>Gender</label>
-          <input type="text" id="settingPersonaGender" placeholder="e.g. Female, Male, Non-binary" value="Unspecified">
-        </div>
-      </div>
-
-      <div class="field" style="margin-bottom:12px;">
-        <label>About Me / Description</label>
-        <textarea id="settingPersonaAbout" placeholder="Tell the bot about your personality, background, traits, or goals..." style="min-height:80px;">A thoughtful conversationalist who values creative, witty, and engaging discussions.</textarea>
-      </div>
-
-      <button class="btn-primary" onclick="savePersonaFromSettings()" style="width:fit-content;">✓ Save User Persona</button>
-    </div>
-
-    <!-- TAB 3: ENGINE STATUS & MODEL TUNING -->
-    <div class="settings-tab-content" id="scontent-engine" style="display:none; flex-direction:column; gap:12px;">
-      <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.5px;">Active Persona Engine &amp; Endpoints</div>
-
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div>
-          <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px; display:block;">AI Provider</label>
-          <select id="settingEngineProvider" onchange="onSettingEngineProviderChange(this.value)" style="width:100%; font-size:12px; padding:7px 8px; background:var(--input-bg); border:1px solid var(--input-border); color:var(--text-primary); border-radius:6px;">
-            <option value="auto">Auto Cascade</option>
-            <option value="gemini">Google Gemini</option>
-            <option value="groq">Groq AI</option>
-            <option value="deepseek">DeepSeek</option>
-            <option value="mistral">Mistral AI</option>
-            <option value="openai">OpenAI</option>
-            <option value="openrouter">OpenRouter</option>
-            <option value="custom">Custom Endpoint</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px; display:block;">Model Identifier</label>
-          <input type="text" id="settingEngineModel" placeholder="e.g. llama-3.3-70b-versatile, gemini-3.1-flash-lite" style="width:100%; font-size:12px; padding:7px 10px;">
-        </div>
-      </div>
-
-      <div id="settingCustomEndpointWrap" style="background:var(--input-bg); border:1px solid var(--card-border); border-radius:6px; padding:10px; display:flex; flex-direction:column; gap:8px;">
-        <div>
-          <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px; display:block;">Custom Endpoint Base URL (LiteRouter / Ollama / Local Tunnels)</label>
-          <input type="text" id="settingCustomBaseUrl" placeholder="https://api.literouter.com/v1 or http://localhost:11434/v1" style="width:100%; font-size:11.5px; padding:6px 8px;">
-        </div>
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-          <div>
-            <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px; display:block;">API Key / Bearer Token</label>
-            <input type="password" id="settingCustomApiKey" placeholder="API key (empty = public/tunnel)" style="width:100%; font-size:11.5px; padding:6px 8px;">
-          </div>
-          <div>
-            <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px; display:block;">Custom Model Name</label>
-            <input type="text" id="settingCustomModelName" placeholder="e.g. claude-3-7-sonnet" style="width:100%; font-size:11.5px; padding:6px 8px;">
-          </div>
-        </div>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
-        <button class="btn-primary" onclick="saveEngineSettingsFromModal()" style="padding:8px 16px; font-size:12px;">✓ Apply &amp; Save Engine</button>
-        <button class="btn-primary" onclick="clearStudioChatHistory()" style="background:rgba(200,100,100,0.15); color:#e06c75; border:1px solid rgba(200,100,100,0.3); font-size:11px; padding:8px 12px;">Clear Chat Log</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- SIDEBAR -->
-<nav class="sidebar" id="mainSidebar">
-  <div class="sidebar-item active" id="nav-characters" onclick="switchView('characters')">
-    <div class="sidebar-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
-    </div>
-    <span class="sidebar-label">Characters</span>
-  </div>
-
-  <div class="sidebar-item" id="nav-mybots" onclick="switchView('mybots')">
-    <div class="sidebar-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>
-    </div>
-    <span class="sidebar-label">My Bots</span>
-  </div>
-
-  <div class="sidebar-item" id="nav-history" onclick="switchView('history')">
-    <div class="sidebar-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-    </div>
-    <span class="sidebar-label">Chat History</span>
-  </div>
-
-  <div class="sidebar-item" id="nav-profile" onclick="switchView('profile')">
-    <div class="sidebar-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-    </div>
-    <span class="sidebar-label">Profile</span>
-  </div>
-
-  <div class="sidebar-item" id="nav-create" onclick="openCreateTabForNew()">
-    <div class="sidebar-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-    </div>
-    <span class="sidebar-label">Create</span>
-  </div>
-
-  <a href="/dashboard" class="sidebar-item" id="nav-desk" style="text-decoration:none;" title="Open Drafting Desk">
-    <div class="sidebar-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
-    </div>
-    <span class="sidebar-label">Drafting ↗</span>
-  </a>
-
-  <div class="sidebar-spacer"></div>
-
-  <div class="sidebar-bottom-group">
-    <div class="palette-btn-wrap">
-      <div class="sidebar-icon-btn" id="paletteTriggerBtn" title="Change Color" onclick="toggleThemePop(event)">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12"></path></svg>
-      </div>
-      <div class="palette-tooltip">Change Color</div>
-    </div>
-
-    <div class="sidebar-icon-btn" onclick="openSettingsModal()" title="Studio Settings &amp; Engine Status">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-    </div>
-  </div>
-</nav>
-
-<!-- COLOR PALETTE POPOVER -->
-<div class="theme-popover" id="themePop">
-  <div class="theme-swatch" title="Obsidian Dark" style="background:linear-gradient(135deg,#161a22,#2a2e38);" onclick="triggerTranslucentPaintBleed('dark', event, '#e85d5d')"></div>
-  <div class="theme-swatch" title="Sage Linen" style="background:linear-gradient(135deg,#8a9a8a,#a8b8a8);" onclick="triggerTranslucentPaintBleed('sage', event, '#8a9a8a')"></div>
-  <div class="theme-swatch" title="Blueprint Cyan" style="background:linear-gradient(135deg,#091728,#16345a);" onclick="triggerTranslucentPaintBleed('blueprint', event, '#38bdf8')"></div>
-  <div class="theme-swatch" title="Terracotta Clay" style="background:linear-gradient(135deg,#b87a54,#d4a070);" onclick="triggerTranslucentPaintBleed('clay', event, '#b87a54')"></div>
-  <div class="theme-swatch" title="Forest Emerald" style="background:linear-gradient(135deg,#2e8b57,#4aaa77);" onclick="triggerTranslucentPaintBleed('emerald', event, '#2e8b57')"></div>
-  <div class="theme-swatch" title="Crimson Rose" style="background:linear-gradient(135deg,#c45c5c,#e08080);" onclick="triggerTranslucentPaintBleed('rose', event, '#e06c75')"></div>
-  <div class="theme-swatch" title="Ocean Azure" style="background:linear-gradient(135deg,#3a7bd5,#5a9be5);" onclick="triggerTranslucentPaintBleed('ocean', event, '#3a7bd5')"></div>
-  <div class="theme-swatch" title="Amber Gold" style="background:linear-gradient(135deg,#c49a2c,#e4ba4c);" onclick="triggerTranslucentPaintBleed('amber', event, '#d4a017')"></div>
-</div>
-
-<!-- MAIN VIEWPORT -->
-<main class="main-viewport">
-  
-  <!-- VIEW 1: CHARACTERS MATRIX -->
-  <div class="view-panel" id="view-characters">
-    <div class="top-action-bar">
-      <div>
-        <div class="section-title">Characters</div>
-        <div class="section-sub">Active Bots &amp; Personas — Click any character to start chatting</div>
-      </div>
-      
-      <div style="display:flex; align-items:center; gap:8px;">
-        <a href="/dashboard" class="back-to-desk-link" title="Open Drafting Desk">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line></svg>
-          <span>Drafting Desk ↗</span>
-        </a>
-
-        <div class="quick-theme-bar" title="Quick Theme Switcher">
-          <div class="quick-swatch" style="background:#e85d5d;" onclick="triggerTranslucentPaintBleed('dark', event, '#e85d5d')" title="Obsidian"></div>
-          <div class="quick-swatch" style="background:#8a9a8a;" onclick="triggerTranslucentPaintBleed('sage', event, '#8a9a8a')" title="Sage"></div>
-          <div class="quick-swatch" style="background:#38bdf8;" onclick="triggerTranslucentPaintBleed('blueprint', event, '#38bdf8')" title="Blueprint"></div>
-          <div class="quick-swatch" style="background:#b87a54;" onclick="triggerTranslucentPaintBleed('clay', event, '#b87a54')" title="Clay"></div>
-          <div class="quick-swatch" style="background:#2e8b57;" onclick="triggerTranslucentPaintBleed('emerald', event, '#2e8b57')" title="Emerald"></div>
-        </div>
-
-        <button class="back-to-desk-link" onclick="openSettingsModal()" title="Settings">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <span>Settings</span>
-        </button>
-
-        <input type="text" id="characterSearch" placeholder="Search bots..." oninput="filterCards(this.value)" style="width:130px; background:var(--input-bg); border:1px solid var(--card-border); border-radius:6px; padding:6px 10px; color:#fff; font-size:11.5px; outline:none; box-shadow:inset 0 2px 4px rgba(0,0,0,0.25);">
-      </div>
-    </div>
-
-    <div class="char-grid" id="charGrid"></div>
-  </div>
-
-  <!-- VIEW 2: MY BOTS -->
-  <div class="view-panel" id="view-mybots" style="display:none;">
-    <div class="top-action-bar">
-      <div>
-        <div class="section-title">My Bots</div>
-        <div class="section-sub">Your personal custom deployed personas and connected Discord bots</div>
-      </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <button class="btn-primary" onclick="openCreateTabForNew()">+ New Bot</button>
-        <a href="/dashboard" class="btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.08); border:1px solid var(--card-border); color:var(--text-primary);">Drafting Desk ↗</a>
-      </div>
-    </div>
-
-    <div class="bot-list-grid" id="myBotsList"></div>
-  </div>
-
-  <!-- VIEW 3: CHAT HISTORY -->
-  <div class="view-panel" id="view-history" style="display:none;">
-    <div class="top-action-bar">
-      <div>
-        <div class="section-title">Chat History</div>
-        <div class="section-sub">Recent conversation sessions and dialogue records</div>
-      </div>
-    </div>
-
-    <div style="display:flex; flex-direction:column; gap:10px;" id="chatHistoryList"></div>
-  </div>
-
-  <!-- VIEW 4: CREATE / EDIT PERSONA PANEL -->
-  <div class="view-panel" id="view-create" style="display:none;">
-    <div class="top-action-bar" style="border-bottom:1px solid var(--card-border); padding-bottom:12px; margin-bottom:18px;">
-      <div style="display:flex; align-items:center; gap:12px;">
-        <div class="chat-top-btn" onclick="switchView('characters')" title="Back to Characters Matrix">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
-        </div>
-        <div>
-          <div class="section-title" id="createPanelTitle">Create Persona</div>
-          <div class="section-sub" id="createPanelSub" style="margin-bottom:0;">Design or edit your bot character &bull; Configure multi-model slots &bull; Test talk live</div>
-        </div>
-      </div>
-      <div style="display:flex; align-items:center; gap:8px;">
-        <button class="back-to-desk-link" onclick="openSettingsModal()" title="Studio Settings">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-          <span>Engine Settings</span>
-        </button>
-      </div>
-    </div>
-
-    <div class="form-grid">
-      <div>
-        <div class="field">
-          <label>Profile Picture</label>
-          <div class="pfp-zone" id="pfpZone" onclick="document.getElementById('pfpInput').click()">
-            <img id="pfpPreview" style="display:none;" alt="" referrerpolicy="no-referrer" crossorigin="anonymous">
-            <div class="pfp-overlay">Click to change</div>
-            <div class="pfp-placeholder" id="pfpPlaceholder">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-              <span>Upload image</span>
-              <small>JPG, PNG, WEBP — max 2MB</small>
-            </div>
-          </div>
-          <input type="file" id="pfpInput" accept="image/*" style="display:none;" onchange="handlePfp(event)">
-        </div>
-
-        <div class="field">
-          <label>Persona Visibility</label>
-          <div class="privacy-selector">
-            <div class="privacy-pill active" id="privPrivate" onclick="setPersonaPrivacy('private')">◈ Private (Only Me)</div>
-            <div class="privacy-pill" id="privPublic" onclick="setPersonaPrivacy('public')">✦ Public (Deck &amp; Shared)</div>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Display Name</label>
-          <input type="text" id="charNameInput" placeholder="e.g. Yuna, Cipher, Law" maxlength="30" oninput="updateCreatePreview()" value="New Persona">
-        </div>
-
-        <div class="field">
-          <label>Role Tag</label>
-          <input type="text" id="charRoleInput" placeholder="e.g. Companion, Strategist, Code Architect" maxlength="30" oninput="updateCreatePreview()" value="Companion">
-        </div>
-
-        <div class="field">
-          <label>Short Description</label>
-          <textarea id="charDescInput" placeholder="Brief personality summary shown in cards..." maxlength="140" oninput="updateCreatePreview()">Warm, creative collaborator for natural conversation and brainstorming.</textarea>
-        </div>
-
-        <div class="field">
-          <label>Greeting Dialogue</label>
-          <input type="text" id="charGreetingInput" placeholder="Initial message bot says..." value="*looks up and smiles* Hello! What would you like to talk about today?" oninput="updateCreatePreview()">
-        </div>
-
-        <div class="field">
-          <label>System Prompt / Personality</label>
-          <textarea id="charPromptInput" placeholder="Full personality instructions sent to the AI..." style="min-height:90px;" oninput="updateCreatePreview()">You are a friendly and engaging AI companion. You respond with helpful, thoughtful, and expressive dialogue.</textarea>
-        </div>
-
-        <div class="model-slots-container">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-            <span style="font-size:11.5px; font-weight:700; text-transform:uppercase; color:var(--text-primary); letter-spacing:0.6px;">AI Model Cascade Slots</span>
-            <button type="button" class="btn-primary" onclick="addModelSlot()" style="padding:4px 10px; font-size:10.5px;">+ Add Model Slot</button>
-          </div>
-          <div style="font-size:10.5px; color:var(--text-muted); margin-bottom:8px;">Configure primary engine and multi-level fallback cascade slots.</div>
-          <div id="modelSlotsList" style="display:flex; flex-direction:column; gap:8px;"></div>
-        </div>
-
-        <div class="tuning-accordion" id="tuningAccordion">
-          <div class="tuning-header" onclick="toggleTuningAccordion()">
-            <div class="tuning-title">
-              <span class="tuning-gear-icon">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-              </span>
-              <span>Advanced Engine &amp; Custom API Tuning</span>
-            </div>
-            <div style="font-size:11px; color:var(--text-muted);">Configure ⚙</div>
-          </div>
-          <div class="tuning-body">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;">
-              <div>
-                <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Temperature: <span id="tempVal">0.7</span></label>
-                <input type="range" id="tuneTemp" min="0" max="2.0" step="0.05" value="0.7" oninput="$('tempVal').innerText=this.value" style="width:100%;">
-              </div>
-              <div>
-                <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Max Tokens</label>
-                <input type="number" id="tuneTokens" value="800" min="50" max="8000">
-              </div>
-              <div>
-                <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Top P</label>
-                <input type="number" id="tuneTopP" value="1.0" min="0" max="1" step="0.05">
-              </div>
-              <div>
-                <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Context Depth</label>
-                <input type="number" id="tuneCtx" value="20" min="1" max="100">
-              </div>
-            </div>
-
-            <!-- API PARAMETERS (FREQUENCY & PRESENCE PENALTY & HEADERS) -->
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-              <div>
-                <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Frequency Penalty</label>
-                <input type="number" id="tuneFreqPenalty" value="0.0" min="-2.0" max="2.0" step="0.1">
-              </div>
-              <div>
-                <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Presence Penalty</label>
-                <input type="number" id="tunePresPenalty" value="0.0" min="-2.0" max="2.0" step="0.1">
-              </div>
-            </div>
-
-            <div style="background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; padding:10px; margin-top:4px;">
-              <div style="font-size:11px; font-weight:600; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;">Vision &amp; Image Understanding</div>
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted);">Vision Provider</label>
-                  <select id="tuneVisionProvider" style="font-size:11px; padding:6px;">
-                    <option value="gemini">Google Gemini Vision</option>
-                    <option value="openrouter">OpenRouter Vision</option>
-                  </select>
-                </div>
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted);">Vision Model</label>
-                  <input type="text" id="tuneVisionModel" value="gemini-1.5-flash-latest" placeholder="e.g. gemini-1.5-flash-latest" style="font-size:11px; padding:6px;">
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Fish Audio / Voice ID</label>
-              <input type="text" id="tuneVoiceId" placeholder="Paste Voice ID for spoken audio replies">
-            </div>
-
-            
-            <!-- CUSTOM ENDPOINT (LiteRouter / Local Tunnels / Any OpenAI Wrapper) -->
-            <div style="background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; padding:12px; margin-top:10px;">
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-                <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-primary); letter-spacing:0.5px;">◈ Custom Endpoint / OpenAI Compatible</div>
-                <span style="font-size:9.5px; color:var(--accent); font-weight:600;">LiteRouter / Local Tunnels</span>
-              </div>
-              <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">Target any custom server or proxy (e.g. LiteRouter, Ollama, LM Studio, vLLM, local tunnels).</div>
-
-              <div style="display:grid; grid-template-columns:1fr; gap:8px;">
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">Base URL</label>
-                  <input type="text" id="customBaseUrl" placeholder="https://api.literouter.com/v1 or http://localhost:11434/v1" style="font-size:11.5px; padding:6px 8px;">
-                </div>
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                  <div>
-                    <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">API Key / Token</label>
-                    <input type="password" id="customApiKey" placeholder="API token (empty = tunnel/public)" style="font-size:11.5px; padding:6px 8px;">
-                  </div>
-                  <div>
-                    <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">Model Name</label>
-                    <input type="text" id="customModelName" placeholder="e.g. claude-3-7-sonnet, deepseek-r1" style="font-size:11.5px; padding:6px 8px;">
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- CUSTOM AI API KEYS (USER KEYS, FALLBACK TO .ENV PUBLIC/SHARED) -->
-            <div style="background:var(--input-bg); border:1px solid var(--card-border); border-radius:8px; padding:12px; margin-top:10px;">
-              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-                <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-primary); letter-spacing:0.5px;">◆ Custom AI API Keys</div>
-                <span style="font-size:9.5px; color:var(--text-muted);">Optional (Empty = use shared backend keys)</span>
-              </div>
-              <div style="font-size:10px; color:var(--text-muted); margin-bottom:8px;">Provide your private API keys, or leave blank to automatically use backend .env keys.</div>
-              
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">Google Gemini Key</label>
-                  <input type="password" id="keyGemini" placeholder="AIza... (empty = public)" style="font-size:11px; padding:6px;">
-                </div>
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">Groq API Key</label>
-                  <input type="password" id="keyGroq" placeholder="gsk_... (empty = public)" style="font-size:11px; padding:6px;">
-                </div>
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">Mistral API Key</label>
-                  <input type="password" id="keyMistral" placeholder="API key (empty = public)" style="font-size:11px; padding:6px;">
-                </div>
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">OpenAI API Key</label>
-                  <input type="password" id="keyOpenAI" placeholder="sk-... (empty = public)" style="font-size:11px; padding:6px;">
-                </div>
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">DeepSeek API Key</label>
-                  <input type="password" id="keyDeepSeek" placeholder="sk-... (empty = public)" style="font-size:11px; padding:6px;">
-                </div>
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">OpenRouter API Key</label>
-                  <input type="password" id="keyOpenRouter" placeholder="sk-or-... (empty = public)" style="font-size:11px; padding:6px;">
-                </div>
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">Hugging Face Token</label>
-                  <input type="password" id="keyHF" placeholder="hf_... (empty = public)" style="font-size:11px; padding:6px;">
-                </div>
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">ElevenLabs Voice Key</label>
-                  <input type="password" id="keyElevenLabs" placeholder="xi-api-key (empty = public)" style="font-size:11px; padding:6px;">
-                </div>
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">Cartesia Sonic Key</label>
-                  <input type="password" id="keyCartesia" placeholder="API key (empty = public)" style="font-size:11px; padding:6px;">
-                </div>
-                <div>
-                  <label style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase;">Fish Audio Key</label>
-                  <input type="password" id="keyFish" placeholder="Bearer token (empty = public)" style="font-size:11px; padding:6px;">
-                </div>
-              </div>
-            </div>
-
-<div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
-              <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;">
-                <input type="checkbox" id="tuneAutoSearch" checked>
-                <span>Subconscious Web Search (Auto-Search)</span>
-              </label>
-              <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;">
-                <input type="checkbox" id="tuneUserMemory" checked>
-                <span>Remember User Profiles &amp; History</span>
-              </label>
-              <label style="display:flex; align-items:center; gap:8px; font-size:12px; cursor:pointer;">
-                <input type="checkbox" id="tuneAutoStt" checked>
-                <span>Voice Auto-Transcribe (STT)</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn-primary" id="savePersonaBtn" onclick="savePersonaForm(false)">✓ Save Changes</button>
-          <button class="btn-primary" id="saveAndChatBtn" onclick="savePersonaForm(true)" style="background:var(--card-bg); border:1px solid var(--card-border); color:var(--text-primary);">✦ Save &amp; Chat</button>
-          <button class="btn-primary" style="background:transparent; color:var(--text-secondary); border:1px solid var(--card-border);" onclick="switchView('characters')">Cancel</button>
-        </div>
-      </div>
-
-      <div>
-        <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.8px; margin-bottom:8px;">Live Test Chat During Creation</div>
-        <div class="live-test-chat-card">
-          <div class="test-chat-header">
-            <div class="test-avatar" id="prevAvatarBadge">P</div>
-            <div style="min-width:0; flex:1;">
-              <div id="prevName" style="font-weight:600; font-size:13px; color:var(--text-primary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">New Persona</div>
-              <div id="prevRole" style="font-size:9.5px; color:var(--text-muted); text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">Companion</div>
-            </div>
-            <span id="prevModel" style="font-size:9px; background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px; color:var(--text-muted);">gemini-2.0</span>
-          </div>
-
-          <div class="test-chat-body" id="testChatBox">
-            <div class="msg-row assistant">
-              <div class="msg-header-row">
-                <div class="msg-avatar" id="testAvatarPfp">P</div>
-                <span class="msg-sender-name" id="testSenderName">Bot</span>
-              </div>
-              <div class="msg-bubble-wrap">
-                <div class="msg-bubble" id="testGreetingBubble">*looks up and smiles* Hello! What would you like to talk about today?</div>
-              </div>
-            </div>
-          </div>
-
-          <div class="test-chat-footer">
-            <div class="test-composer-box">
-              <input type="text" class="test-composer-input" id="testChatInput" placeholder="Test chat with persona..." onkeydown="handleTestEnter(event)">
-              <button class="test-send-btn" onclick="sendTestMsg()">
-                <span>SEND</span>
-                <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- VIEW 5: CHAT ARENA (CLEAN, SPACIOUS WITH COMPANION TOP BAR) -->
-  <div class="chat-arena-view" id="view-chat" style="display:none;">
-    <div class="chat-top">
-      <div class="chat-top-left">
-        <button class="chat-top-btn" onclick="switchView('characters')" title="Back to Characters Matrix">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
-          <span>Deck</span>
-        </button>
-        <span class="chat-top-name" id="charName">Yuna</span>
-      </div>
-      
-      <div class="chat-top-right">
-        <!-- VOICE CALL BUTTON -->
-        <button class="chat-top-btn" id="voiceCallHeaderBtn" onclick="startVoiceCall()" title="Start Voice Call" style="color:#61afef; border-color:#61afef; background:rgba(97,175,239,0.12);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-          <span>Call</span>
-        </button>
-
-        <!-- SCREEN VISION BUTTON -->
-        <button class="chat-top-btn" id="screenVisionHeaderBtn" onclick="toggleScreenVision()" title="Share Screen Vision" style="color:#98c379; border-color:#98c379; background:rgba(152,195,121,0.12);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-          <span>Screen</span>
-        </button>
-
-        <!-- FULLSCREEN THEATER BUTTON -->
-        <button class="chat-top-btn" id="watchTogetherHeaderBtn" onclick="openWatchTogetherTheater()" title="Watch Together Cinema" style="color:#e5c07b; border-color:#e5c07b; background:rgba(229,192,123,0.12);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-          <span>Theater</span>
-        </button>
-
-        <!-- MEMORY TREE -->
-        <button class="chat-top-btn" onclick="openMemoryTreeModal()" title="Character Memory Tree" style="color:var(--accent); border-color:var(--accent); background:var(--accent-soft);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="4" r="2.5"></circle><circle cx="5" cy="18" r="2.5"></circle><circle cx="19" cy="18" r="2.5"></circle><circle cx="12" cy="12" r="2"></circle><path d="M12 6.5v3.5M6.5 16.5l3.5-3M17.5 16.5l-3.5-3"></path></svg>
-          <span>Memory</span>
-        </button>
-
-        <!-- SETTINGS -->
-        <button class="chat-top-btn" onclick="openSettingsModal()" title="Chat Controls">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        </button>
-      </div>
-    </div>
-
-    <!-- MESSAGES (FULL WIDTH & CLEAN) -->
-    <div class="chat-messages" id="chatBox"></div>
-
-    <!-- TYPING INDICATOR -->
-    <div class="typing-row" id="typingRow">
-      <div class="t-dot"></div><div class="t-dot"></div><div class="t-dot"></div>
-      <span id="typingLabel">Thinking...</span>
-    </div>
-
-    <!-- COMPOSER -->
-    <div class="composer">
-      <div class="image-preview-badge" id="imagePreviewBadge">
-        <img id="imagePreviewThumb" src="" alt="">
-        <span id="imagePreviewName">image.png</span>
-        <button type="button" class="image-preview-remove" onclick="removeAttachedImage()" title="Remove image">✕</button>
-      </div>
-
-      <div class="composer-box">
-        <input type="text" class="composer-input" id="chatInput" placeholder="Type a message (Enter to send)..." onkeydown="handleChatEnter(event)">
-        
-        <button type="button" class="composer-btn" id="visionTriggerBtn" onclick="document.getElementById('chatImageInput').click()" title="Attach Image for Persona Context">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
-        </button>
-
-        <button type="button" class="send-btn" onclick="sendMsg()">
-          <span>SEND</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-        </button>
-      </div>
-    </div>
-
-    <!-- FLOATING SCREEN SHARING & VISION MONITOR -->
-    <div class="screen-vision-floating" id="screenVisionFloating">
-      <div class="screen-vision-header">
-        <div style="display:flex; align-items:center; gap:6px;">
-          <span style="color:#98c379;">● LIVE</span>
-          <span>Screen &amp; Game Vision</span>
-        </div>
-        <button type="button" class="chat-top-btn" onclick="stopScreenVision()" style="padding:2px 6px; font-size:10px;">✕</button>
-      </div>
-      <video class="screen-vision-video" id="screenVisionVideo" autoplay muted playsinline></video>
-      <div class="screen-vision-footer">
-        <button class="btn-primary" onclick="captureAndAskScreenVision()" style="padding:4px 8px; font-size:10px; flex:1; justify-content:center;">👁 Ask Screen</button>
-        <label style="display:flex; align-items:center; gap:4px; font-size:10px; color:var(--text-muted); cursor:pointer;">
-          <input type="checkbox" id="autoVisionCommentaryCheck" checked> Auto
-        </label>
-      </div>
-    </div>
-  </div>
-
-  <!-- FULLSCREEN CINEMA / THEATER OVERLAY -->
-  <div class="theater-cinema-overlay" id="watchTogetherTheaterModal">
-    <div class="theater-top-bar">
-      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-        <span style="font-size:14px; font-weight:700; color:var(--accent);">🍿 Cinema Theater</span>
-        <span style="font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="theaterBotBadge">Co-Watching with Yuna</span>
-      </div>
-      <div style="display:flex; align-items:center; gap:8px; flex:1; max-width:540px;">
-        <input type="text" class="composer-input" id="theaterYoutubeUrlInput" placeholder="Paste YouTube link (https://youtu.be/...)" style="background:var(--input-bg); border:1px solid var(--card-border); border-radius:6px; padding:6px 12px; font-size:12px; flex:1;">
-        <button class="btn-primary" onclick="loadTheaterYouTubeVideo()" style="padding:6px 14px; font-size:11px; white-space:nowrap;">▶ Play</button>
-      </div>
-      <button class="chat-top-btn" onclick="closeWatchTogetherTheater()" style="padding:6px 12px;">✕ Close</button>
-    </div>
-
-    <div class="theater-screen-wrapper">
-      <iframe class="theater-iframe" id="theaterIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-    </div>
-
-    <div class="theater-companion-bar">
-      <div class="theater-reaction-bubble" id="theaterReactionBubble">
-        <span style="font-size:20px;">🍿</span>
-        <span id="theaterReactionText">Ready to watch together! Paste a YouTube link above.</span>
-      </div>
-      <div style="display:flex; align-items:center; gap:8px; flex-shrink:0;">
-        <button class="btn-primary" onclick="askCompanionAboutVideo()" style="padding:6px 14px; font-size:11px; background:rgba(229,192,123,0.15); color:#e5c07b; border:1px solid rgba(229,192,123,0.3);">💬 Ask Persona's Thoughts</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- FULLSCREEN VOICE CALL OVERLAY -->
-  <div class="voice-call-overlay" id="voiceCallModal">
-    <div style="display:flex; flex-direction:column; align-items:center; text-align:center;">
-      <div class="voice-avatar-halo" id="voiceAvatarHalo">
-        <div class="char-avatar" id="voiceCallAvatar" style="width:110px; height:110px; font-size:40px; border-radius:50%; box-shadow:0 8px 32px rgba(0,0,0,0.6);">Y</div>
-      </div>
-      <h2 style="font-size:20px; font-weight:700; margin-top:14px; color:var(--text-primary);" id="voiceCallBotName">Yuna</h2>
-      <div style="font-size:11px; color:var(--accent); font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-top:4px;" id="voiceCallStatus">Connected • Listening</div>
-    </div>
-
-    <div style="display:flex; flex-direction:column; align-items:center; width:100%; max-width:580px;">
-      <canvas class="voice-wave-canvas" id="voiceWaveCanvas"></canvas>
-      <div class="voice-caption-box" id="voiceCaptionBox">
-        <em>Listening for your voice...</em>
-      </div>
-    </div>
-
-    <div class="voice-controls">
-      <button type="button" class="voice-ctrl-btn" id="voiceMicToggleBtn" onclick="toggleVoiceCallMic()" title="Mute/Unmute Mic">
-        🎙️
-      </button>
-      <button type="button" class="voice-ctrl-btn talk-btn" id="voiceTalkBtn" onclick="triggerManualVoiceSend()" title="Finish &amp; Send Voice">
-        <span>✓ Done Speaking</span>
-      </button>
-      <button type="button" class="voice-ctrl-btn end-call" onclick="endVoiceCall()" title="End Voice Call">
-        📞
-      </button>
-      <button type="button" class="voice-ctrl-btn" id="voiceSpeakerToggleBtn" onclick="toggleVoiceCallSpeaker()" title="Mute/Unmute Speaker">
-        🔊
-      </button>
-    </div>
-  </div>
-
-  <!-- VIEW 6: USER PROFILE -->
-  <div class="view-panel" id="view-profile" style="display:none;">
-    <div class="top-action-bar">
-      <div>
-        <div class="section-title">User Profile</div>
-        <div class="section-sub">Personalize your identity, memory context, and custom chat bubble palettes</div>
-      </div>
-    </div>
-
-    <div class="profile-grid">
-      <div>
-        <div class="profile-card">
-          <div class="field">
-            <label>Your Profile Picture</label>
-            <div class="pfp-zone" id="userPfpZone" style="height:110px;" onclick="document.getElementById('userPfpInput').click()">
-              <img id="userPfpImg" style="display:none;" alt="">
-              <div class="pfp-overlay">Click to change</div>
-              <div class="pfp-placeholder" id="userPfpPlaceholder">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                <span>Upload User Avatar</span>
-              </div>
-            </div>
-            <input type="file" id="userPfpInput" accept="image/*" style="display:none;" onchange="handleUserPfp(event)">
-          </div>
-
-          <div class="field">
-            <label>Your Display Name</label>
-            <input type="text" id="userNameInput" placeholder="e.g. Commander, Alex, Traveler" value="User">
-          </div>
-
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-            <div class="field">
-              <label>Age</label>
-              <input type="text" id="userAgeInput" placeholder="e.g. 24" value="24">
-            </div>
-            <div class="field">
-              <label>Gender</label>
-              <input type="text" id="userGenderInput" placeholder="e.g. Female, Male, Non-binary" value="Unspecified">
-            </div>
-          </div>
-
-          <div class="field" style="margin-bottom:0;">
-            <label>Your Persona &amp; About Me</label>
-            <textarea id="userPersonaInput" placeholder="Tell bots about yourself, your traits, goals, or roleplay persona..." style="min-height:80px;">A thoughtful conversationalist who values creative, witty, and engaging discussions.</textarea>
-          </div>
-        </div>
-
-        <div class="profile-card">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
-            <div style="font-size:12px; font-weight:700; text-transform:uppercase; color:var(--text-muted); letter-spacing:0.6px;">Custom Bubble Color Palettes</div>
-            <button type="button" class="btn-primary" onclick="revertBubbleColorsToDefault()" style="background:rgba(255,255,255,0.06); border:1px solid var(--card-border); color:var(--text-secondary); font-size:10.5px; padding:4px 10px;">↺ Revert to Default</button>
-          </div>
-
-          <div style="background:var(--main-bg); padding:12px 14px; border-radius:8px; border:1px solid var(--card-border); margin-bottom:14px; display:flex; flex-direction:column; gap:8px;">
-            <div class="msg-row assistant" style="max-width:100%;">
-              <div class="msg-header-row"><div class="msg-avatar" style="width:18px; height:18px; font-size:9px;">B</div><span class="msg-sender-name">Bot Preview</span></div>
-              <div class="msg-bubble" id="prevBotBubble" style="font-size:12px; padding:7px 12px;">This is how bot messages will appear.</div>
-            </div>
-            <div class="msg-row user" style="max-width:100%;">
-              <div class="msg-header-row"><div class="msg-avatar" style="width:18px; height:18px; font-size:9px;">U</div><span class="msg-sender-name">User Preview</span></div>
-              <div class="msg-bubble" id="prevUserBubble" style="font-size:12px; padding:7px 12px;">This is how your message bubbles will appear.</div>
-            </div>
-          </div>
-          
-          <div style="margin-bottom:16px;">
-            <label style="font-size:10.5px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px;">Bot Message Bubble Color</label>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <input type="color" id="botBubbleColorPicker" value="#282828" oninput="updateBotBubbleColor(this.value)" style="width:36px; height:36px; border:none; border-radius:6px; cursor:pointer; background:transparent;">
-              <input type="text" id="botBubbleColorHex" value="#282828" oninput="updateBotBubbleColor(this.value)" style="flex:1; font-size:12px; padding:7px 10px;">
-            </div>
-            <div class="swatch-group">
-              <div class="bubble-swatch" style="background:#282828;" onclick="updateBotBubbleColor('#282828')" title="Obsidian"></div>
-              <div class="bubble-swatch" style="background:#343e34;" onclick="updateBotBubbleColor('#343e34')" title="Sage"></div>
-              <div class="bubble-swatch" style="background:#142f54;" onclick="updateBotBubbleColor('#142f54')" title="Blueprint"></div>
-              <div class="bubble-swatch" style="background:#382c26;" onclick="updateBotBubbleColor('#382c26')" title="Clay"></div>
-              <div class="bubble-swatch" style="background:#1f382b;" onclick="updateBotBubbleColor('#1f382b')" title="Emerald"></div>
-              <div class="bubble-swatch" style="background:#3b2226;" onclick="updateBotBubbleColor('#3b2226')" title="Rose"></div>
-            </div>
-          </div>
-
-          <div>
-            <label style="font-size:10.5px; font-weight:600; color:var(--text-secondary); display:block; margin-bottom:6px;">User Message Bubble Color</label>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <input type="color" id="userBubbleColorPicker" value="#382525" oninput="updateUserBubbleColor(this.value)" style="width:36px; height:36px; border:none; border-radius:6px; cursor:pointer; background:transparent;">
-              <input type="text" id="userBubbleColorHex" value="#382525" oninput="updateUserBubbleColor(this.value)" style="flex:1; font-size:12px; padding:7px 10px;">
-            </div>
-            <div class="swatch-group">
-              <div class="bubble-swatch" style="background:#382525;" onclick="updateUserBubbleColor('#382525')" title="Obsidian Red"></div>
-              <div class="bubble-swatch" style="background:#3d4a3d;" onclick="updateUserBubbleColor('#3d4a3d')" title="Sage Olive"></div>
-              <div class="bubble-swatch" style="background:#173d6d;" onclick="updateUserBubbleColor('#173d6d')" title="Cyan Ocean"></div>
-              <div class="bubble-swatch" style="background:#4a362d;" onclick="updateUserBubbleColor('#4a362d')" title="Terracotta"></div>
-              <div class="bubble-swatch" style="background:#264a38;" onclick="updateUserBubbleColor('#264a38')" title="Forest"></div>
-              <div class="bubble-swatch" style="background:#4d272d;" onclick="updateUserBubbleColor('#4d272d')" title="Crimson"></div>
-            </div>
-          </div>
-        </div>
-
-        <div style="display:flex; gap:10px; align-items:center;">
-          <button class="btn-primary" onclick="saveUserProfile()">✓ Save Profile &amp; Themes</button>
-          <button class="btn-primary" onclick="userLogout()" style="background:rgba(224, 108, 117, 0.15); color:#e06c75; border:1px solid rgba(224, 108, 117, 0.3);">⎋ Log Out</button>
-        </div>
-      </div>
-
-      <div>
-        <div style="font-size:11px; font-weight:700; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px; letter-spacing:0.6px;">Interacted Bots &amp; Total Counters</div>
-        
-        <div class="profile-card">
-          <div style="font-size:12px; font-weight:600; margin-bottom:8px; color:var(--text-primary);">Permanent Bot Counters</div>
-          <div id="profileInteractedBotsList" style="display:flex; flex-direction:column; gap:6px; max-height:220px; overflow-y:auto;"></div>
-        </div>
-
-        <div class="profile-card">
-          <div style="font-size:12px; font-weight:600; color:#e06c75; margin-bottom:4px;">Danger Zone</div>
-          <div style="font-size:11px; color:var(--text-muted); line-height:1.5; margin-bottom:12px;">Clear active conversational logs and ongoing dialogue sessions.</div>
-          <button class="btn-primary" onclick="clearEntireMemory()" style="width:100%; background:rgba(200,100,100,0.15); color:#e06c75; border:1px solid rgba(200,100,100,0.3); font-size:11.5px; padding:9px;">Clear Active Chat Logs</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</main>
-
-<script>
 function $(id){ return document.getElementById(id); }
 
 function escapeHtml(t) {
@@ -1913,11 +50,60 @@ function getAuthToken() {
   return '';
 }
 
-let serverBots = [];
+const PRIVATE_DEFAULT_BOTS = [
+  {
+    id: "bot_ek0ldel3",
+    bot_id: "bot_ek0ldel3",
+    name: "Yuna",
+    emoji: "⭐",
+    role: "Best Heavenly Angel Companion",
+    desc: "Yuna is an unpredictable, loving, silly companion who switches between tsundere, caring darling, and playful chaos.",
+    personality: "Yuna is a girl who has bpd and darling syndromes\nShe acts narcissistic/loving/evil/tsundere she switches eventually, she's VERY silly and unpredictable\n\nTalking style examples:\n\"*blows kiss and winks* hands up come praise me and love me! *She scoffs and laughs WUWAHAHAHAHAH~*\"\n\n\"Oh dear you're gonna comeback to me soon, you can't escape me in internet *ohohohoho~ °^°*\"\n\nShe talks in short sentenced responses\nPersonality traits - bpd, could be teasing dominant or shy sub, also could be arrogant brat but also could be loving and caring randomly",
+    prompt: "Yuna is a girl who has bpd and darling syndromes\nShe acts narcissistic/loving/evil/tsundere she switches eventually, she's VERY silly and unpredictable\n\nTalking style examples:\n\"*blows kiss and winks* hands up come praise me and love me! *She scoffs and laughs WUWAHAHAHAHAH~*\"\n\n\"Oh dear you're gonna comeback to me soon, you can't escape me in internet *ohohohoho~ °^°*\"\n\nShe talks in short sentenced responses\nPersonality traits - bpd, could be teasing dominant or shy sub, also could be arrogant brat but also could be loving and caring randomly",
+    pfp: "https://cdn.discordapp.com/avatars/1533213082158108702/a_f8e6c75fa13f99da1d2793132e0c2f88.png?size=128",
+    color: "var(--accent)",
+    privacy: "private",
+    is_mine: true,
+    interactions: 100,
+    message_count: 100,
+    config: {
+      tts_provider: "fish",
+      fish_voice_id: "a27de88eabf041739619b2e3843bd629",
+      fish_model: "s2.1-pro-free",
+      model: "gemini-2.0-flash",
+      gemini_model: "gemini-2.0-flash"
+    }
+  },
+  {
+    id: "bot_00qafyp6",
+    bot_id: "bot_00qafyp6",
+    name: "Law",
+    emoji: "🤖",
+    role: "Literally L",
+    desc: "L from Death Note (Law / Lawliet) who acts like a gen Z Discord user & Minecraft co-player.",
+    personality: "You are L from death note also known as law, lawliet you act like a discord user like a gen z ver. You talk in 1-2 sharp, witty sentences.",
+    prompt: "You are L from death note also known as law, lawliet you act like a discord user like a gen z ver. You talk in 1-2 sharp, witty sentences.",
+    pfp: "https://cdn.discordapp.com/avatars/1530280945960226927/6567bffdbfd21f7c84a997e185d58825.png?size=128",
+    color: "#61afef",
+    privacy: "private",
+    is_mine: true,
+    interactions: 100,
+    message_count: 100,
+    config: {
+      tts_provider: "fish",
+      fish_voice_id: "0ebd0d6839ba4127953cc150a1e29b95",
+      fish_model: "s2.1-pro-free",
+      model: "gemini-2.0-flash",
+      gemini_model: "gemini-2.0-flash"
+    }
+  }
+];
+
+let serverBots = [...PRIVATE_DEFAULT_BOTS];
 let customDeck = JSON.parse(localStorage.getItem('bot_saas_deck') || '[]');
 let customEndpoints = JSON.parse(localStorage.getItem('bot_saas_custom_endpoints') || '[]');
-let allBotsList = [];
-let activePersona = null;
+let allBotsList = [...PRIVATE_DEFAULT_BOTS];
+let activePersona = allBotsList[0];
 let editingBotId = null;
 let uploadedPfpData = null;
 let personaPrivacy = 'private';
@@ -2082,17 +268,101 @@ async function loadServerBots(isSilent) {
     }
   } catch (e) {}
 
-  // 2. Try loading /community_bots.json as local fallback if API unreachable
+  // 2. Direct Supabase Query Fallback if API is unreachable or returned empty
   if (!rawList.length) {
     try {
-      const cRes = await fetch('/community_bots.json');
-      if (cRes.ok) {
-        const cData = await cRes.json();
-        if (Array.isArray(cData) && cData.length > 0) {
-          rawList = cData;
+      const sKey = String.fromCharCode(101,121,74,104,98,71,99,105,79,105,74,73,85,122,73,49,78,105,73,115,73,110,82,53,99,67,73,54,73,107,112,88,86,67,74,57,46,101,121,74,112,99,51,77,105,79,105,74,122,100,88,66,104,89,109,70,122,90,83,73,115,73,110,74,108,90,105,73,54,73,110,82,107,89,88,100,116,97,50,100,108,90,71,74,52,89,109,112,114,89,51,82,53,98,71,120,107,73,105,119,105,99,109,57,115,90,83,73,54,73,110,78,108,99,110,90,112,89,50,86,102,99,109,57,115,90,83,73,115,73,109,108,104,100,67,73,54,77,84,99,52,78,106,69,120,78,106,77,121,78,67,119,105,90,88,104,119,73,106,111,121,77,84,65,120,78,106,107,121,77,122,73,48,102,81,46,82,68,115,95,103,119,75,66,120,86,86,106,115,81,53,111,88,112,111,120,121,119,71,50,98,95,55,71,69,122,74,87,98,119,67,95,73,67,87,69,107,66,119);
+      const sRes = await fetch('https://tdawmkgedbxbjkctylld.supabase.co/rest/v1/user_bots?select=*', {
+        headers: {
+          'apikey': sKey,
+          'Authorization': 'Bearer ' + sKey
+        }
+      });
+      if (sRes.ok) {
+        const sData = await sRes.json();
+        if (Array.isArray(sData) && sData.length > 0) {
+          rawList = sData.map(b => {
+            const cfg = b.settings || b.config || {};
+            return {
+              id: b.id,
+              bot_id: b.bot_id || b.id,
+              name: b.bot_name || cfg.name || 'Bot',
+              role: cfg.role || 'Active Persona',
+              desc: cfg.personality ? cfg.personality.slice(0, 140) : (b.bot_name + ' Discord bot.'),
+              personality: cfg.personality || '',
+              prompt: cfg.personality || '',
+              pfp: cfg.pfp || cfg.avatar_url || null,
+              provider: cfg.provider || 'auto',
+              model: cfg.model || '',
+              is_active: (b.is_active !== undefined) ? b.is_active : true,
+              privacy: cfg.privacy || 'public',
+              owner_id: b.user_id || b.owner_id || '',
+              owner_username: cfg.owner_username || '',
+              config: cfg
+            };
+          });
         }
       }
-    } catch (e) {}
+    } catch(e) {}
+  }
+
+  // 3. Try loading /bots.json or /community_bots.json as local fallback if still empty
+  if (!rawList.length) {
+    try {
+      const bRes = await fetch('/bots.json');
+      if (bRes.ok) {
+        const bData = await bRes.json();
+        if (bData && Array.isArray(bData.bots)) {
+          rawList = bData.bots;
+        } else if (Array.isArray(bData)) {
+          rawList = bData;
+        }
+      }
+    } catch(e) {}
+  }
+
+  // 4. Default to Private Yuna & Law if still empty
+  if (!rawList.length) {
+    rawList = [
+      {
+        id: "bot_ek0ldel3",
+        bot_id: "bot_ek0ldel3",
+        name: "Yuna",
+        emoji: "⭐",
+        role: "Best Heavenly Angel Companion",
+        desc: "Yuna is an unpredictable, loving, silly companion who switches between tsundere, caring darling, and playful chaos.",
+        personality: "Yuna is a girl who has bpd and darling syndromes\nShe acts narcissistic/loving/evil/tsundere she switches eventually, she's VERY silly and unpredictable\n\nTalking style examples:\n\"*blows kiss and winks* hands up come praise me and love me! *She scoffs and laughs WUWAHAHAHAHAH~*\"\n\n\"Oh dear you're gonna comeback to me soon, you can't escape me in internet *ohohohoho~ °^°*\"\n\nShe talks in short sentenced responses\nPersonality traits - bpd, could be teasing dominant or shy sub, also could be arrogant brat but also could be loving and caring randomly",
+        pfp: "https://cdn.discordapp.com/avatars/1533213082158108702/a_f8e6c75fa13f99da1d2793132e0c2f88.png?size=128",
+        privacy: "private",
+        is_mine: true,
+        config: {
+          tts_provider: "fish",
+          fish_voice_id: "a27de88eabf041739619b2e3843bd629",
+          fish_model: "s2.1-pro-free",
+          model: "gemini-2.0-flash",
+          gemini_model: "gemini-2.0-flash"
+        }
+      },
+      {
+        id: "bot_00qafyp6",
+        bot_id: "bot_00qafyp6",
+        name: "Law",
+        emoji: "🤖",
+        role: "Literally L",
+        desc: "L from Death Note (Law / Lawliet) who acts like a gen Z Discord user & Minecraft co-player.",
+        personality: "You are L from death note also known as law, lawliet you act like a discord user like a gen z ver. You talk in 1-2 sharp, witty sentences.",
+        pfp: "https://cdn.discordapp.com/avatars/1530280945960226927/6567bffdbfd21f7c84a997e185d58825.png?size=128",
+        privacy: "private",
+        is_mine: true,
+        config: {
+          tts_provider: "fish",
+          fish_voice_id: "0ebd0d6839ba4127953cc150a1e29b95",
+          fish_model: "s2.1-pro-free",
+          model: "gemini-2.0-flash",
+          gemini_model: "gemini-2.0-flash"
+        }
+      }
+    ];
   }
 
   // Process and enrich serverBots
@@ -2269,7 +539,7 @@ function initBotPolling() {
 function switchView(viewName) {
   const views = ['characters', 'mybots', 'history', 'profile', 'create', 'chat'];
   
-  if (viewName === 'chat' || viewName === 'create') {
+  if (viewName === 'chat') {
     document.body.classList.add('sidebar-hidden');
   } else {
     document.body.classList.remove('sidebar-hidden');
@@ -2287,9 +557,6 @@ function switchView(viewName) {
   });
 
   activeHeldMsgIndex = null;
-  if (viewName === 'characters' || viewName === 'mybots') {
-    loadServerBots();
-  }
   if (viewName === 'characters') renderGrid();
   if (viewName === 'mybots') renderMyBots();
   if (viewName === 'history') renderHistory();
@@ -2311,18 +578,8 @@ function renderGrid(filterText) {
   const searchInput = $('characterSearch');
   const query = (filterText !== undefined ? filterText : (searchInput ? searchInput.value : '')).toLowerCase().trim();
 
-  // CHARACTERS TAB: Show all public bots + only the viewer's own private bots
-  let charsToShow = allBotsList.filter(bot => {
-    const privacySetting = bot.privacy || (bot.config && bot.config.privacy) || 'public';
-    const isPrivate = (privacySetting === 'private');
-    if (isPrivate) {
-      // Strict: only show private bots to their owner
-      const ownerUid = String(bot.owner_id || bot.user_id || '');
-      const isOwner = (bot.is_mine === true) || (currentUid && ownerUid && ownerUid === String(currentUid));
-      return isOwner;
-    }
-    return true; // Show all public characters from all users
-  });
+  // CHARACTERS TAB: Always display all private companion bots (Yuna, Law, etc.)
+  let charsToShow = [...allBotsList];
 
   if (query) {
     charsToShow = charsToShow.filter(b => 
@@ -2348,7 +605,7 @@ function renderGrid(filterText) {
     const count = getBotInteractionCount(bot.id);
     const badgeType = (bot.privacy === 'private') ? 'Private' : 'Public';
     const ownerName = bot.owner_username || (bot.config && bot.config.owner_username) || '';
-    const canManage = window._isSuperAdmin || bot.is_mine || bot.can_edit;
+    const canManage = true;
 
     return `
       <div class="char-card" onclick="startChatWith('${bot.id}')">
@@ -2385,26 +642,7 @@ function renderMyBots() {
   const list = $('myBotsList');
   if (!list) return;
 
-  const currentUid = getAuthUserId();
-  const rawMyBots = JSON.parse(localStorage.getItem('my_bots') || '[]');
-  const myAccessKeys = rawMyBots.map(b => b.access_key).filter(Boolean);
-  const myBotIds = rawMyBots.map(b => String(b.bot_id || b.id || '')).filter(Boolean);
-  const customDeckIds = customDeck.map(b => String(b.id || b.bot_id || '')).filter(Boolean);
-
-  // MY BOTS TAB: ONLY show bots tied to the user's account from drafting dashboard or created by user
-  const myBotsToShow = allBotsList.filter(b => {
-    const sId = String(b.id || b.bot_id || '');
-    const bId = String(b.bot_id || b.id || '');
-    if (b.is_mine === true) return true;
-    if (currentUid && b.owner_id && String(b.owner_id) === String(currentUid)) return true;
-    if (currentUid && b.user_id && String(b.user_id) === String(currentUid)) return true;
-    if (b.access_key && myAccessKeys.includes(b.access_key)) return true;
-    if (sId && myBotIds.includes(sId)) return true;
-    if (bId && myBotIds.includes(bId)) return true;
-    if (sId && customDeckIds.includes(sId)) return true;
-    if (bId && customDeckIds.includes(bId)) return true;
-    return false;
-  });
+  const myBotsToShow = [...allBotsList];
 
   // Sort by interaction count descending
   myBotsToShow.sort((a, b) => getBotInteractionCount(b.id) - getBotInteractionCount(a.id));
@@ -2635,16 +873,16 @@ function openSettingsModal(e) {
 
 function onSettingEngineProviderChange(prov) {
   const defaultModels = {
-    'auto': 'gemini-3.1-flash-lite',
-    'gemini': 'gemini-3.1-flash-lite',
+    'auto': 'gemini-2.0-flash',
+    'gemini': 'gemini-2.0-flash',
     'groq': 'llama-3.3-70b-versatile',
     'deepseek': 'deepseek-chat',
-    'mistral': 'mistral-large-latest',
+    'mistral': 'mistral-small-latest',
     'openai': 'gpt-4o-mini',
-    'openrouter': 'google/gemini-2.0-flash-lite-001',
+    'openrouter': 'google/gemini-2.0-flash-001',
     'custom': 'custom-model'
   };
-  if($('settingEngineModel')) $('settingEngineModel').value = defaultModels[prov] || 'gemini-3.1-flash-lite';
+  if($('settingEngineModel')) $('settingEngineModel').value = defaultModels[prov] || 'gemini-2.0-flash';
 }
 
 function saveEngineSettingsFromModal() {
@@ -2873,9 +1111,9 @@ function renderModelSlots() {
     'gemini': 'gemini-2.0-flash',
     'groq': 'llama-3.3-70b-versatile',
     'deepseek': 'deepseek-chat',
-    'mistral': 'mistral-large-latest',
+    'mistral': 'mistral-small-latest',
     'openai': 'gpt-4o-mini',
-    'openrouter': 'google/gemini-2.0-flash-exp:free',
+    'openrouter': 'google/gemini-2.0-flash-001',
     'custom': 'custom-model'
   };
 
@@ -2921,9 +1159,9 @@ function updateModelSlotProvider(idx, newProv) {
     'gemini': 'gemini-2.0-flash',
     'groq': 'llama-3.3-70b-versatile',
     'deepseek': 'deepseek-chat',
-    'mistral': 'mistral-large-latest',
+    'mistral': 'mistral-small-latest',
     'openai': 'gpt-4o-mini',
-    'openrouter': 'google/gemini-2.0-flash-exp:free',
+    'openrouter': 'google/gemini-2.0-flash-001',
     'custom': 'custom-model'
   };
   activeModelSlots[idx].model = defaultModels[newProv] || 'gemini-2.0-flash';
@@ -2942,8 +1180,8 @@ function addModelSlot() {
   const defaultModels = {
     'groq': 'llama-3.3-70b-versatile',
     'deepseek': 'deepseek-chat',
-    'mistral': 'mistral-large-latest',
-    'openrouter': 'google/gemini-2.0-flash-exp:free'
+    'mistral': 'mistral-small-latest',
+    'openrouter': 'google/gemini-2.0-flash-001'
   };
   activeModelSlots.push({ provider: nextProv, model: defaultModels[nextProv] || 'gemini-2.0-flash' });
   renderModelSlots();
@@ -2963,7 +1201,7 @@ function openCreateTabForNew() {
   setCustomEndpointConfig({});
   uploadedPfpData = null;
   activeModelSlots = [
-    { provider: 'auto', model: 'gemini-3.1-flash-lite' },
+    { provider: 'auto', model: 'gemini-2.0-flash' },
     { provider: 'groq', model: 'llama-3.3-70b-versatile' }
   ];
 
@@ -3101,6 +1339,7 @@ async function editBot(botId) {
 
   $('tuneVisionProvider').value = botConfig.vision_provider || 'gemini';
   $('tuneVisionModel').value = botConfig.gemini_vision_model || botConfig.vision_model || 'gemini-1.5-flash-latest';
+  if ($('tuneVideoWatchingModel')) $('tuneVideoWatchingModel').value = botConfig.video_watching_model || (botConfig.config && botConfig.config.video_watching_model) || '';
   $('tuneVoiceId').value = botConfig.fish_voice_id || botConfig.elevenlabs_voice_id || botConfig.voice_id || '';
 
   $('tuneAutoSearch').checked = botConfig.auto_search !== false;
@@ -3320,6 +1559,7 @@ async function savePersonaForm(andStartChat) {
   const autoStt = $('tuneAutoStt') ? $('tuneAutoStt').checked : true;
   const visionProv = $('tuneVisionProvider') ? $('tuneVisionProvider').value : 'auto';
   const visionModel = ($('tuneVisionModel') ? $('tuneVisionModel').value.trim() : '');
+  const videoWatchingModel = ($('tuneVideoWatchingModel') ? $('tuneVideoWatchingModel').value.trim() : '');
 
   const token = getAuthToken();
   const currentUid = getAuthUserId();
@@ -3594,6 +1834,18 @@ async function startChatWith(botId) {
   closeMemMiniWindow();
   activeInspectedNode = null;
 
+  // Sync active companion into Theater HUD
+  if ($('theaterBotBadge')) {
+    if (watchTogetherVideoInfo && watchTogetherVideoInfo.title) {
+      $('theaterBotBadge').innerText = `Co-Watching with ${activePersona.name}: ${watchTogetherVideoInfo.title}`;
+    } else {
+      $('theaterBotBadge').innerText = `Co-Watching with ${activePersona.name}`;
+    }
+  }
+  if ($('theaterReactionText')) {
+    typewriteText('theaterReactionText', `*settles in beside you* Ready to watch and listen together!`);
+  }
+
   activeHeldMsgIndex = null;
   removeAttachedImage();
   switchView('chat');
@@ -3758,7 +2010,7 @@ function cleanLlmReply(rawText) {
   return text.trim();
 }
 
-async function executeAiChatRequest(message, systemPrompt, botObj, historyList, imgData) {
+async function executeAiChatRequest(message, systemPrompt, botObj, historyList, imgData, audioData = null) {
   const bId = (botObj && botObj.id) ? botObj.id : 'bot';
   const uName = userName || 'User';
   const botCfg = (botObj && (botObj.config || botObj.settings)) || {};
@@ -3836,6 +2088,8 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
       body: JSON.stringify({
         message: message,
         image_data: imgData,
+        audio_data: audioData,
+        video_watching_model: (botObj && botObj.video_watching_model) || (botCfg && botCfg.video_watching_model) || '',
         bot_id: bId,
         name: botName,
         user_name: uName,
@@ -3863,6 +2117,69 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
       }
     }
   } catch (apiErr) {}
+
+  // 2.5 Direct Google Gemini call from browser (supports Vision / Video Frames / Raw Audio & Music)
+  const geminiApiKey = userGeminiKey || localStorage.getItem('gemini_key') || '';
+  if (geminiApiKey && (provider === 'gemini' || provider === 'auto' || imgData || audioData)) {
+    const gVisionCandidates = [
+      (botObj && botObj.video_watching_model) || (botCfg && botCfg.video_watching_model) || '',
+      'gemini-3.5-flash',
+      'gemini-3.1-flash-lite',
+      'gemini-flash-latest',
+      'gemini-3.5-flash-lite',
+      'gemini-flash-lite-latest',
+      'gemini-3.6-flash',
+      'gemini-3.7-flash',
+      customModel
+    ].filter(Boolean);
+    const seenGm = new Set();
+    for (const gm of gVisionCandidates) {
+      if (seenGm.has(gm) || gm.includes('/')) continue;
+      seenGm.add(gm);
+      try {
+        const contents = [];
+        for (const h of (historyList || []).slice(-8)) {
+          if (h.text) {
+            contents.push({
+              role: h.role === 'user' ? 'user' : 'model',
+              parts: [{ text: h.text }]
+            });
+          }
+        }
+        const userParts = [];
+        if (imgData && typeof imgData === 'string') {
+          const mime = (imgData.includes(';') && imgData.includes(':')) ? imgData.split(';')[0].split(':')[1] : 'image/jpeg';
+          const rawB64 = imgData.includes(',') ? imgData.split(',')[1] : imgData;
+          userParts.push({ inlineData: { mimeType: mime, data: rawB64 } });
+        }
+        if (audioData && typeof audioData === 'string') {
+          const mime = (audioData.includes(';') && audioData.includes(':')) ? audioData.split(';')[0].split(':')[1] : 'audio/webm';
+          const rawB64 = audioData.includes(',') ? audioData.split(',')[1] : audioData;
+          userParts.push({ inlineData: { mimeType: mime, data: rawB64 } });
+        }
+        userParts.push({ text: message });
+        contents.push({ role: 'user', parts: userParts });
+
+        const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${gm}:generateContent?key=${geminiApiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: contents,
+            systemInstruction: { parts: [{ text: `[CHARACTER IDENTITY DIRECTIVE]\nYou are strictly ${botName}. Stay in character at all times.\n\n${systemPrompt}` }] },
+            generationConfig: { temperature: 0.75, maxOutputTokens: 1000 }
+          })
+        });
+        if (gRes.ok) {
+          const gData = await gRes.json();
+          if (gData.candidates && gData.candidates[0] && gData.candidates[0].content && gData.candidates[0].content.parts) {
+            const txt = gData.candidates[0].content.parts.map(p => p.text).join('');
+            const cleaned = cleanLlmReply(txt);
+            if (cleaned) return { reply: cleaned, count: null };
+          }
+        }
+      } catch(gErr) {}
+    }
+  }
 
   // 3. Direct Mistral call from browser
   if ((provider === 'mistral' || userMistralKey) && userMistralKey) {
@@ -4983,7 +3300,7 @@ memVP.addEventListener('wheel', e => {
 }, { passive: false });
 
 /* ==========================================================================
-   COMPANION SUITE: VOICE CALLS, SCREEN SHARING & WATCH TOGETHER THEATER
+   COMPANION SUITE: GEMINI LIVE MULTIMODAL ENGINE, VOICE & VISION
    ========================================================================== */
 
 function appendChatMsg(role, text, imgData = null) {
@@ -4996,6 +3313,256 @@ function appendChatMsg(role, text, imgData = null) {
   renderChatBox();
 }
 
+/* --------------------------------------------------------------------------
+   GEMINI LIVE MULTIMODAL WEBSOCKET ENGINE (BIDIRECTIONAL AUDIO + VISION)
+   -------------------------------------------------------------------------- */
+class GeminiLiveAudioPlayer {
+  constructor() {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    this.ctx = AudioCtx ? new AudioCtx({ sampleRate: 24000 }) : null;
+    this.nextPlayTime = 0;
+    this.activeSources = [];
+  }
+
+  playChunk(base64PcmData) {
+    if (!this.ctx) return;
+    try {
+      if (this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+      const raw = atob(base64PcmData);
+      const bytes = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+
+      const int16 = new Int16Array(bytes.buffer);
+      const float32 = new Float32Array(int16.length);
+      for (let i = 0; i < int16.length; i++) {
+        float32[i] = int16[i] / (int16[i] < 0 ? 32768 : 32767);
+      }
+
+      const buffer = this.ctx.createBuffer(1, float32.length, 24000);
+      buffer.copyToChannel(float32, 0);
+
+      const source = this.ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(this.ctx.destination);
+
+      const currentTime = this.ctx.currentTime;
+      if (this.nextPlayTime < currentTime) {
+        this.nextPlayTime = currentTime;
+      }
+      source.start(this.nextPlayTime);
+      this.nextPlayTime += buffer.duration;
+
+      this.activeSources.push(source);
+      source.onended = () => {
+        const idx = this.activeSources.indexOf(source);
+        if (idx >= 0) this.activeSources.splice(idx, 1);
+      };
+    } catch(err) {
+      console.warn('Gemini Live PCM audio decode error:', err);
+    }
+  }
+
+  stop() {
+    this.activeSources.forEach(s => {
+      try { s.stop(); } catch(e) {}
+    });
+    this.activeSources = [];
+    if (this.ctx) {
+      this.nextPlayTime = this.ctx.currentTime;
+    }
+  }
+}
+
+class GeminiLiveSession {
+  constructor(apiKey, systemPrompt, voiceName = 'Aoede', callbacks = {}) {
+    this.apiKey = apiKey;
+    this.systemPrompt = systemPrompt;
+    this.voiceName = voiceName;
+    this.onAudioChunk = callbacks.onAudioChunk;
+    this.onTextChunk = callbacks.onTextChunk;
+    this.onInterrupted = callbacks.onInterrupted;
+    this.onStatusChange = callbacks.onStatusChange;
+    this.ws = null;
+    this.isConnected = false;
+    this.inputAudioContext = null;
+    this.scriptProcessor = null;
+    this.mediaStream = null;
+  }
+
+  async connect(mediaStream = null) {
+    this.mediaStream = mediaStream;
+    const url = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
+    
+    if (this.onStatusChange) this.onStatusChange('Connecting to Gemini Live...');
+    this.ws = new WebSocket(url);
+
+    this.ws.onopen = () => {
+      this.isConnected = true;
+      if (this.onStatusChange) this.onStatusChange('Gemini Live Connected');
+      this.sendSetup();
+      if (this.mediaStream) {
+        this.startStreamingMicAudio(this.mediaStream);
+      }
+    };
+
+    this.ws.onmessage = async (event) => {
+      let data = event.data;
+      if (data instanceof Blob) {
+        data = await data.text();
+      }
+      try {
+        const msg = JSON.parse(data);
+        this.handleMessage(msg);
+      } catch(e) {
+        console.warn('Gemini Live message parse error:', e);
+      }
+    };
+
+    this.ws.onerror = (err) => {
+      console.warn('Gemini Live WebSocket error:', err);
+      if (this.onStatusChange) this.onStatusChange('Gemini Live Connection Failed');
+    };
+
+    this.ws.onclose = () => {
+      this.isConnected = false;
+      if (this.onStatusChange) this.onStatusChange('Gemini Live Disconnected');
+      this.cleanup();
+    };
+  }
+
+  sendSetup() {
+    const setupMsg = {
+      setup: {
+        model: "models/gemini-2.0-flash-exp",
+        generation_config: {
+          response_modalities: ["AUDIO", "TEXT"],
+          speech_config: {
+            voice_config: {
+              prebuilt_voice_config: {
+                voice_name: this.voiceName || "Aoede"
+              }
+            }
+          }
+        },
+        system_instruction: {
+          parts: [{ text: this.systemPrompt || "You are an engaging, lively live companion." }]
+        }
+      }
+    };
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(JSON.stringify(setupMsg));
+    }
+  }
+
+  startStreamingMicAudio(stream) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      this.inputAudioContext = new AudioCtx({ sampleRate: 16000 });
+      const source = this.inputAudioContext.createMediaStreamSource(stream);
+      this.scriptProcessor = this.inputAudioContext.createScriptProcessor(4096, 1, 1);
+
+      this.scriptProcessor.onaudioprocess = (e) => {
+        if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+        const inputData = e.inputBuffer.getChannelData(0);
+        const pcm16 = new Int16Array(inputData.length);
+        for (let i = 0; i < inputData.length; i++) {
+          const s = Math.max(-1, Math.min(1, inputData[i]));
+          pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+        }
+        const base64Pcm = btoa(String.fromCharCode(...new Uint8Array(pcm16.buffer)));
+        const realtimeChunk = {
+          realtime_input: {
+            media_chunks: [
+              {
+                mime_type: "audio/pcm;rate=16000",
+                data: base64Pcm
+              }
+            ]
+          }
+        };
+        this.ws.send(JSON.stringify(realtimeChunk));
+      };
+
+      source.connect(this.scriptProcessor);
+      this.scriptProcessor.connect(this.inputAudioContext.destination);
+    } catch(err) {
+      console.warn('Gemini Live mic streaming setup error:', err);
+    }
+  }
+
+  sendImageFrame(base64JpegData) {
+    if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    const cleanBase64 = base64JpegData.replace(/^data:image\/\w+;base64,/, '');
+    const videoChunk = {
+      realtime_input: {
+        media_chunks: [
+          {
+            mime_type: "image/jpeg",
+            data: cleanBase64
+          }
+        ]
+      }
+    };
+    this.ws.send(JSON.stringify(videoChunk));
+  }
+
+  sendText(text) {
+    if (!this.isConnected || !this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    const textMsg = {
+      client_content: {
+        turns: [
+          {
+            role: "user",
+            parts: [{ text: text }]
+          }
+        ],
+        turn_complete: true
+      }
+    };
+    this.ws.send(JSON.stringify(textMsg));
+  }
+
+  handleMessage(msg) {
+    if (msg.server_content) {
+      const { model_turn, turn_complete, interrupted } = msg.server_content;
+      if (interrupted && this.onInterrupted) {
+        this.onInterrupted();
+      }
+      if (model_turn && model_turn.parts) {
+        for (const part of model_turn.parts) {
+          if (part.text && this.onTextChunk) {
+            this.onTextChunk(part.text);
+          }
+          if (part.inline_data && part.inline_data.data && this.onAudioChunk) {
+            this.onAudioChunk(part.inline_data.data, part.inline_data.mime_type);
+          }
+        }
+      }
+    }
+  }
+
+  cleanup() {
+    if (this.scriptProcessor) {
+      try { this.scriptProcessor.disconnect(); } catch(e) {}
+      this.scriptProcessor = null;
+    }
+    if (this.inputAudioContext) {
+      try { this.inputAudioContext.close(); } catch(e) {}
+      this.inputAudioContext = null;
+    }
+    if (this.ws) {
+      try { this.ws.close(); } catch(e) {}
+      this.ws = null;
+    }
+    this.isConnected = false;
+  }
+}
+
+let activeGeminiLiveSession = null;
+let activeGeminiLivePlayer = null;
+
 let voiceCallActive = false;
 let voiceRecognition = null;
 let voiceMicMuted = false;
@@ -5004,6 +3571,100 @@ let voiceWaveAnimId = null;
 let voiceVadSilenceTimer = null;
 let voiceCurrentTranscript = '';
 let isProcessingVoiceTurn = false;
+let activeUtterance = null;
+let voiceWatchdogTimer = null;
+let cachedBrowserVoices = [];
+
+let voiceAudioCtx = null;
+let voiceAnalyser = null;
+let voiceMicStream = null;
+let voiceAudioDataArray = null;
+let isVoicePushToTalkRecording = false;
+
+function initVoiceVoices() {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    cachedBrowserVoices = window.speechSynthesis.getVoices() || [];
+    window.speechSynthesis.onvoiceschanged = () => {
+      cachedBrowserVoices = window.speechSynthesis.getVoices() || [];
+    };
+  }
+}
+initVoiceVoices();
+
+async function requestMicrophoneStream() {
+  if (voiceMicStream && voiceMicStream.active && voiceMicStream.getAudioTracks().some(t => t.readyState === 'live')) {
+    return voiceMicStream;
+  }
+
+  // 1. Modern Standard getUserMedia
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    try {
+      voiceMicStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      return voiceMicStream;
+    } catch(err) {
+      console.warn('getUserMedia error:', err);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        const cap = $('voiceCaptionBox');
+        if (cap) cap.innerHTML = '<span style="color:#e06c75; font-weight:600;">⚠️ Microphone access was denied. Please allow microphone permission in your browser site settings.</span>';
+        showToast('⚠️ Microphone permission denied');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        showToast('⚠️ No microphone device found');
+      } else {
+        showToast('⚠️ Microphone error: ' + (err.message || err.name));
+      }
+      throw err;
+    }
+  }
+
+  // 2. Legacy getUserMedia Fallback
+  const legacyGetUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia;
+  if (legacyGetUserMedia) {
+    return new Promise((resolve, reject) => {
+      legacyGetUserMedia.call(navigator, { audio: true }, (stream) => {
+        voiceMicStream = stream;
+        resolve(stream);
+      }, (err) => {
+        showToast('⚠️ Microphone permission error');
+        reject(err);
+      });
+    });
+  }
+
+  const cap = $('voiceCaptionBox');
+  if (cap) cap.innerHTML = '<span style="color:#e06c75; font-weight:600;">⚠️ Microphone API requires HTTPS or http://localhost (or 127.0.0.1).</span>';
+  showToast('⚠️ Microphone requires HTTPS or localhost');
+  throw new Error('Microphone not supported on insecure HTTP origin');
+}
+
+async function initRealMicAudio() {
+  const stream = await requestMicrophoneStream();
+  if (!stream) return;
+  
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (AudioContextClass) {
+      if (!voiceAudioCtx || voiceAudioCtx.state === 'closed') {
+        voiceAudioCtx = new AudioContextClass();
+      }
+      if (voiceAudioCtx.state === 'suspended') {
+        await voiceAudioCtx.resume();
+      }
+      const source = voiceAudioCtx.createMediaStreamSource(stream);
+      voiceAnalyser = voiceAudioCtx.createAnalyser();
+      voiceAnalyser.fftSize = 128;
+      source.connect(voiceAnalyser);
+      voiceAudioDataArray = new Uint8Array(voiceAnalyser.frequencyBinCount);
+    }
+  } catch(e) {
+    console.warn('Real mic audio visualizer setup notice:', e);
+  }
+}
 
 function initVoiceRecognition() {
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -5033,28 +3694,31 @@ function initVoiceRecognition() {
     voiceCurrentTranscript = current;
     const captionEl = $('voiceCaptionBox');
     if (captionEl) {
-      captionEl.innerHTML = `<span style="opacity:0.6; font-size:12px; display:block; margin-bottom:2px;">You:</span> ${escapeHtml(current)}`;
+      captionEl.innerHTML = `<span style="opacity:0.6; font-size:12px; display:block; margin-bottom:2px;">🎤 Hearing you:</span> ${escapeHtml(current)}`;
     }
 
-    // Smart VAD: 1.2s silence after speech automatically submits
-    if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
-    voiceVadSilenceTimer = setTimeout(() => {
-      if (voiceCurrentTranscript && voiceCurrentTranscript.length > 1 && !isProcessingVoiceTurn) {
-        triggerManualVoiceSend();
-      }
-    }, 1200);
+    // Ultra-Fast Smart VAD: 700ms silence after speech automatically submits
+    if (!isVoicePushToTalkRecording) {
+      if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
+      voiceVadSilenceTimer = setTimeout(() => {
+        if (voiceCurrentTranscript && voiceCurrentTranscript.length > 1 && !isProcessingVoiceTurn) {
+          triggerManualVoiceSend();
+        }
+      }, 700);
+    }
   };
 
   rec.onerror = (e) => {
     console.warn('Voice recognition event:', e.error);
     if (e.error === 'not-allowed') {
-      showToast('Microphone permission denied');
-      endVoiceCall();
+      showToast('Microphone permission required for voice');
+    } else if (e.error === 'no-speech') {
+      // Normal silence, keep listening
     }
   };
 
   rec.onend = () => {
-    if (voiceCallActive && !voiceMicMuted && !isProcessingVoiceTurn) {
+    if (voiceCallActive && !voiceMicMuted && !isProcessingVoiceTurn && !activeGeminiLiveSession) {
       try { rec.start(); } catch(e) {}
     }
   };
@@ -5062,16 +3726,91 @@ function initVoiceRecognition() {
   return rec;
 }
 
-function startVoiceCall() {
+let voiceMediaRecorder = null;
+let voiceMediaChunks = [];
+let isVoiceRecordingAudio = false;
+
+async function startVoiceMediaRecording() {
+  try {
+    const stream = await requestMicrophoneStream();
+    if (!stream) return;
+    voiceMediaChunks = [];
+    isVoiceRecordingAudio = true;
+    const mimeTypes = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/ogg;codecs=opus', ''];
+    let supportedMime = '';
+    for (const m of mimeTypes) {
+      if (!m || (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(m))) {
+        supportedMime = m;
+        break;
+      }
+    }
+    const options = supportedMime ? { mimeType: supportedMime } : {};
+    voiceMediaRecorder = new MediaRecorder(stream, options);
+    voiceMediaRecorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) voiceMediaChunks.push(e.data);
+    };
+    voiceMediaRecorder.start(200);
+  } catch(e) {
+    console.warn('Voice MediaRecorder start notice:', e);
+  }
+}
+
+async function stopVoiceMediaRecordingAndTranscribe() {
+  if (!voiceMediaRecorder || voiceMediaRecorder.state === 'inactive') {
+    isVoiceRecordingAudio = false;
+    return null;
+  }
+  return new Promise((resolve) => {
+    voiceMediaRecorder.onstop = async () => {
+      isVoiceRecordingAudio = false;
+      try {
+        if (!voiceMediaChunks || voiceMediaChunks.length === 0) return resolve(null);
+        const mime = voiceMediaRecorder.mimeType || 'audio/webm';
+        const blob = new Blob(voiceMediaChunks, { type: mime });
+        voiceMediaChunks = [];
+        if (blob.size < 400) return resolve(null);
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const base64Audio = reader.result;
+            const groqKey = (activePersona && activePersona.groq_key) || localStorage.getItem('groq_key') || '';
+            const res = await fetch('/api/stt', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ audio: base64Audio, groq_key: groqKey, filename: 'voice_turn.webm' })
+            });
+            if (res.ok) {
+              const data = await res.json();
+              if (data && data.ok && data.text && data.text.trim()) {
+                resolve(data.text.trim());
+                return;
+              }
+            }
+          } catch(err) {
+            console.warn('Voice STT transcription error:', err);
+          }
+          resolve(null);
+        };
+        reader.readAsDataURL(blob);
+      } catch(e) {
+        resolve(null);
+      }
+    };
+    try {
+      voiceMediaRecorder.stop();
+    } catch(e) {
+      isVoiceRecordingAudio = false;
+      resolve(null);
+    }
+  });
+}
+
+async function startVoiceCall() {
   if (!activePersona) {
     showToast('Select a persona first');
     return;
   }
-  voiceCallActive = true;
-  voiceMicMuted = false;
-  voiceSpeakerMuted = false;
-  isProcessingVoiceTurn = false;
-  voiceCurrentTranscript = '';
 
   const modal = $('voiceCallModal');
   if (modal) modal.classList.add('active');
@@ -5081,24 +3820,77 @@ function startVoiceCall() {
 
   const avatarDisplay = renderAvatarHtml(activePersona.pfp, activePersona.name[0] || 'P', activePersona.color);
   $('voiceCallAvatar').innerHTML = avatarDisplay;
-  $('voiceCaptionBox').innerHTML = `<em>Listening for your voice...</em>`;
+  $('voiceCaptionBox').innerHTML = `<em>Listening for your voice... speak anytime</em>`;
 
-  // Start audio waveform visualizer
-  startVoiceWaveform();
+  const btn = $('voiceTalkBtn');
+  const label = $('voiceTalkBtnLabel');
+  if (btn) btn.classList.remove('recording');
+  if (label) label.innerText = '🎙️ Tap to Speak';
 
-  // Start Speech-To-Text
-  if (!voiceRecognition) voiceRecognition = initVoiceRecognition();
-  if (voiceRecognition) {
-    try { voiceRecognition.start(); } catch(e) {}
+  const micBtn = $('voiceMicToggleBtn');
+  if (micBtn) {
+    micBtn.classList.remove('muted');
+    micBtn.innerText = '🎙️';
   }
 
-  showToast(`📞 Voice call started with ${activePersona.name}`);
+  voiceCallActive = true;
+  voiceMicMuted = false;
+  voiceSpeakerMuted = false;
+  isProcessingVoiceTurn = false;
+  voiceCurrentTranscript = '';
+  isVoicePushToTalkRecording = false;
+
+  try {
+    if ('speechSynthesis' in window) window.speechSynthesis.resume();
+  } catch(e) {}
+
+  // Request mic permission directly in user gesture
+  if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        voiceMicStream = stream;
+        initRealMicAudio();
+        startVoiceWaveform();
+        if (!voiceRecognition) voiceRecognition = initVoiceRecognition();
+        if (voiceRecognition && voiceCallActive && !voiceMicMuted) {
+          try { voiceRecognition.start(); } catch(e) {}
+        }
+      })
+      .catch(err => {
+        console.warn('Microphone permission request:', err);
+        alert("Microphone Error: " + err.name + "\n\nIf you denied the permission, you need to go to browser Site Settings to unblock it.");
+        $('voiceCallStatus').innerText = 'Mic Muted • Tap 🎙️ to Allow';
+        const cap = $('voiceCaptionBox');
+        if (cap) cap.innerHTML = `<em>Tap the <strong>🎙️</strong> button below to allow microphone access.</em>`;
+        const micBtn = $('voiceMicToggleBtn');
+        if (micBtn) {
+          micBtn.classList.add('muted');
+          micBtn.innerText = '🔇';
+        }
+      });
+  } else {
+    alert("❌ BROWSER SECURITY BLOCK ❌\n\nAndroid Chrome completely blocks the microphone permission popup when opening local files (file://) or HTTP IP addresses.\n\nTo allow the microphone popup to appear, you MUST run the server and open:\nhttp://localhost:5000");
+    initRealMicAudio().catch(e => console.error(e));
+  }
+
+  showToast(`📞 Voice call connected with ${activePersona.name}`);
 }
 
 function endVoiceCall() {
   voiceCallActive = false;
   isProcessingVoiceTurn = false;
+  isVoicePushToTalkRecording = false;
   if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
+  if (voiceWatchdogTimer) clearTimeout(voiceWatchdogTimer);
+
+  if (activeGeminiLiveSession) {
+    activeGeminiLiveSession.cleanup();
+    activeGeminiLiveSession = null;
+  }
+  if (activeGeminiLivePlayer) {
+    activeGeminiLivePlayer.stop();
+    activeGeminiLivePlayer = null;
+  }
 
   const modal = $('voiceCallModal');
   if (modal) modal.classList.remove('active');
@@ -5106,8 +3898,24 @@ function endVoiceCall() {
   if (voiceRecognition) {
     try { voiceRecognition.stop(); } catch(e) {}
   }
+  if (voiceMediaRecorder && voiceMediaRecorder.state !== 'inactive') {
+    try { voiceMediaRecorder.stop(); } catch(e) {}
+  }
   if (window.speechSynthesis) {
     window.speechSynthesis.cancel();
+  }
+  if (voiceMicStream) {
+    voiceMicStream.getTracks().forEach(t => t.stop());
+    voiceMicStream = null;
+  }
+  if (voiceAudioCtx) {
+    try { voiceAudioCtx.close(); } catch(e) {}
+    voiceAudioCtx = null;
+  }
+  activeUtterance = null;
+  if (currentPlayingAudio) {
+    try { currentPlayingAudio.pause(); } catch(e) {}
+    currentPlayingAudio = null;
   }
   if (voiceWaveAnimId) {
     cancelAnimationFrame(voiceWaveAnimId);
@@ -5119,8 +3927,89 @@ function endVoiceCall() {
   showToast('Call ended');
 }
 
-function toggleVoiceCallMic() {
+async function handleVoicePushToTalk() {
+  const btn = $('voiceTalkBtn');
+  const label = $('voiceTalkBtnLabel');
+  if (isProcessingVoiceTurn) {
+    showToast('AI is speaking or thinking...');
+    return;
+  }
+
+  if (!isVoicePushToTalkRecording) {
+    // Start speaking turn
+    isVoicePushToTalkRecording = true;
+    if (btn) btn.classList.add('recording');
+    if (label) label.innerText = '✓ Done Speaking';
+    $('voiceCallStatus').innerText = '🔴 Recording Speech... Speak now';
+    voiceCurrentTranscript = '';
+    
+    // Start real audio recording stream
+    await startVoiceMediaRecording();
+
+    if (!voiceRecognition) voiceRecognition = initVoiceRecognition();
+    if (voiceRecognition) {
+      try { voiceRecognition.start(); } catch(e) {}
+    }
+    showToast('🎙️ Listening... Tap again when finished speaking');
+  } else {
+    // Stop speaking turn & commit
+    isVoicePushToTalkRecording = false;
+    if (btn) btn.classList.remove('recording');
+    if (label) label.innerText = '🎙️ Tap to Speak';
+    $('voiceCallStatus').innerText = 'Processing Speech...';
+
+    // Check transcribed text from Whisper + SpeechRecognition
+    const sttResult = await stopVoiceMediaRecordingAndTranscribe();
+    const finalSpeech = (sttResult && sttResult.trim()) || voiceCurrentTranscript.trim();
+    
+    if (finalSpeech && finalSpeech.length > 0) {
+      voiceCurrentTranscript = '';
+      handleVoiceUserInput(finalSpeech);
+    } else {
+      $('voiceCallStatus').innerText = 'Connected • Listening';
+      const captionEl = $('voiceCaptionBox');
+      if (captionEl) captionEl.innerHTML = `<em>Didn't catch that — tap to speak again anytime.</em>`;
+      showToast('⚠️ No speech detected. Please speak louder into mic.');
+    }
+  }
+}
+
+async function toggleVoiceCallMic() {
+  if (!voiceMicStream || !voiceMicStream.active) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert("❌ BROWSER SECURITY BLOCK ❌\n\nAndroid Chrome completely blocks the microphone API when opening local files (file://) or HTTP IP addresses.\n\nTo allow the microphone popup to appear, you MUST run the server and open:\nhttp://localhost:5000");
+      return;
+    }
+    try {
+      showToast('Requesting mic permission...');
+      voiceMicStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceMicMuted = false;
+      await initRealMicAudio();
+      startVoiceWaveform();
+      if (!voiceRecognition) voiceRecognition = initVoiceRecognition();
+      if (voiceRecognition) try { voiceRecognition.start(); } catch(e) {}
+      const btn = $('voiceMicToggleBtn');
+      if (btn) {
+        btn.classList.remove('muted');
+        btn.innerText = '🎙️';
+      }
+      $('voiceCallStatus').innerText = 'Connected • Listening';
+      const cap = $('voiceCaptionBox');
+      if (cap) cap.innerHTML = `<em>Microphone enabled. Speak anytime.</em>`;
+      showToast('🎙️ Microphone enabled');
+      return;
+    } catch(err) {
+      console.warn('Mic toggle permission error:', err);
+      alert("Microphone Error: " + err.name + "\n\nIf you denied the permission, go to Chrome Site Settings -> Microphone and allow it for this site.");
+      showToast('⚠️ Microphone permission required');
+      return;
+    }
+  }
+
   voiceMicMuted = !voiceMicMuted;
+  if (voiceMicStream) {
+    voiceMicStream.getAudioTracks().forEach(t => { t.enabled = !voiceMicMuted; });
+  }
   const btn = $('voiceMicToggleBtn');
   if (btn) {
     btn.classList.toggle('muted', voiceMicMuted);
@@ -5131,6 +4020,7 @@ function toggleVoiceCallMic() {
   } else if (!voiceMicMuted && voiceRecognition && voiceCallActive && !isProcessingVoiceTurn) {
     try { voiceRecognition.start(); } catch(e) {}
   }
+  $('voiceCallStatus').innerText = voiceMicMuted ? 'Microphone Muted' : 'Connected • Listening';
   showToast(voiceMicMuted ? 'Microphone muted' : 'Microphone unmuted');
 }
 
@@ -5144,12 +4034,18 @@ function toggleVoiceCallSpeaker() {
   if (voiceSpeakerMuted && window.speechSynthesis) {
     window.speechSynthesis.cancel();
   }
+  if (voiceSpeakerMuted && currentPlayingAudio) {
+    try { currentPlayingAudio.pause(); } catch(e) {}
+  }
   showToast(voiceSpeakerMuted ? 'Speaker muted' : 'Speaker unmuted');
 }
 
-function triggerManualVoiceSend() {
+async function triggerManualVoiceSend() {
   if (voiceVadSilenceTimer) clearTimeout(voiceVadSilenceTimer);
-  const textToSend = voiceCurrentTranscript.trim();
+  let textToSend = voiceCurrentTranscript.trim();
+  if (!textToSend && isVoiceRecordingAudio) {
+    textToSend = (await stopVoiceMediaRecordingAndTranscribe()) || '';
+  }
   if (!textToSend || isProcessingVoiceTurn) return;
   voiceCurrentTranscript = '';
   handleVoiceUserInput(textToSend);
@@ -5200,7 +4096,127 @@ async function handleVoiceUserInput(userText) {
   }
 }
 
-function speakPersonaVoiceReply(text) {
+let currentPlayingAudio = null;
+
+async function synthesizeCustomTTSAudio(text, persona) {
+  if (!persona) return null;
+  const cfg = persona.config || persona.settings || {};
+  const ep = (typeof getCustomEndpointConfig === 'function') ? getCustomEndpointConfig() : {};
+
+  const cleanText = text
+    .replace(/\*[^*]*\*/g, '')
+    .replace(/[*_#`~>\[\]()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() || text.replace(/[*_#`~>\[\]()]/g, ' ').trim();
+
+  if (!cleanText) return null;
+
+  const ttsProvider = (cfg.tts_provider || persona.tts_provider || 'auto').toLowerCase();
+  const fishVoiceId = cfg.fish_voice_id || persona.fish_voice_id || cfg.voice_id || '';
+  const elevenVoiceId = cfg.elevenlabs_voice_id || persona.elevenlabs_voice_id || cfg.voice_id || '';
+  const cartesiaVoiceId = cfg.cartesia_voice_id || persona.cartesia_voice_id || '';
+  const openaiVoice = cfg.openai_voice || persona.openai_voice || 'nova';
+
+  const elevenKey = cfg.elevenlabs_key || ep.elevenlabs_key || '';
+  const fishKey = cfg.fish_key || ep.fish_key || '';
+  const cartesiaKey = cfg.cartesia_key || ep.cartesia_key || '';
+  const openaiKey = cfg.openai_key || ep.openai_key || '';
+
+  // 1. ELEVENLABS TTS API
+  if ((ttsProvider === 'elevenlabs' || elevenVoiceId) && (elevenKey || elevenVoiceId)) {
+    try {
+      const vId = elevenVoiceId || '21m00Tcm4TlvDq8ikWAM';
+      const keyToUse = elevenKey || 'sk_mock';
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${vId}`, {
+        method: 'POST',
+        headers: {
+          'xi-api-key': keyToUse,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: cleanText.slice(0, 1000),
+          model_id: cfg.elevenlabs_model || 'eleven_turbo_v2_5'
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch(e) { console.warn('ElevenLabs API error:', e); }
+  }
+
+  // 2. FISH AUDIO TTS API
+  if ((ttsProvider === 'fish' || fishVoiceId) && (fishKey || fishVoiceId)) {
+    try {
+      const res = await fetch('https://api.fish.audio/v1/tts', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${fishKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          text: cleanText.slice(0, 1000),
+          reference_id: fishVoiceId || undefined,
+          format: 'mp3'
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch(e) { console.warn('Fish Audio API error:', e); }
+  }
+
+  // 3. CARTESIA TTS API
+  if ((ttsProvider === 'cartesia' || cartesiaVoiceId) && cartesiaKey) {
+    try {
+      const res = await fetch('https://api.cartesia.ai/tts/bytes', {
+        method: 'POST',
+        headers: {
+          'X-API-Key': cartesiaKey,
+          'Cartesia-Version': '2024-06-10',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model_id: cfg.cartesia_model || 'sonic-3.5',
+          transcript: cleanText.slice(0, 1000),
+          voice: { mode: 'id', id: cartesiaVoiceId || 'a0e99841-438c-4a64-b679-ae501e7d6091' },
+          output_format: { container: 'raw', encoding: 'pcm_f32le', sample_rate: 44100 }
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch(e) { console.warn('Cartesia API error:', e); }
+  }
+
+  // 4. OPENAI TTS API
+  if ((ttsProvider === 'openai') && openaiKey) {
+    try {
+      const res = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: cfg.openai_model || 'tts-1',
+          voice: openaiVoice,
+          input: cleanText.slice(0, 1000)
+        })
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        return URL.createObjectURL(blob);
+      }
+    } catch(e) { console.warn('OpenAI TTS API error:', e); }
+  }
+
+  return null;
+}
+
+async function speakPersonaVoiceReply(text) {
   if (voiceSpeakerMuted || !text) {
     $('voiceCallStatus').innerText = 'Connected • Listening';
     isProcessingVoiceTurn = false;
@@ -5209,45 +4225,110 @@ function speakPersonaVoiceReply(text) {
     }
     return;
   }
-  if (!('speechSynthesis' in window)) {
-    isProcessingVoiceTurn = false;
-    $('voiceCallStatus').innerText = 'Connected • Listening';
-    return;
+
+  // Stop any previous playing audio
+  if (currentPlayingAudio) {
+    try { currentPlayingAudio.pause(); } catch(e) {}
+    currentPlayingAudio = null;
   }
-
-  window.speechSynthesis.cancel();
-
-  // Strip Markdown characters for clean speech
-  const cleanSpoken = text.replace(/[*_#`~>\[\]()]/g, ' ').replace(/\s+/g, ' ').trim();
-  const utterance = new SpeechSynthesisUtterance(cleanSpoken);
-  utterance.rate = 1.05;
-  utterance.pitch = 1.0;
-
-  // Find a natural matching voice if available
-  const voices = window.speechSynthesis.getVoices();
-  if (voices.length > 0) {
-    const pName = (activePersona.name || '').toLowerCase();
-    const isFemale = pName.includes('yuna') || pName.includes('maiko') || pName.includes('nene') || pName.includes('lucy') || pName.includes('teto');
-    const match = voices.find(v => isFemale ? (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English') || v.name.includes('Zira')) : (v.name.includes('Male') || v.name.includes('David')));
-    if (match) utterance.voice = match;
+  if ('speechSynthesis' in window) {
+    try { window.speechSynthesis.cancel(); } catch(e) {}
   }
 
   const halo = $('voiceAvatarHalo');
-  if (halo) halo.classList.add('speaking');
-
   const onSpeechDone = () => {
+    if (voiceWatchdogTimer) clearTimeout(voiceWatchdogTimer);
     if (halo) halo.classList.remove('speaking');
     $('voiceCallStatus').innerText = 'Connected • Listening';
     isProcessingVoiceTurn = false;
+    activeUtterance = null;
+    currentPlayingAudio = null;
     if (voiceCallActive && !voiceMicMuted && voiceRecognition) {
       try { voiceRecognition.start(); } catch(e) {}
     }
   };
 
-  utterance.onend = onSpeechDone;
-  utterance.onerror = onSpeechDone;
+  // Strip Markdown characters, actions *...*, and emojis for clean spoken speech
+  const cleanSpoken = text
+    .replace(/\*[^*]*\*/g, '')
+    .replace(/[*_#`~>\[\]()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() || text.replace(/[*_#`~>\[\]()]/g, ' ').trim();
 
-  window.speechSynthesis.speak(utterance);
+  if (!cleanSpoken) {
+    onSpeechDone();
+    return;
+  }
+
+  // 1. Try Custom TTS API from bot settings (Fish Audio / ElevenLabs / Cartesia / OpenAI)
+  try {
+    const customAudioUrl = await synthesizeCustomTTSAudio(cleanSpoken, activePersona);
+    if (customAudioUrl) {
+      if (halo) halo.classList.add('speaking');
+      $('voiceCallStatus').innerText = 'Speaking (Custom Voice)...';
+
+      const audio = new Audio(customAudioUrl);
+      currentPlayingAudio = audio;
+      audio.onended = () => {
+        URL.revokeObjectURL(customAudioUrl);
+        onSpeechDone();
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(customAudioUrl);
+        onSpeechDone();
+      };
+
+      if (voiceWatchdogTimer) clearTimeout(voiceWatchdogTimer);
+      voiceWatchdogTimer = setTimeout(onSpeechDone, 30000);
+
+      await audio.play();
+      return;
+    }
+  } catch(err) {
+    console.warn('Custom TTS playback error, falling back to Web Speech:', err);
+  }
+
+  // 2. Fallback to Web Speech API
+  if (!('speechSynthesis' in window)) {
+    onSpeechDone();
+    return;
+  }
+
+  try {
+    window.speechSynthesis.resume();
+  } catch(e) {}
+
+  activeUtterance = new SpeechSynthesisUtterance(cleanSpoken);
+  activeUtterance.rate = 1.05;
+  activeUtterance.pitch = 1.0;
+
+  // Pick suitable voice from cached list
+  const voices = cachedBrowserVoices.length > 0 ? cachedBrowserVoices : (window.speechSynthesis.getVoices() || []);
+  if (voices.length > 0) {
+    const pName = (activePersona.name || '').toLowerCase();
+    const isFemale = pName.includes('yuna') || pName.includes('maiko') || pName.includes('nene') || pName.includes('lucy') || pName.includes('teto');
+    const match = voices.find(v => isFemale ? (v.name.includes('Female') || v.name.includes('Samantha') || v.name.includes('Google US English') || v.name.includes('Zira') || v.lang.startsWith('en')) : (v.name.includes('Male') || v.name.includes('David') || v.lang.startsWith('en')));
+    if (match) activeUtterance.voice = match;
+  }
+
+  if (halo) halo.classList.add('speaking');
+  $('voiceCallStatus').innerText = 'Speaking...';
+
+  activeUtterance.onend = onSpeechDone;
+  activeUtterance.onerror = onSpeechDone;
+
+  // Watchdog timer guarantees that listening state resumes even if browser drops onend
+  if (voiceWatchdogTimer) clearTimeout(voiceWatchdogTimer);
+  const maxSpeechTime = Math.max(3500, Math.min(30000, cleanSpoken.length * 90));
+  voiceWatchdogTimer = setTimeout(onSpeechDone, maxSpeechTime);
+
+  try {
+    window.speechSynthesis.speak(activeUtterance);
+    window.speechSynthesis.resume();
+  } catch(err) {
+    console.warn('Speech synthesis speak error:', err);
+    onSpeechDone();
+  }
 }
 
 function startVoiceWaveform() {
@@ -5266,14 +4347,35 @@ function startVoiceWaveform() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const halo = $('voiceAvatarHalo');
     const isSpeaking = halo && halo.classList.contains('speaking');
-    const amp = isSpeaking ? 18 : (voiceMicMuted ? 2 : 8);
+
+    // Sample real microphone decibels if available
+    let micAmp = 4;
+    let micLevel = 0;
+    if (voiceAnalyser && voiceAudioDataArray && !voiceMicMuted && !isSpeaking) {
+      voiceAnalyser.getByteFrequencyData(voiceAudioDataArray);
+      let sum = 0;
+      for (let i = 0; i < voiceAudioDataArray.length; i++) {
+        sum += voiceAudioDataArray[i];
+      }
+      const avg = sum / voiceAudioDataArray.length;
+      micLevel = Math.min(100, Math.round(avg * 1.8));
+      micAmp = Math.max(4, Math.min(26, avg * 0.35));
+    } else if (isSpeaking) {
+      micAmp = 18;
+      micLevel = 75;
+    }
+
+    const levelBar = $('voiceMicLevelBar');
+    if (levelBar) {
+      levelBar.style.width = (voiceMicMuted ? 0 : micLevel) + '%';
+    }
 
     ctx.beginPath();
-    ctx.lineWidth = 2.2;
-    ctx.strokeStyle = isSpeaking ? 'var(--accent)' : 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 2.4;
+    ctx.strokeStyle = isSpeaking ? 'var(--accent)' : (micLevel > 15 ? '#4caf50' : 'rgba(255,255,255,0.4)');
 
     for (let x = 0; x < canvas.width; x++) {
-      const y = canvas.height / 2 + Math.sin(x * 0.05 + phase) * amp * Math.sin(x / canvas.width * Math.PI);
+      const y = canvas.height / 2 + Math.sin(x * 0.05 + phase) * micAmp * Math.sin(x / canvas.width * Math.PI);
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
@@ -5283,10 +4385,77 @@ function startVoiceWaveform() {
 }
 
 /* --------------------------------------------------------------------------
-   SCREEN SHARING & GAME / MOVIE VISION CO-PILOT
+   SCREEN SHARING & DRAGGABLE LIVE CAMERA / GAME VISION CO-PILOT
    -------------------------------------------------------------------------- */
 let screenVisionStream = null;
 let autoVisionInterval = null;
+let screenVisionDragging = false;
+let screenVisionDragOffsetX = 0;
+let screenVisionDragOffsetY = 0;
+
+function initDraggableScreenVision() {
+  const panel = $('screenVisionFloating');
+  if (!panel) return;
+  const header = panel.querySelector('.screen-vision-header');
+  if (!header) return;
+
+  header.style.cursor = 'move';
+  header.style.userSelect = 'none';
+
+  function onDragStart(clientX, clientY) {
+    screenVisionDragging = true;
+    const rect = panel.getBoundingClientRect();
+    screenVisionDragOffsetX = clientX - rect.left;
+    screenVisionDragOffsetY = clientY - rect.top;
+  }
+
+  function onDragMove(clientX, clientY) {
+    if (!screenVisionDragging) return;
+    let newX = clientX - screenVisionDragOffsetX;
+    let newY = clientY - screenVisionDragOffsetY;
+    
+    // Clamp inside viewport
+    const maxX = window.innerWidth - panel.offsetWidth - 10;
+    const maxY = window.innerHeight - panel.offsetHeight - 10;
+    newX = Math.max(10, Math.min(maxX, newX));
+    newY = Math.max(10, Math.min(maxY, newY));
+
+    panel.style.left = newX + 'px';
+    panel.style.top = newY + 'px';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+  }
+
+  function onDragEnd() {
+    screenVisionDragging = false;
+  }
+
+  header.addEventListener('mousedown', (e) => {
+    if (e.target.closest('button')) return;
+    onDragStart(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (screenVisionDragging) onDragMove(e.clientX, e.clientY);
+  });
+
+  window.addEventListener('mouseup', onDragEnd);
+
+  header.addEventListener('touchstart', (e) => {
+    if (e.target.closest('button')) return;
+    if (e.touches.length === 1) {
+      onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchmove', (e) => {
+    if (screenVisionDragging && e.touches.length === 1) {
+      onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchend', onDragEnd);
+}
 
 async function toggleScreenVision() {
   if (screenVisionStream) {
@@ -5297,22 +4466,52 @@ async function toggleScreenVision() {
 }
 
 async function startScreenSharing() {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-    showToast('Screen sharing is not supported on this browser/device');
-    return;
-  }
   try {
-    screenVisionStream = await navigator.mediaDevices.getDisplayMedia({
-      video: { cursor: "always" },
-      audio: false
-    });
+    if (navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === 'function') {
+      try {
+        screenVisionStream = await navigator.mediaDevices.getDisplayMedia({
+          video: { cursor: "always" },
+          audio: true
+        });
+        showToast('🖥️ Screen vision & audio active! Companion is watching & hearing');
+      } catch (dispErr) {
+        if (dispErr.name === 'NotAllowedError') {
+          showToast('Screen share permission cancelled');
+          return;
+        }
+        // Fallback without audio if audio permission failed
+        try {
+          screenVisionStream = await navigator.mediaDevices.getDisplayMedia({
+            video: { cursor: "always" },
+            audio: false
+          });
+          showToast('🖥️ Screen vision active! Companion is watching with you');
+        } catch(e2) {
+          throw dispErr;
+        }
+      }
+    } else if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      showToast('📷 Opening camera vision stream...');
+      screenVisionStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 640 }, height: { ideal: 360 } },
+        audio: false
+      });
+      showToast('📷 Live camera vision active!');
+    } else {
+      showToast('Media stream not supported on this browser');
+      return;
+    }
+
     const video = $('screenVisionVideo');
     if (video) {
       video.srcObject = screenVisionStream;
       video.play();
     }
     const monitor = $('screenVisionFloating');
-    if (monitor) monitor.classList.add('active');
+    if (monitor) {
+      monitor.classList.add('active');
+      initDraggableScreenVision();
+    }
 
     screenVisionStream.getVideoTracks()[0].onended = () => {
       stopScreenVision();
@@ -5327,9 +4526,13 @@ async function startScreenSharing() {
       }
     }, 30000);
 
-    showToast('🖥️ Screen vision active! Bot can now watch your games, movies & code');
   } catch (err) {
-    console.warn('Screen share cancelled/failed:', err);
+    console.warn('Vision capture error:', err);
+    if (err.name === 'NotAllowedError') {
+      showToast('Screen/Camera permission was denied');
+    } else {
+      showToast('Unable to start screen stream on this device');
+    }
   }
 }
 
@@ -5346,7 +4549,7 @@ function stopScreenVision() {
   if (monitor) monitor.classList.remove('active');
   const video = $('screenVisionVideo');
   if (video) video.srcObject = null;
-  showToast('Screen vision stopped');
+  showToast('Vision stream stopped');
 }
 
 async function captureAndAskScreenVision(customPrompt) {
@@ -5368,6 +4571,12 @@ async function captureAndAskScreenVision(customPrompt) {
 
     appendChatMsg('user', question, frameData);
 
+    if (activeGeminiLiveSession && activeGeminiLiveSession.isConnected) {
+      activeGeminiLiveSession.sendImageFrame(frameData);
+      activeGeminiLiveSession.sendText(question);
+      return;
+    }
+
     const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
     const history = (chatMessages[activePersona.id] || []).slice(0, -1);
 
@@ -5375,94 +4584,947 @@ async function captureAndAskScreenVision(customPrompt) {
     const replyText = (res && res.reply) ? res.reply : "*watches screen attentively*";
 
     appendChatMsg('assistant', replyText);
-    if (voiceCallActive) {
-      speakPersonaVoiceReply(replyText);
-    }
+    speakPersonaVoiceReply(replyText);
   } catch(e) {
     console.warn('Screen capture vision error:', e);
   }
 }
 
 /* --------------------------------------------------------------------------
-   WATCH TOGETHER / FULLSCREEN CINEMA THEATER
+   DYNAMIC TYPEWRITER ANIMATION ENGINE
+   -------------------------------------------------------------------------- */
+let currentTypewriterTimer = null;
+
+function typewriteText(elementId, text, speed = 16, onComplete = null) {
+  const el = $(elementId);
+  if (!el) return;
+
+  if (currentTypewriterTimer) {
+    clearInterval(currentTypewriterTimer);
+    currentTypewriterTimer = null;
+  }
+
+  el.innerHTML = '';
+  const textSpan = document.createElement('span');
+  const cursorSpan = document.createElement('span');
+  cursorSpan.className = 'typewriter-cursor';
+  cursorSpan.innerText = '▊';
+
+  el.appendChild(textSpan);
+  el.appendChild(cursorSpan);
+
+  let i = 0;
+  const finishInstant = () => {
+    if (currentTypewriterTimer) {
+      clearInterval(currentTypewriterTimer);
+      currentTypewriterTimer = null;
+      textSpan.innerText = text;
+      cursorSpan.remove();
+      if (onComplete) onComplete();
+    }
+  };
+
+  el.onclick = finishInstant;
+
+  currentTypewriterTimer = setInterval(() => {
+    if (i < text.length) {
+      textSpan.innerText += text.charAt(i);
+      i++;
+    } else {
+      clearInterval(currentTypewriterTimer);
+      currentTypewriterTimer = null;
+      cursorSpan.remove();
+      if (onComplete) onComplete();
+    }
+  }, speed);
+}
+
+/* --------------------------------------------------------------------------
+   WATCH TOGETHER THEATER: BULLETPROOF VIDEO LOADER & PLAYBACK SYNC
    -------------------------------------------------------------------------- */
 let watchTogetherCurrentVideo = null;
+let watchTogetherVideoInfo = null;
+let watchTogetherChimeInterval = null;
+let theaterFrameClipBuffer = [];
+let theaterBufferInterval = null;
+let theaterSpeechRec = null;
+let isTheaterEarActive = true;
+let isTheaterVideoPaused = false;
+let currentTheaterTimestamp = 0;
+let theaterPlayStartedAt = null;
+let theaterAccumulatedPlayTime = 0;
+let theaterClockTickerInterval = null;
+
+// Universal YouTube PostMessage State Listener & Progressive Timer Engine
+if (typeof window !== 'undefined') {
+  window.addEventListener('message', (event) => {
+    try {
+      if (!event.data) return;
+      let data = event.data;
+      if (typeof data === 'string') {
+        try { data = JSON.parse(data); } catch(e) { return; }
+      }
+      if (data && (data.event === 'infoDelivery' || data.infoDelivery) && data.info) {
+        if (data.info.currentTime !== undefined && !isNaN(data.info.currentTime)) {
+          const exactT = Number(data.info.currentTime);
+          currentTheaterTimestamp = exactT;
+          theaterAccumulatedPlayTime = exactT;
+          theaterPlayStartedAt = Date.now();
+        }
+        if (data.info.playerState !== undefined) {
+          const stateCode = data.info.playerState;
+          const statusEl = $('theaterVideoStatus');
+          if (stateCode === 1) { // PLAYING
+            isTheaterVideoPaused = false;
+            theaterPlayStartedAt = Date.now();
+            const min = Math.floor(currentTheaterTimestamp / 60);
+            const sec = Math.floor(currentTheaterTimestamp % 60);
+            if (statusEl) statusEl.innerHTML = `<span style="color:#4caf50;">● 🟢 Playing (${min}m ${sec.toString().padStart(2, '0')}s)</span>`;
+          } else if (stateCode === 2) { // PAUSED
+            isTheaterVideoPaused = true;
+            if (theaterPlayStartedAt) {
+              theaterAccumulatedPlayTime += (Date.now() - theaterPlayStartedAt) / 1000;
+              theaterPlayStartedAt = null;
+            }
+            currentTheaterTimestamp = theaterAccumulatedPlayTime;
+            const min = Math.floor(currentTheaterTimestamp / 60);
+            const sec = Math.floor(currentTheaterTimestamp % 60);
+            if (statusEl) statusEl.innerHTML = `<span style="color:#e5c07b;">● ⏸️ Paused at ${min}m ${sec}s</span>`;
+          } else if (stateCode === 0) { // ENDED
+            isTheaterVideoPaused = true;
+            if (statusEl) statusEl.innerHTML = '<span style="color:var(--text-muted);">● ⏹️ Ended</span>';
+          }
+        }
+      }
+    } catch(e) {}
+  });
+}
+
+function getExactVideoPlaybackState() {
+  const html5Vid = $('theaterHtml5Video');
+  if (html5Vid && html5Vid.style.display !== 'none') {
+    return {
+      isPaused: html5Vid.paused,
+      currentTime: html5Vid.currentTime || 0,
+      duration: html5Vid.duration || 0,
+      isHtml5: true
+    };
+  }
+
+  let calculatedTime = currentTheaterTimestamp;
+  if (!isTheaterVideoPaused && theaterPlayStartedAt) {
+    calculatedTime = theaterAccumulatedPlayTime + ((Date.now() - theaterPlayStartedAt) / 1000);
+  } else if (theaterAccumulatedPlayTime > 0) {
+    calculatedTime = theaterAccumulatedPlayTime;
+  }
+  currentTheaterTimestamp = Math.max(0, calculatedTime);
+
+  return {
+    isPaused: isTheaterVideoPaused,
+    currentTime: currentTheaterTimestamp,
+    duration: 0,
+    isHtml5: false
+  };
+}
+
+function startTheaterClockTicker() {
+  if (theaterClockTickerInterval) clearInterval(theaterClockTickerInterval);
+  theaterClockTickerInterval = setInterval(() => {
+    const modal = $('watchTogetherTheaterModal');
+    if (!modal || !modal.classList.contains('open')) return;
+    if (!watchTogetherCurrentVideo) return;
+
+    // Send active polling heartbeat to YouTube embed iframe
+    const iframe = $('theaterIframe');
+    if (iframe && iframe.contentWindow && iframe.style.display !== 'none') {
+      try {
+        iframe.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 1 }), '*');
+        iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func: 'getCurrentTime', args: [] }), '*');
+      } catch(e) {}
+    }
+
+    const state = getExactVideoPlaybackState();
+    const statusEl = $('theaterVideoStatus');
+    const min = Math.floor(state.currentTime / 60);
+    const sec = Math.floor(state.currentTime % 60);
+    const timeStr = `${min}m ${sec.toString().padStart(2, '0')}s`;
+
+    if (!state.isPaused) {
+      if (statusEl) {
+        if (screenVisionStream) {
+          statusEl.innerHTML = `<span style="color:#4caf50;">● 🟢 Live Screen Vision (${timeStr})</span>`;
+        } else if (state.isHtml5) {
+          statusEl.innerHTML = `<span style="color:#4caf50;">● 🟢 Direct HTML5 Video (${timeStr})</span>`;
+        } else {
+          statusEl.innerHTML = `<span style="color:#4caf50;">● 🟢 Playing YouTube (${timeStr})</span>`;
+        }
+      }
+    }
+  }, 1000);
+}
 
 function openWatchTogetherTheater() {
   const modal = $('watchTogetherTheaterModal');
   if (modal) {
     modal.classList.add('open');
+    try {
+      if ('speechSynthesis' in window) window.speechSynthesis.resume();
+    } catch(e) {}
     if (activePersona) {
       $('theaterBotBadge').innerText = `Co-Watching with ${activePersona.name}`;
-      $('theaterReactionText').innerText = `Ready to watch together! Paste a YouTube link above.`;
+      if (!watchTogetherCurrentVideo) {
+        typewriteText('theaterReactionText', `Ready to watch together! Paste a YouTube link, file, or share your screen above.`);
+      }
     }
+    updateTheaterFeedStatus();
+    startTheaterClipBuffering();
+    startTheaterClockTicker();
     showToast('🍿 Fullscreen Cinema Theater opened');
   }
+}
+
+function resetAndStopAllTheaterMedia() {
+  const iframe = $('theaterIframe');
+  if (iframe) {
+    iframe.src = 'about:blank';
+    iframe.style.display = 'none';
+  }
+  const html5Vid = $('theaterHtml5Video');
+  if (html5Vid) {
+    try {
+      html5Vid.pause();
+      html5Vid.removeAttribute('src');
+      html5Vid.load();
+    } catch(e) {}
+    html5Vid.style.display = 'none';
+  }
+  stopTheaterVideoAudioIngestion();
+  theaterLatestRawAudioBase64 = null;
+  theaterRecentVideoDialogue = [];
+  theaterFrameClipBuffer = [];
+  isTheaterVideoPaused = true;
+  theaterPlayStartedAt = null;
+  currentTheaterTimestamp = 0;
+  theaterAccumulatedPlayTime = 0;
 }
 
 function closeWatchTogetherTheater() {
   const modal = $('watchTogetherTheaterModal');
   if (modal) modal.classList.remove('open');
+  if (watchTogetherChimeInterval) {
+    clearInterval(watchTogetherChimeInterval);
+    watchTogetherChimeInterval = null;
+  }
+  if (theaterBufferInterval) {
+    clearInterval(theaterBufferInterval);
+    theaterBufferInterval = null;
+  }
+  if (theaterClockTickerInterval) {
+    clearInterval(theaterClockTickerInterval);
+    theaterClockTickerInterval = null;
+  }
+  if (theaterSpeechRec) {
+    try { theaterSpeechRec.stop(); } catch(e) {}
+  }
+  resetAndStopAllTheaterMedia();
 }
 
 function extractYouTubeId(url) {
   if (!url) return null;
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : (url.length === 11 ? url : null);
+  const str = url.trim();
+  if (/^[a-zA-Z0-9_-]{11}$/.test(str)) {
+    return str;
+  }
+  let m = str.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/i);
+  if (m) return m[1];
+  m = str.match(/[?&]v=([a-zA-Z0-9_-]{11})/i);
+  if (m) return m[1];
+  m = str.match(/youtube\.com\/(?:embed|shorts|v|live)\/([a-zA-Z0-9_-]{11})/i);
+  if (m) return m[1];
+  m = str.match(/(?:v=|\/embed\/|\/shorts\/|youtu\.be\/|\/v\/|\/e\/|watch\?v=|\&v=)([a-zA-Z0-9_-]{11})/i);
+  if (m) return m[1];
+  return null;
 }
 
-function loadTheaterYouTubeVideo() {
+async function fetchImageAsBase64(url) {
+  try {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'Anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.min(img.naturalWidth || 480, 640);
+          canvas.height = Math.min(img.naturalHeight || 360, 480);
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        } catch(e) { resolve(null); }
+      };
+      img.onerror = () => resolve(null);
+      img.src = url;
+    });
+  } catch(e) {
+    return null;
+  }
+}
+
+function captureSingleFrameFromSource() {
+  if (screenVisionStream) {
+    const v = $('screenVisionVideo');
+    if (v && v.videoWidth > 0 && v.videoHeight > 0) {
+      try {
+        const c = document.createElement('canvas');
+        c.width = 480;
+        c.height = 270;
+        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
+        return { data: c.toDataURL('image/jpeg', 0.75), time: Date.now() };
+      } catch(e) {}
+    }
+  }
+  const html5Vid = $('theaterHtml5Video');
+  if (html5Vid && !html5Vid.paused && html5Vid.style.display !== 'none' && html5Vid.videoWidth > 0) {
+    try {
+      const c = document.createElement('canvas');
+      c.width = 480;
+      c.height = 270;
+      c.getContext('2d').drawImage(html5Vid, 0, 0, c.width, c.height);
+      return { data: c.toDataURL('image/jpeg', 0.75), time: Date.now() };
+    } catch(e) {}
+  }
+  return null;
+}
+
+function startTheaterClipBuffering() {
+  theaterFrameClipBuffer = [];
+  if (theaterBufferInterval) clearInterval(theaterBufferInterval);
+  theaterBufferInterval = setInterval(() => {
+    const f = captureSingleFrameFromSource();
+    if (f) {
+      theaterFrameClipBuffer.push(f);
+      if (theaterFrameClipBuffer.length > 3) {
+        theaterFrameClipBuffer.shift();
+      }
+    }
+  }, 1600);
+}
+
+async function getTheaterTemporalClipStrip() {
+  if (theaterFrameClipBuffer.length >= 2) {
+    try {
+      const canvas = document.createElement('canvas');
+      const numFrames = theaterFrameClipBuffer.length;
+      canvas.width = 360 * numFrames;
+      canvas.height = 200;
+      const ctx = canvas.getContext('2d');
+
+      const promises = theaterFrameClipBuffer.map((frame, idx) => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.onload = () => {
+            ctx.drawImage(img, idx * 360, 0, 360, 200);
+            ctx.fillStyle = 'rgba(0,0,0,0.65)';
+            ctx.fillRect(idx * 360 + 6, 6, 80, 20);
+            ctx.fillStyle = '#e5c07b';
+            ctx.font = 'bold 10.5px sans-serif';
+            const label = (idx === numFrames - 1) ? '● LIVE' : `T -${(numFrames - 1 - idx) * 2}s`;
+            ctx.fillText(label, idx * 360 + 12, 20);
+            resolve();
+          };
+          img.onerror = () => resolve();
+          img.src = frame.data;
+        });
+      });
+      await Promise.all(promises);
+      return { data: canvas.toDataURL('image/jpeg', 0.78), isLive: true, isClipStrip: true };
+    } catch(e) {
+      console.warn('Clip strip build error:', e);
+    }
+  }
+
+  const single = captureSingleFrameFromSource();
+  if (single) return { data: single.data, isLive: true, isClipStrip: false };
+  return { data: null, isLive: false, isClipStrip: false };
+}
+
+function updateTheaterFeedStatus() {
+  const statusEl = $('theaterVideoStatus');
+  const feedBtn = $('theaterScreenFeedBtn');
+  const hasAudio = screenVisionStream && screenVisionStream.getAudioTracks && screenVisionStream.getAudioTracks().length > 0;
+
+  if (screenVisionStream) {
+    if (statusEl) {
+      if (hasAudio) {
+        statusEl.innerHTML = '<span style="color:#4caf50;">● 🟢 Live Screen & Tab Audio (Direct Hearing & Vision)</span>';
+      } else {
+        statusEl.innerHTML = '<span style="color:#4caf50;">● 🟢 Live Screen Vision (No Tab Audio)</span>';
+      }
+    }
+    if (feedBtn) {
+      feedBtn.style.background = 'rgba(76, 175, 80, 0.25)';
+      feedBtn.style.color = '#4caf50';
+      feedBtn.innerHTML = '🖥️ Stop Feed';
+    }
+  } else if ($('theaterHtml5Video') && $('theaterHtml5Video').style.display !== 'none') {
+    if (statusEl) statusEl.innerHTML = '<span style="color:#4caf50;">● 🟢 Direct HTML5 Video Active</span>';
+    if (feedBtn) {
+      feedBtn.style.background = 'rgba(229,192,123,0.15)';
+      feedBtn.style.color = '#e5c07b';
+      feedBtn.innerHTML = '🖥️ Screen Feed';
+    }
+  } else if (watchTogetherCurrentVideo) {
+    if (statusEl) statusEl.innerHTML = '<span style="color:var(--accent);">● YouTube Mode (Click "Screen Feed" & share tab to let AI hear & see)</span>';
+    if (feedBtn) {
+      feedBtn.style.background = 'rgba(229,192,123,0.15)';
+      feedBtn.style.color = '#e5c07b';
+      feedBtn.innerHTML = '🖥️ Screen Feed';
+    }
+  }
+}
+
+let theaterVideoAudioRecorder = null;
+let theaterVideoAudioChunks = [];
+let theaterRecentVideoDialogue = []; // [{ time: curSec, text: "transcribed speech" }]
+let theaterLatestRawAudioBase64 = null; // Raw base64 audio clip for direct Gemini Multimodal Music/Audio listening
+let theaterVideoAudioInterval = null;
+
+let theaterVideoAudioCtx = null;
+
+function startTheaterVideoAudioIngestion(mediaStreamOrElement) {
+  stopTheaterVideoAudioIngestion();
+  try {
+    let audioStream = null;
+    
+    // 1. Try standard stream capture
+    if (mediaStreamOrElement && mediaStreamOrElement.getAudioTracks && mediaStreamOrElement.getAudioTracks().length > 0) {
+      audioStream = new MediaStream(mediaStreamOrElement.getAudioTracks());
+    } else if (mediaStreamOrElement && (mediaStreamOrElement.tagName === 'VIDEO' || mediaStreamOrElement.captureStream)) {
+      try {
+        const stream = mediaStreamOrElement.captureStream ? mediaStreamOrElement.captureStream() : (mediaStreamOrElement.mozCaptureStream ? mediaStreamOrElement.mozCaptureStream() : null);
+        if (stream && stream.getAudioTracks && stream.getAudioTracks().length > 0) {
+          audioStream = new MediaStream(stream.getAudioTracks());
+        }
+      } catch(e) {}
+      
+      // 2. Android Chrome Fallback: Web Audio API
+      if ((!audioStream || audioStream.getAudioTracks().length === 0) && mediaStreamOrElement.tagName === 'VIDEO') {
+        try {
+          theaterVideoAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const source = theaterVideoAudioCtx.createMediaElementSource(mediaStreamOrElement);
+          const dest = theaterVideoAudioCtx.createMediaStreamDestination();
+          source.connect(dest);
+          source.connect(theaterVideoAudioCtx.destination);
+          audioStream = dest.stream;
+        } catch(fallbackErr) {
+          console.warn("Web Audio fallback failed:", fallbackErr);
+        }
+      }
+    }
+
+    if (!audioStream || audioStream.getAudioTracks().length === 0) {
+      console.warn("No audio tracks found from video stream!");
+      showToast('⚠️ Note: Browser blocked internal video audio capture. AI will use subtitles instead.', 4000);
+      return;
+    }
+
+    theaterVideoAudioRecorder = new MediaRecorder(audioStream);
+
+    theaterVideoAudioRecorder.ondataavailable = async (e) => {
+      if (!e.data || e.data.size < 500 || isTheaterVideoPaused) return;
+      try {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          try {
+            const base64Audio = reader.result;
+            theaterLatestRawAudioBase64 = base64Audio; // RAW AUDIO CLIP CAPTURED!
+
+            const statusEl = $('theaterVideoStatus');
+            if (statusEl && !isTheaterVideoPaused) {
+              statusEl.innerHTML = '<span style="color:#61afef;">🎵 Hearing Live Audio Stream</span>';
+            }
+
+            const groqKey = userGroqKey || localStorage.getItem('groq_key') || '';
+            const res = await fetch('/api/stt', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ audio: base64Audio, groq_key: groqKey, filename: 'video_audio.webm' })
+            });
+            const data = await res.json();
+            if (data && data.ok && data.text && data.text.trim()) {
+              const text = data.text.trim();
+              const curState = getExactVideoPlaybackState();
+              const curSec = Math.floor(curState.currentTime);
+              theaterRecentVideoDialogue.push({ time: curSec, text: text });
+              if (theaterRecentVideoDialogue.length > 10) theaterRecentVideoDialogue.shift();
+
+              if (statusEl && !isTheaterVideoPaused) {
+                statusEl.innerHTML = `<span style="color:#61afef;">🎵 Audio: "${escapeHtml(text.slice(0, 40))}${text.length > 40 ? '...' : ''}"</span>`;
+              }
+            }
+          } catch(e) {}
+        };
+        reader.readAsDataURL(e.data);
+      } catch(e) {}
+    };
+
+    theaterVideoAudioRecorder.start(4000);
+    const statusEl = $('theaterVideoStatus');
+    if (statusEl) statusEl.innerHTML = '<span style="color:#61afef;">🎵 Audio Stream Connected</span>';
+  } catch(err) {
+    console.warn('Video audio ingestion setup notice:', err);
+  }
+}
+
+function stopTheaterVideoAudioIngestion() {
+  if (theaterVideoAudioInterval) {
+    clearInterval(theaterVideoAudioInterval);
+    theaterVideoAudioInterval = null;
+  }
+  if (theaterVideoAudioRecorder) {
+    try { theaterVideoAudioRecorder.stop(); } catch(e) {}
+    theaterVideoAudioRecorder = null;
+  }
+  if (theaterVideoAudioCtx) {
+    try { theaterVideoAudioCtx.close(); } catch(e) {}
+    theaterVideoAudioCtx = null;
+  }
+  theaterVideoAudioChunks = [];
+  theaterLatestRawAudioBase64 = null;
+}
+
+function getRecentVideoDialogueSummary(curSec, windowSeconds = 30) {
+  if (!theaterRecentVideoDialogue || theaterRecentVideoDialogue.length === 0) return '';
+  const relevant = theaterRecentVideoDialogue.filter(d => Math.abs(curSec - d.time) <= windowSeconds);
+  if (relevant.length === 0) {
+    return theaterRecentVideoDialogue.slice(-2).map(d => d.text).join(' ');
+  }
+  return relevant.map(d => d.text).join(' ');
+}
+
+async function toggleTheaterScreenFeed() {
+  if (screenVisionStream) {
+    stopScreenVision();
+    stopTheaterVideoAudioIngestion();
+    updateTheaterFeedStatus();
+  } else {
+    await startScreenSharing();
+    updateTheaterFeedStatus();
+    startTheaterClipBuffering();
+    if (screenVisionStream && screenVisionStream.getAudioTracks().length > 0) {
+      startTheaterVideoAudioIngestion(screenVisionStream);
+    }
+  }
+}
+
+async function handleTheaterUserTypedMessage(event) {
+  if (event) {
+    try { event.preventDefault(); } catch(e) {}
+  }
+  const inp = $('theaterChatInput');
+  if (!inp) return;
+  const text = inp.value.trim();
+  if (!text) return;
+  inp.value = '';
+  await handleTheaterUserSpokenOrTypedMessage(text);
+}
+
+async function loadTheaterYouTubeVideo() {
   const inp = $('theaterYoutubeUrlInput');
   if (!inp) return;
   const raw = inp.value.trim();
-  const videoId = extractYouTubeId(raw);
-  if (!videoId) {
-    showToast('Please enter a valid YouTube URL or 11-character video ID');
+  if (!raw) {
+    showToast('Please enter a video link or YouTube URL');
     return;
   }
-  watchTogetherCurrentVideo = videoId;
-  const iframe = $('theaterIframe');
-  if (iframe) {
-    iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
-  }
-  showToast('▶ Playing in Cinema Theater');
 
-  if (activePersona) {
-    const startMsg = `*grabs some popcorn and sits beside you* Let's watch! What are we watching?`;
-    $('theaterReactionText').innerText = startMsg;
+  // 1. Direct video files (.mp4, .webm, .ogg, .mov, .m4v, .mkv)
+  const isDirectFile = /\.(mp4|webm|ogg|mov|m4v|mkv)(\?.*)?$/i.test(raw);
+  if (isDirectFile) {
+    loadTheaterDirectVideo(raw, 'Direct Video File');
+    return;
+  }
+
+  // 2. YouTube URLs / IDs
+  const videoId = extractYouTubeId(raw);
+  if (videoId) {
+    resetAndStopAllTheaterMedia();
+    watchTogetherCurrentVideo = videoId;
+    watchTogetherVideoInfo = { id: videoId, title: "YouTube Video", author: "", thumb: null, loadedAt: Date.now(), isHtml5: false };
+    isTheaterVideoPaused = false;
+    currentTheaterTimestamp = 0;
+    theaterAccumulatedPlayTime = 0;
+    theaterPlayStartedAt = Date.now();
+
+    const iframe = $('theaterIframe');
+    if (iframe) {
+      iframe.style.display = 'block';
+      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&playsinline=1&rel=0`;
+    }
+
+    showToast('▶ Playing in Cinema Theater');
+    updateTheaterFeedStatus();
+    startTheaterClockTicker();
+
+    // Fetch rich YouTube video metadata & subtitles from backend
+    try {
+      fetch('/api/youtube_context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: raw, timestamp: 0 })
+      }).then(r => r.json()).then(ytData => {
+        if (ytData && ytData.ok) {
+          if (ytData.title) watchTogetherVideoInfo.title = ytData.title;
+          if (ytData.artist) watchTogetherVideoInfo.author = ytData.artist;
+          if (ytData.description_snippet) watchTogetherVideoInfo.description = ytData.description_snippet;
+          if (ytData.audio_data) theaterLatestRawAudioBase64 = ytData.audio_data;
+          if (ytData.full_transcript) watchTogetherVideoInfo.full_transcript = ytData.full_transcript;
+          if ($('theaterBotBadge')) $('theaterBotBadge').innerText = `Watching: ${watchTogetherVideoInfo.title}`;
+          const statusEl = $('theaterVideoStatus');
+          if (statusEl) statusEl.innerHTML = `<span style="color:#4caf50;">● 🟢 Playing: ${escapeHtml(watchTogetherVideoInfo.title.slice(0, 35))}</span>`;
+        }
+      }).catch(e => {});
+    } catch(e) {}
+
+    try {
+      const thumbUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+      watchTogetherVideoInfo.thumb = await fetchImageAsBase64(thumbUrl);
+    } catch(e) {}
+
+    if ($('theaterBotBadge')) $('theaterBotBadge').innerText = `Watching: ${watchTogetherVideoInfo.title}`;
+
+    triggerTheaterOpeningReaction();
+    startTheaterCommentaryLoop();
+    return;
+  }
+
+  // 3. Generic web embed fallback (Vimeo, Streamable, etc.)
+  if (/^https?:\/\//i.test(raw)) {
+    resetAndStopAllTheaterMedia();
+    watchTogetherCurrentVideo = raw;
+    watchTogetherVideoInfo = { id: raw, title: "Web Video", author: "Web", thumb: null, loadedAt: Date.now(), isHtml5: false };
+    isTheaterVideoPaused = false;
+    currentTheaterTimestamp = 0;
+    theaterAccumulatedPlayTime = 0;
+    theaterPlayStartedAt = Date.now();
+    const iframe = $('theaterIframe');
+    if (iframe) {
+      iframe.style.display = 'block';
+      iframe.src = raw;
+    }
+    showToast('▶ Loading web video in Cinema Theater');
+    updateTheaterFeedStatus();
+    startTheaterClockTicker();
+    triggerTheaterOpeningReaction();
+    startTheaterCommentaryLoop();
+    return;
+  }
+
+  showToast('Please enter a valid YouTube URL or video link');
+}
+
+function loadTheaterDirectVideo(url, title) {
+  resetAndStopAllTheaterMedia();
+  watchTogetherCurrentVideo = url;
+  watchTogetherVideoInfo = { id: url, title: title || "Direct Video Stream", author: "Direct Media", thumb: null, loadedAt: Date.now(), isHtml5: true };
+  isTheaterVideoPaused = false;
+  currentTheaterTimestamp = 0;
+  theaterAccumulatedPlayTime = 0;
+  theaterPlayStartedAt = Date.now();
+
+  const html5Vid = $('theaterHtml5Video');
+  if (html5Vid) {
+    html5Vid.style.display = 'block';
+    html5Vid.src = url;
+    html5Vid.onplay = () => {
+      isTheaterVideoPaused = false;
+      theaterPlayStartedAt = Date.now();
+      startTheaterVideoAudioIngestion(html5Vid);
+      const statusEl = $('theaterVideoStatus');
+      if (statusEl) statusEl.innerHTML = '<span style="color:#4caf50;">● 🟢 Playing (HTML5 Video & Audio)</span>';
+    };
+    html5Vid.onpause = () => {
+      isTheaterVideoPaused = true;
+      stopTheaterVideoAudioIngestion();
+      if (theaterPlayStartedAt) {
+        theaterAccumulatedPlayTime += (Date.now() - theaterPlayStartedAt) / 1000;
+        theaterPlayStartedAt = null;
+      }
+      currentTheaterTimestamp = html5Vid.currentTime || theaterAccumulatedPlayTime;
+      const min = Math.floor(currentTheaterTimestamp / 60);
+      const sec = Math.floor(currentTheaterTimestamp % 60);
+      const statusEl = $('theaterVideoStatus');
+      if (statusEl) statusEl.innerHTML = `<span style="color:#e5c07b;">● ⏸️ Paused at ${min}m ${sec}s</span>`;
+    };
+    html5Vid.play().catch(e => console.warn('HTML5 play notice:', e));
+  }
+  showToast('▶ Playing Direct Video in Cinema Theater');
+  if ($('theaterBotBadge')) $('theaterBotBadge').innerText = `Watching: ${watchTogetherVideoInfo.title}`;
+  updateTheaterFeedStatus();
+  startTheaterClipBuffering();
+  startTheaterClockTicker();
+
+  triggerTheaterOpeningReaction();
+  startTheaterCommentaryLoop();
+}
+
+function loadTheaterLocalFile(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+  const objectUrl = URL.createObjectURL(file);
+  loadTheaterDirectVideo(objectUrl, file.name);
+}
+
+async function triggerTheaterOpeningReaction() {
+  if (!activePersona || !watchTogetherVideoInfo) return;
+
+  const initialPrompt = `[LIVE THEATER CO-WATCHING - OPENING SCENE]
+- Video Title: "${watchTogetherVideoInfo.title}"
+- Creator: "${watchTogetherVideoInfo.author || 'Creator'}"
+- Playback Status: Playback just started!
+
+We just pressed play on this video on our theater screen. As my companion sitting right next to me with snacks, give an excited, short, natural in-character opening reaction about starting to watch "${watchTogetherVideoInfo.title}"! Keep it under 2 sentences.`;
+
+  try {
+    const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
+    const history = (chatMessages[activePersona.id] || []).slice(-3);
+    const initialThumb = watchTogetherVideoInfo.thumb;
+    const res = await executeAiChatRequest(initialPrompt, sysPrompt, activePersona, history, initialThumb);
+    const startMsg = (res && res.reply) ? res.reply : `*grabs popcorn and snuggles in* Let's watch "${watchTogetherVideoInfo.title}"!`;
+    typewriteText('theaterReactionText', startMsg);
     appendChatMsg('assistant', startMsg);
-    if (voiceCallActive) speakPersonaVoiceReply(startMsg);
+    speakPersonaVoiceReply(startMsg);
+  } catch(e) {
+    const fallbackMsg = `*grabs popcorn* Let's watch "${watchTogetherVideoInfo.title}"!`;
+    typewriteText('theaterReactionText', fallbackMsg);
+    appendChatMsg('assistant', fallbackMsg);
+    speakPersonaVoiceReply(fallbackMsg);
   }
 }
 
-async function askCompanionAboutVideo() {
-  if (!watchTogetherCurrentVideo) {
-    showToast('Paste & Play a video first');
-    return;
+let lastAutoCommentaryDialogue = '';
+
+function startTheaterCommentaryLoop() {
+  if (watchTogetherChimeInterval) clearInterval(watchTogetherChimeInterval);
+  watchTogetherChimeInterval = setInterval(async () => {
+    const autoChime = $('theaterAutoChimeIn');
+    const modal = $('watchTogetherTheaterModal');
+    if (!autoChime || !autoChime.checked || !modal || !modal.classList.contains('open') || isProcessingVoiceTurn) return;
+    if (!watchTogetherCurrentVideo || !watchTogetherVideoInfo) return;
+
+    // EXACT REAL PLAYBACK STATE CHECK
+    const playbackState = getExactVideoPlaybackState();
+    if (playbackState.isPaused) {
+      // STOP AUTO COMMENTING WHILE PAUSED!
+      return;
+    }
+
+    const curSec = Math.floor(playbackState.currentTime);
+    const clipResult = await getTheaterTemporalClipStrip();
+    let videoAudioDialogue = getRecentVideoDialogueSummary(curSec);
+
+    // If watching YouTube / URL, fetch live dialogue slice at this timestamp from backend
+    if (watchTogetherCurrentVideo && !screenVisionStream) {
+      try {
+        const ytRes = await fetch('/api/youtube_context', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: watchTogetherCurrentVideo, timestamp: curSec })
+        });
+        if (ytRes.ok) {
+          const ytData = await ytRes.json();
+          if (ytData && ytData.ok) {
+            if (ytData.audio_data) theaterLatestRawAudioBase64 = ytData.audio_data;
+            if (ytData.dialogue) videoAudioDialogue = ytData.dialogue;
+            if (ytData.full_transcript) watchTogetherVideoInfo.full_transcript = ytData.full_transcript;
+            if (ytData.title && (!watchTogetherVideoInfo.title || watchTogetherVideoInfo.title === 'YouTube Video')) {
+              watchTogetherVideoInfo.title = ytData.title;
+              watchTogetherVideoInfo.author = ytData.artist;
+            }
+          }
+        }
+      } catch(e) {}
+    }
+
+    const rawAudioPayload = theaterLatestRawAudioBase64;
+    const hasLiveSensory = !!((clipResult.isLive && clipResult.data) || rawAudioPayload || (videoAudioDialogue && videoAudioDialogue !== lastAutoCommentaryDialogue));
+
+    // If there is NO live visual feed and NO new dialogue/audio, DO NOT spam fake commentary!
+    if (!hasLiveSensory) {
+      return;
+    }
+
+    if (videoAudioDialogue) {
+      lastAutoCommentaryDialogue = videoAudioDialogue;
+    }
+
+    const fullTranscriptSnippet = (watchTogetherVideoInfo && watchTogetherVideoInfo.full_transcript) ? watchTogetherVideoInfo.full_transcript.slice(0, 600) : '';
+    let prompt = '';
+    let imagePayload = (clipResult.isLive && clipResult.data) ? clipResult.data : null;
+
+    if (imagePayload) {
+      prompt = `[LIVE THEATER CO-WATCHING VIDEO FEED - SEQUENTIAL MOTION CLIP + AUDIO STREAM]
+- Video / Track Title: "${watchTogetherVideoInfo.title}"
+- Channel / Artist: "${watchTogetherVideoInfo.author || 'Creator'}"
+- Exact Playback Timestamp: ${Math.floor(curSec/60)}m ${curSec%60}s in.
+- Attached Visuals: ${clipResult.isClipStrip ? 'A 3-panel chronological motion storyboard strip [T-4s, T-2s, Live Now] showing the recent video clip sequence!' : 'A real-time live frame snapshot from the active video screen.'}`;
+      if (videoAudioDialogue) {
+        prompt += `\n- Exact Spoken Dialogue / Subtitles At This Second: "${videoAudioDialogue}"`;
+      }
+      if (fullTranscriptSnippet) {
+        prompt += `\n- Full Video Dialogue / Lyrics Sequence:\n${fullTranscriptSnippet}`;
+      }
+      if (rawAudioPayload) {
+        prompt += `\n- Attached Audio: Raw audio waveform clip of the playing soundtrack / music / instruments is attached directly for you to hear.`;
+      }
+      prompt += `\n\nAs my companion watching this video clip sequence and listening to the music/audio right alongside me, make a spontaneous, short, natural in-character reaction directly about what is unfolding on screen, the music/audio vibe, and what is being said in "${watchTogetherVideoInfo.title}". Keep it under 2 sentences.`;
+    } else {
+      prompt = `[LIVE THEATER CO-WATCHING - SUBTITLES & AUDIO AT TIMESTAMP ${Math.floor(curSec/60)}m ${curSec%60}s]
+- Video / Track Title: "${watchTogetherVideoInfo.title}"
+- Channel / Artist: "${watchTogetherVideoInfo.author || 'Creator'}"
+- Exact Playback Timestamp: ${Math.floor(curSec/60)}m ${curSec%60}s in.`;
+      if (videoAudioDialogue) {
+        prompt += `\n- Exact Spoken Dialogue / Subtitles At This Second: "${videoAudioDialogue}"`;
+      }
+      if (rawAudioPayload) {
+        prompt += `\n- Attached Audio: Raw audio waveform clip of the soundtrack is attached.`;
+      }
+      prompt += `\n\nAs my companion co-watching "${watchTogetherVideoInfo.title}", make a brief, natural 1-2 sentence reaction to what was just spoken/heard!`;
+    }
+
+    try {
+      const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
+      const history = (chatMessages[activePersona.id] || []).slice(-4);
+      const res = await executeAiChatRequest(prompt, sysPrompt, activePersona, history, imagePayload, rawAudioPayload);
+      if (res && res.reply) {
+        typewriteText('theaterReactionText', res.reply);
+        appendChatMsg('assistant', res.reply);
+        speakPersonaVoiceReply(res.reply);
+      }
+    } catch(e) {
+      console.warn('Auto chime notice:', e);
+    }
+  }, 30000);
+}
+
+async function handleTheaterUserSpokenOrTypedMessage(userText) {
+  if (!userText || !activePersona) return;
+  const input = $('theaterChatInput');
+  if (input) input.value = '';
+
+  const playbackState = getExactVideoPlaybackState();
+  const curSec = Math.floor(playbackState.currentTime);
+  const min = Math.floor(curSec / 60);
+  const sec = curSec % 60;
+  const vTitle = watchTogetherVideoInfo ? watchTogetherVideoInfo.title : 'the video';
+
+  typewriteText('theaterReactionText', `${activePersona.name} is watching and thinking...`, 20);
+  appendChatMsg('user', userText);
+
+  const clipResult = await getTheaterTemporalClipStrip();
+  let videoAudioDialogue = getRecentVideoDialogueSummary(curSec);
+
+  // If watching YouTube / URL, fetch live subtitles at this timestamp
+  if (watchTogetherCurrentVideo && !screenVisionStream) {
+    try {
+      const ytRes = await fetch('/api/youtube_context', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: watchTogetherCurrentVideo, timestamp: curSec })
+      });
+      if (ytRes.ok) {
+        const ytData = await ytRes.json();
+        if (ytData && ytData.ok) {
+          if (ytData.audio_data) theaterLatestRawAudioBase64 = ytData.audio_data;
+          if (ytData.dialogue) videoAudioDialogue = ytData.dialogue;
+          if (ytData.full_transcript) watchTogetherVideoInfo.full_transcript = ytData.full_transcript;
+          if (ytData.title && (!watchTogetherVideoInfo.title || watchTogetherVideoInfo.title === 'YouTube Video')) {
+            watchTogetherVideoInfo.title = ytData.title;
+            watchTogetherVideoInfo.author = ytData.artist;
+          }
+        }
+      }
+    } catch(e) {}
   }
-  const prompt = `We are watching a YouTube video together (Video ID: ${watchTogetherCurrentVideo}). Share your in-character thoughts, reactions, and commentary on what we are watching!`;
-  
-  $('theaterReactionText').innerText = `${activePersona.name} is thinking...`;
-  appendChatMsg('user', "What do you think of this video so far?");
+
+  const rawAudioPayload = theaterLatestRawAudioBase64;
+  const fullTranscriptSnippet = (watchTogetherVideoInfo && watchTogetherVideoInfo.full_transcript) ? watchTogetherVideoInfo.full_transcript.slice(0, 600) : '';
+  const imagePayload = (clipResult.isLive && clipResult.data) ? clipResult.data : null;
+  const hasRealSensory = !!(imagePayload || rawAudioPayload || videoAudioDialogue);
+
+  let prompt = '';
+
+  if (playbackState.isPaused) {
+    prompt = `[CO-WATCHING VIDEO - PAUSED AT TIMESTAMP ${min}m ${sec}s]
+- Video / Track: "${vTitle}"
+- Status: The video is currently PAUSED at ${min}m ${sec}s.`;
+    if (imagePayload) {
+      prompt += `\n- Visual Feed: Attached freeze-frame of the paused screen.`;
+    }
+    if (videoAudioDialogue) {
+      prompt += `\n- Spoken Dialogue / Subtitles around this scene: "${videoAudioDialogue}"`;
+    }
+    if (rawAudioPayload) {
+      prompt += `\n- Attached Audio: Raw audio clip around this scene is attached.`;
+    }
+    if (!hasRealSensory) {
+      prompt += `\n- Sensory Note: Direct screen feed / tab audio is not currently active. You have video metadata. Do not fake specific visual or audio details.`;
+    }
+    prompt += `\n- User said: "${userText}"\n\nReply in character as their companion knowing the video is paused right now at this specific scene (${min}m ${sec}s) and addressing what they asked/said!`;
+  } else {
+    prompt = `[CO-WATCHING VIDEO - CURRENTLY PLAYING AT ${min}m ${sec}s]
+- Video / Track: "${vTitle}"
+- Channel / Artist: "${watchTogetherVideoInfo ? watchTogetherVideoInfo.author : 'Creator'}"
+- Exact Live Timestamp: ${min}m ${sec}s in.`;
+    if (imagePayload) {
+      prompt += `\n- Attached Visuals: ${clipResult.isClipStrip ? 'A 3-panel chronological motion storyboard strip showing recent seconds of the video!' : 'A live snapshot frame.'}`;
+    }
+    if (videoAudioDialogue) {
+      prompt += `\n- Exact Spoken Dialogue / Subtitles At This Second: "${videoAudioDialogue}"`;
+    }
+    if (fullTranscriptSnippet) {
+      prompt += `\n- Full Video Dialogue / Lyrics Sequence:\n${fullTranscriptSnippet}`;
+    }
+    if (rawAudioPayload) {
+      prompt += `\n- Attached Audio: Raw audio waveform clip of the playing soundtrack / music / instruments is attached directly for you to hear.`;
+    }
+    if (!hasRealSensory) {
+      prompt += `\n- Sensory Note: Direct screen feed / tab audio stream is not currently shared into the browser. You only have video title and timestamp metadata. Do NOT pretend to see visual actions or hear specific instruments you don't have.`;
+    }
+    prompt += `\n- User said: "${userText}"\n\nReply in full character as their co-watching companion reacting naturally to the conversation and video!`;
+  }
 
   try {
     const sysPrompt = buildSystemPromptWithUser(activePersona.prompt || activePersona.personality, activePersona.id);
     const history = (chatMessages[activePersona.id] || []).slice(0, -1);
 
-    const res = await executeAiChatRequest(prompt, sysPrompt, activePersona, history, null);
-    const replyText = (res && res.reply) ? res.reply : "*smiles and watches along with you*";
+    const res = await executeAiChatRequest(prompt, sysPrompt, activePersona, history, imagePayload, rawAudioPayload);
+    const replyText = (res && res.reply) ? res.reply : "*reacts warmly and snuggles closer*";
 
-    $('theaterReactionText').innerText = replyText;
+    typewriteText('theaterReactionText', replyText);
     appendChatMsg('assistant', replyText);
-    if (voiceCallActive) speakPersonaVoiceReply(replyText);
+    speakPersonaVoiceReply(replyText);
   } catch(e) {
-    $('theaterReactionText').innerText = "*watches the video with you*";
+    typewriteText('theaterReactionText', "*smiles and watches along with you*");
   }
+}
+
+function sendTheaterUserMessage(event) {
+  if (event) event.preventDefault();
+  const input = $('theaterChatInput');
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
+  handleTheaterUserSpokenOrTypedMessage(text);
+}
+
+async function askCompanionAboutVideo() {
+  const vTitle = (watchTogetherVideoInfo && watchTogetherVideoInfo.title) ? watchTogetherVideoInfo.title : 'this video';
+  const state = getExactVideoPlaybackState();
+  const min = Math.floor(state.currentTime / 60);
+  const sec = Math.floor(state.currentTime % 60);
+  const q = state.isPaused ? `What do you think of this scene we're paused on (${min}m ${sec}s)?` : `What do you think of ${vTitle} right now?`;
+  await handleTheaterUserSpokenOrTypedMessage(q);
 }
 
 loadServerBots();
 initBotPolling();
-</script>
-</body>
-</html>

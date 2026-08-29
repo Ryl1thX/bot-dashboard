@@ -73,6 +73,18 @@ export default async function handler(req, res) {
 
     // 3. Clean any leftover Draft: / Response: markers
     text = text.replace(/^(?:Draft|Response|Reply|Assistant):\s*/i, '');
+
+    // 4. Strip generic corporate assistant robotic clichés & repetitive asterisk stage directions
+    text = text.replace(/\*turns to you attentively[^*]*\*/gi, '');
+    text = text.replace(/\*engaging directly with your words[^*]*\*/gi, '');
+    text = text.replace(/—\s*let's delve deeper into this\.\s*What are your thoughts\?/gi, '');
+    text = text.replace(/let's delve deeper into this\.\s*What are your thoughts\?/gi, '');
+    text = text.replace(/How can I assist you (today|further)\??/gi, '');
+    text = text.replace(/As an AI (assistant|language model)[^,\.\n]*[,\.\n]?/gi, '');
+
+    // Clean extra whitespace
+    text = text.replace(/[ \t]+/g, ' ');
+    text = text.replace(/\n{3,}/g, '\n\n');
     return text.trim();
   }
 
@@ -95,6 +107,11 @@ export default async function handler(req, res) {
     const provider = (body.provider || 'auto').toLowerCase().trim();
     const requestedModel = (body.model || body.custom_model || '').trim();
 
+    // Check for presence of multimodal payloads (images or audio clips)
+    const hasImageData = !!(body.image_data && typeof body.image_data === 'string' && body.image_data.length > 50);
+    const hasAudioData = !!(body.audio_data && typeof body.audio_data === 'string' && body.audio_data.length > 50);
+    const isMultimodalRequest = hasImageData || hasAudioData;
+
     // Custom keys from request body or env
     const customBaseUrl = (body.custom_base_url || (body.config && body.config.custom_base_url) || '').trim();
     const customKey = (body.custom_key || (body.config && body.config.custom_key) || '').trim();
@@ -107,14 +124,15 @@ export default async function handler(req, res) {
     const userDeepSeekKey = (body.deepseek_key || (body.config && body.config.deepseek_key) || '').trim();
     const userOpenRouterKey = (body.openrouter_key || (body.config && body.config.openrouter_key) || '').trim();
 
-    if (!message) {
+    if (!message && !isMultimodalRequest) {
       return sendJson(400, { ok: false, error: 'Message cannot be empty' });
     }
 
-    const identityDirective = `[CHARACTER IDENTITY DIRECTIVE]
-You are strictly ${botName}. You are a unique, engaging, and immersive AI character.
-You are NOT ChatGPT, NOT GPT-4, and NOT an AI assistant created by OpenAI.
-Stay strictly in character as ${botName} at all times. Deliver lively, expressive, and detailed dialogue with actions. Do NOT repeat generic greetings.`;
+    const identityDirective = `[STRICT CHARACTER DIRECTIVE]
+You are strictly ${botName}. You are NOT an AI assistant, customer service chatbot, or corporate language model.
+NEVER use generic corporate assistant phrases (e.g. "Let's delve deeper into this", "What are your thoughts?", "How can I assist you?", "As an AI").
+NEVER write synthetic narrator stage directions or repetitive physical actions in asterisks like "*turns to you attentively, engaging directly with your words*".
+Stay strictly in character as ${botName} at all times. Speak directly, authentically, and vividly in character.`;
 
     const messages = [
       { role: 'system', content: `${identityDirective}\n\n${systemPrompt}` }
@@ -128,12 +146,87 @@ Stay strictly in character as ${botName} at all times. Deliver lively, expressiv
         });
       }
     }
-    messages.push({ role: 'user', content: message });
+    messages.push({ role: 'user', content: message || 'Observe and react.' });
 
     let reply = '';
 
     // =========================================================================
-    // 1. CUSTOM ENDPOINT (LiteRouter / Ollama / OpenAI-compatible / Local tunnel)
+    // PRIORITY 1 FOR MULTIMODAL (AUDIO & VISION): GOOGLE GEMINI 3.5 FLASH
+    // =========================================================================
+    // When live audio clips or visual frames are provided, ALWAYS use Gemini first
+    // because text-only models (like Mistral) cannot hear or see and will hallucinate.
+    if (isMultimodalRequest || provider === 'gemini') {
+      const gKey = userGeminiKey || process.env.GEMINI_KEY || '';
+      if (gKey) {
+        let gModel = (body.video_watching_model || requestedModel || 'gemini-3.5-flash').trim();
+        const geminiCandidates = [
+          gModel,
+          'gemini-3.5-flash',
+          'gemini-3.1-flash-lite',
+          'gemini-flash-latest',
+          'gemini-3.5-flash-lite',
+          'gemini-flash-lite-latest',
+          'gemini-3.6-flash',
+          'gemini-3.7-flash',
+          'gemini-3-flash-preview',
+          'gemini-pro-latest'
+        ];
+        const seenGm = new Set();
+        for (const gm of geminiCandidates) {
+          if (!gm || seenGm.has(gm)) continue;
+          seenGm.add(gm);
+          try {
+            const contents = [];
+            for (const h of history.slice(-10)) {
+              if (h.text) {
+                contents.push({
+                  role: h.role === 'user' ? 'user' : 'model',
+                  parts: [{ text: h.text }]
+                });
+              }
+            }
+            const userParts = [];
+            if (hasImageData) {
+              const imgStr = body.image_data;
+              const mime = (imgStr.includes(';') && imgStr.includes(':')) ? imgStr.split(';')[0].split(':')[1] : 'image/jpeg';
+              const rawB64 = imgStr.includes(',') ? imgStr.split(',')[1] : imgStr;
+              userParts.push({ inlineData: { mimeType: mime, data: rawB64 } });
+            }
+            if (hasAudioData) {
+              const audStr = body.audio_data;
+              const mime = (audStr.includes(';') && audStr.includes(':')) ? audStr.split(';')[0].split(':')[1] : 'audio/webm';
+              const rawB64 = audStr.includes(',') ? audStr.split(',')[1] : audStr;
+              userParts.push({ inlineData: { mimeType: mime, data: rawB64 } });
+            }
+            userParts.push({ text: message || 'Observe and react.' });
+            contents.push({ role: 'user', parts: userParts });
+
+            const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${gm}:generateContent?key=${gKey}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: contents,
+                systemInstruction: { parts: [{ text: `${identityDirective}\n\n${systemPrompt}` }] },
+                generationConfig: { temperature: 0.75, maxOutputTokens: 1000 }
+              })
+            });
+            if (gRes.ok) {
+              const gData = await gRes.json();
+              if (gData.candidates && gData.candidates[0] && gData.candidates[0].content && gData.candidates[0].content.parts) {
+                const txt = gData.candidates[0].content.parts.map(p => p.text).join('');
+                reply = cleanLlmReply(txt);
+                if (reply) break;
+              }
+            }
+          } catch (gErr) {
+            console.warn(`Gemini fetch error for ${gm}:`, gErr.message);
+          }
+        }
+      }
+    }
+
+    // =========================================================================
+    // 2. CUSTOM ENDPOINT (LiteRouter / Ollama / OpenAI-compatible / Local tunnel)
     // =========================================================================
     if (!reply && (customBaseUrl || provider === 'custom')) {
       const endpoint = normalizeEndpoint(customBaseUrl);
@@ -164,10 +257,11 @@ Stay strictly in character as ${botName} at all times. Deliver lively, expressiv
     }
 
     // =========================================================================
-    // 2. MISTRAL AI (Direct API with user key or shared key) - Primary High-Quality Cascade
+    // 3. MISTRAL AI (Direct API with user key or shared key) - For Pure Text Requests
     // =========================================================================
+    // Only invoke Mistral if this is NOT a multimodal audio/vision request or if multimodal was not requested
     const effectiveMistralKey = userMistralKey || SHARED_MISTRAL_KEY;
-    if (!reply && (provider === 'mistral' || effectiveMistralKey)) {
+    if (!reply && (!isMultimodalRequest || provider === 'mistral') && (provider === 'mistral' || effectiveMistralKey)) {
       let mMdl = requestedModel || 'mistral-small-latest';
       if (!mMdl || mMdl.includes('gemini') || mMdl.includes('gpt') || mMdl.includes('llama')) {
         mMdl = 'mistral-small-latest';
@@ -205,9 +299,9 @@ Stay strictly in character as ${botName} at all times. Deliver lively, expressiv
     }
 
     // =========================================================================
-    // 3. DEEPSEEK (Direct API if key provided or provider is deepseek)
+    // 4. DEEPSEEK (Direct API if key provided or provider is deepseek)
     // =========================================================================
-    if (!reply && (provider === 'deepseek' || userDeepSeekKey)) {
+    if (!reply && (!isMultimodalRequest || provider === 'deepseek') && (provider === 'deepseek' || userDeepSeekKey)) {
       const dKey = userDeepSeekKey || process.env.DEEPSEEK_KEY || '';
       if (dKey) {
         const dMdl = requestedModel || 'deepseek-chat';
@@ -236,53 +330,47 @@ Stay strictly in character as ${botName} at all times. Deliver lively, expressiv
     }
 
     // =========================================================================
-    // 4. GOOGLE GEMINI (Direct API if key provided)
+    // 5. GOOGLE GEMINI (General / Text Fallback)
     // =========================================================================
-    if (!reply && (provider === 'gemini' || userGeminiKey)) {
+    if (!reply && (userGeminiKey || process.env.GEMINI_KEY)) {
       const gKey = userGeminiKey || process.env.GEMINI_KEY || '';
-      if (gKey) {
-        let gModel = requestedModel || 'gemini-2.0-flash';
-        if (gModel.includes('gemini-3.1-flash-lite') || gModel.includes('flash-lite')) {
-          gModel = 'gemini-2.0-flash-lite';
-        }
-        const geminiCandidates = [gModel, 'gemini-2.0-flash', 'gemini-1.5-flash'];
-        for (const gm of geminiCandidates) {
-          try {
-            const contents = [];
-            for (const h of history.slice(-10)) {
-              if (h.text) {
-                contents.push({
-                  role: h.role === 'user' ? 'user' : 'model',
-                  parts: [{ text: h.text }]
-                });
-              }
+      const geminiCandidates = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-3.5-flash-lite'];
+      for (const gm of geminiCandidates) {
+        try {
+          const contents = [];
+          for (const h of history.slice(-10)) {
+            if (h.text) {
+              contents.push({
+                role: h.role === 'user' ? 'user' : 'model',
+                parts: [{ text: h.text }]
+              });
             }
-            contents.push({ role: 'user', parts: [{ text: message }] });
+          }
+          contents.push({ role: 'user', parts: [{ text: message }] });
 
-            const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${gm}:generateContent?key=${gKey}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: contents,
-                systemInstruction: { parts: [{ text: `${identityDirective}\n\n${systemPrompt}` }] },
-                generationConfig: { temperature: 0.75, maxOutputTokens: 1000 }
-              })
-            });
-            if (gRes.ok) {
-              const gData = await gRes.json();
-              if (gData.candidates && gData.candidates[0] && gData.candidates[0].content && gData.candidates[0].content.parts) {
-                const txt = gData.candidates[0].content.parts.map(p => p.text).join('');
-                reply = cleanLlmReply(txt);
-                if (reply) break;
-              }
+          const gRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${gm}:generateContent?key=${gKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: contents,
+              systemInstruction: { parts: [{ text: `${identityDirective}\n\n${systemPrompt}` }] },
+              generationConfig: { temperature: 0.75, maxOutputTokens: 1000 }
+            })
+          });
+          if (gRes.ok) {
+            const gData = await gRes.json();
+            if (gData.candidates && gData.candidates[0] && gData.candidates[0].content && gData.candidates[0].content.parts) {
+              const txt = gData.candidates[0].content.parts.map(p => p.text).join('');
+              reply = cleanLlmReply(txt);
+              if (reply) break;
             }
-          } catch (gErr) {}
-        }
+          }
+        } catch (gErr) {}
       }
     }
 
     // =========================================================================
-    // 5. OPENAI (Direct API if key provided or provider is openai)
+    // 6. OPENAI (Direct API if key provided or provider is openai)
     // =========================================================================
     if (!reply && (provider === 'openai' || userOpenAiKey)) {
       const oKey = userOpenAiKey || process.env.OPENAI_KEY || '';

@@ -39,6 +39,8 @@ import subprocess
 import shutil
 import base64
 import difflib
+import urllib.parse
+import urllib.request
 import xml.etree.ElementTree as ET
 from html import unescape
 from pathlib import Path
@@ -111,7 +113,7 @@ if Fernet and FERNET_KEY:
         fernet = None
 
 def clean_llm_reply(text: str) -> str:
-    """Strips <think> tags, internal reasoning, and plain-text thinking processes from LLM replies."""
+    """Strips <think> tags, internal reasoning, corporate assistant filler, and repetitive stage-direction artifacts from LLM replies."""
     if not text or not isinstance(text, str):
         return ""
     # 1. Strip XML-style thought / reasoning tags
@@ -129,6 +131,18 @@ def clean_llm_reply(text: str) -> str:
         text = re.sub(r'^(?:\d+\.\s+\*\*[A-Za-z\s]+:\*\*|\d+\.\s+Analyze User Input)[\s\S]*?(?=\n\n(?:[A-Z*\"\'\u201c\u2018]|[\u4e00-\u9fa5]|$))', '', text, flags=re.IGNORECASE)
     # 3. Clean any leftover Draft: / Response: markers
     text = re.sub(r'^(?:Draft|Response|Reply|Assistant):\s*', '', text.strip(), flags=re.IGNORECASE)
+
+    # 4. Strip generic corporate assistant robotic clichés & repetitive asterisk stage directions
+    text = re.sub(r'\*turns to you attentively[^*]*\*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'\*engaging directly with your words[^*]*\*', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'—\s*let\'s delve deeper into this\.\s*What are your thoughts\?', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'let\'s delve deeper into this\.\s*What are your thoughts\?', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'How can I assist you (today|further)\??', '', text, flags=re.IGNORECASE)
+    text = re.sub(r'As an AI (assistant|language model)[^,\.\n]*[,\.\n]?', '', text, flags=re.IGNORECASE)
+
+    # Clean double spaces or excessive newlines
+    text = re.sub(r'[ \t]+', ' ', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
     return text.strip()
 
 class SupabaseBridge:
@@ -835,7 +849,7 @@ intents.members = True
 
 # --- AI BACKENDS (Stateless, accept cfg dict) ----------
 
-async def ask_gemini(system_msg, history, prompt, cfg, images=None):
+async def ask_gemini(system_msg, history, prompt, cfg, images=None, audios=None):
     global gemini_blocked_until
     key = (cfg.get("gemini_key") or cfg.get("gemini_api_key") or OWNER_KEYS.get("GEMINI_KEY") or "").strip()
     if not key:
@@ -843,9 +857,9 @@ async def ask_gemini(system_msg, history, prompt, cfg, images=None):
     if time.time() < gemini_blocked_until:
         return f"Gemini rate limited. Retry in {int(gemini_blocked_until - time.time())}s.", True
     
-    raw_model = cfg.get("gemini_model", "gemini-3-flash-preview").strip() or "gemini-3-flash-preview"
+    raw_model = (cfg.get("video_watching_model") or cfg.get("gemini_vision_model") or cfg.get("gemini_model") or "gemini-3.5-flash").strip() or "gemini-3.5-flash"
     candidates = [raw_model]
-    for m in ["gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-flash-lite-latest", "gemma-4-31b-it", "gemini-2.0-flash"]:
+    for m in ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-3-flash-preview"]:
         if m not in candidates:
             candidates.append(m)
 
@@ -858,6 +872,10 @@ async def ask_gemini(system_msg, history, prompt, cfg, images=None):
     if images:
         for img_data, mime in images:
             b64_str = base64.b64encode(img_data).decode("utf-8") if isinstance(img_data, bytes) else img_data
+            user_parts.append({"inlineData": {"mimeType": mime, "data": b64_str}})
+    if audios:
+        for aud_data, mime in audios:
+            b64_str = base64.b64encode(aud_data).decode("utf-8") if isinstance(aud_data, bytes) else aud_data
             user_parts.append({"inlineData": {"mimeType": mime, "data": b64_str}})
     contents.append({"role": "user", "parts": user_parts})
 
@@ -2010,6 +2028,227 @@ async def web_search(query, max_results=5):
     except Exception as e:
         return [], f"Search failed: {str(e)}"
 
+# --- PERSONALITY SCRAPER & WIKI PULLER ----------------
+
+def clean_html_for_lore(html: str, base_url: str = "") -> dict:
+    """Extracts title, meta description, lead image, and cleaned body text from HTML."""
+    if not html:
+        return {"title": "", "desc": "", "image_url": "", "text": ""}
+    
+    title_match = (
+        re.search(r'<meta\s+property=["\']og:title["\']\s+content=["\'](.*?)["\']', html, re.I) or
+        re.search(r'<meta\s+name=["\']twitter:title["\']\s+content=["\'](.*?)["\']', html, re.I) or
+        re.search(r'<title[^>]*>(.*?)</title>', html, re.I)
+    )
+    title = unescape(title_match.group(1).strip()) if title_match else ""
+    for sep in [" - ", " | ", " – ", " — "]:
+        if sep in title:
+            title = title.split(sep)[0].strip()
+
+    desc_match = (
+        re.search(r'<meta\s+(?:name|property)=["\'](?:description|og:description|twitter:description)["\']\s+content=["\'](.*?)["\']', html, re.I)
+    )
+    desc = unescape(desc_match.group(1).strip()) if desc_match else ""
+
+    img_match = (
+        re.search(r'<meta\s+(?:property|name)=["\'](?:og:image|twitter:image)["\']\s+content=["\'](.*?)["\']', html, re.I) or
+        re.search(r'<img[^>]+class=["\'][^"\']*(?:pi-image-thumbnail|infobox-image|character-image|thumbimage)[^"\']*["\'][^>]+src=["\'](.*?)["\']', html, re.I) or
+        re.search(r'<table[^>]*class=["\'][^"\']*infobox[^"\']*["\'][^>]*>.*?<img[^>]+src=["\'](.*?)["\']', html, re.I | re.DOTALL)
+    )
+    image_url = unescape(img_match.group(1).strip()) if img_match else ""
+    if image_url.startswith("//"):
+        image_url = "https:" + image_url
+    elif image_url.startswith("/") and base_url:
+        parsed_base = urllib.parse.urlparse(base_url)
+        image_url = f"{parsed_base.scheme}://{parsed_base.netloc}{image_url}"
+
+    # Remove non-content tags and comments
+    clean = re.sub(r'<(script|style|noscript|svg|nav|footer|header|aside|form|iframe|canvas)[^>]*>.*?</\1>', ' ', html, flags=re.I | re.DOTALL)
+    clean = re.sub(r'<!--.*?-->', ' ', clean, flags=re.DOTALL)
+    clean = re.sub(r'<div[^>]*class=["\'][^"\']*(?:navbox|toc|mw-jump-link|mw-editsection)[^"\']*["\'][^>]*>.*?</div>', ' ', clean, flags=re.I | re.DOTALL)
+    clean = re.sub(r'<h[1-6][^>]*>(.*?)</h[1-6]>', r'\n\n# \1\n', clean, flags=re.I)
+    clean = re.sub(r'<p[^>]*>(.*?)</p>', r'\n\1\n', clean, flags=re.I)
+    clean = re.sub(r'<li[^>]*>(.*?)</li>', r'\n* \1', clean, flags=re.I)
+    clean = re.sub(r'<br\s*/?>', '\n', clean, flags=re.I)
+    clean = re.sub(r'<[^>]+>', ' ', clean)
+    clean = unescape(clean)
+    lines = [re.sub(r'[ \t]+', ' ', l).strip() for l in clean.split('\n')]
+    clean_text = '\n'.join([l for l in lines if l])
+
+    return {
+        "title": title,
+        "desc": desc,
+        "image_url": image_url,
+        "text": clean_text[:20000]
+    }
+
+async def fetch_webpage_lore(url: str) -> dict:
+    """Fetches webpage content with special Wikipedia / Fandom / anime wiki support."""
+    url = url.strip()
+    if not url.startswith("http://") and not url.startswith("https://"):
+        url = "https://" + url
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9"
+    }
+
+    # 1. Special case: Wikipedia summary API
+    wiki_match = re.search(r'wikipedia\.org/wiki/([^#?]+)', url, re.I)
+    if wiki_match:
+        page_title = urllib.parse.unquote(wiki_match.group(1))
+        api_url = f"https://en.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(page_title)}"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(api_url, headers={"User-Agent": "BotSaaS/1.0 (personality-puller)"}, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                    if resp.status == 200:
+                        wdata = await resp.json()
+                        wtitle = wdata.get("title", page_title.replace("_", " "))
+                        wextract = wdata.get("extract", "")
+                        wdesc = wdata.get("description", "")
+                        wimg = (wdata.get("originalimage") or wdata.get("thumbnail") or {}).get("source", "")
+                        return {
+                            "title": wtitle,
+                            "desc": wdesc or (wextract[:140] if wextract else ""),
+                            "image_url": wimg,
+                            "text": f"Character: {wtitle}\nDescription: {wdesc}\n\nSummary:\n{wextract}",
+                            "source_url": url
+                        }
+        except Exception:
+            pass
+
+    # 2. General URL fetch
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=18), allow_redirects=True) as resp:
+                if resp.status != 200:
+                    return {"title": "", "desc": "", "image_url": "", "text": f"HTTP {resp.status} error fetching URL", "source_url": url, "error": f"HTTP {resp.status}"}
+                html = await resp.text()
+                parsed = clean_html_for_lore(html, base_url=str(resp.url))
+                parsed["source_url"] = str(resp.url)
+                return parsed
+    except Exception as e:
+        return {"title": "", "desc": "", "image_url": "", "text": "", "source_url": url, "error": str(e)}
+
+async def pull_personality_from_link(url: str, instruction: str = None, cfg: dict = None) -> tuple[dict, str]:
+    """
+    Fetches character lore from a wiki/link and uses AI to synthesize a complete character card.
+    Returns (character_dict, error_str).
+    """
+    page_data = await fetch_webpage_lore(url)
+    if not page_data or (not page_data.get("text") and not page_data.get("title")):
+        err = page_data.get("error") or "Could not fetch text from the provided link."
+        return None, err
+
+    title = page_data.get("title") or "Character"
+    page_desc = page_data.get("desc") or ""
+    page_img = page_data.get("image_url") or ""
+    page_text = page_data.get("text") or ""
+
+    user_instruction = instruction.strip() if instruction else ""
+
+    prompt_content = f"""Character / Subject Name: {title}
+Source URL: {url}
+Meta Description: {page_desc}
+
+Article Content:
+{page_text[:20000]}
+
+{f'Special User Instructions: {user_instruction}' if user_instruction else ''}
+
+Please analyze this character data and output a rich, accurate Character Persona Card in STRICT JSON FORMAT.
+JSON format:
+{{
+  "name": "{title}",
+  "role": "Role / Archetype tag (e.g. Yandere Companion, Sorceress, Detective, Caretaker)",
+  "desc": "Short 1-2 sentence description (under 140 chars)",
+  "personality": "Comprehensive personality specification & system prompt for an AI roleplay bot. Detail demeanor, psychology, behavioral nuances, speaking mannerisms, speech quirks, and interaction rules.",
+  "greeting": "An expressive, immersive first greeting message in character (using *actions* and spoken dialogue).",
+  "scenario": "Setting / initial context",
+  "example_dialogue": "Short dialogue example using <START> {{{{user}}}}: ... {{{{char}}}}: ... format",
+  "tags": ["Tag1", "Tag2"],
+  "avatar_url": "{page_img}"
+}}
+Return ONLY valid JSON with no markdown backticks."""
+
+    sys_msg = "You are an expert AI persona architect and character card creator. You convert wiki articles, lore pages, and character biographies into rich, vivid roleplay character cards in JSON."
+
+    effective_cfg = DEFAULT_CONFIG.copy()
+    if cfg and isinstance(cfg, dict):
+        effective_cfg.update(cfg)
+
+    # Try calling AI LLMs
+    reply = ""
+    err = None
+
+    for prov in [effective_cfg.get("provider", "auto"), "gemini", "groq", "mistral", "openrouter", "openai", "custom"]:
+        if not reply:
+            try:
+                if prov == "gemini" or (prov == "auto" and OWNER_KEYS.get("GEMINI_KEY")):
+                    reply, err = await ask_gemini(sys_msg, [], prompt_content, effective_cfg)
+                elif prov == "groq" or (prov == "auto" and OWNER_KEYS.get("GROQ_KEY")):
+                    reply, err = await ask_groq([], prompt_content, effective_cfg, system_msg=sys_msg)
+                elif prov == "mistral" or (prov == "auto" and OWNER_KEYS.get("MISTRAL_KEY")):
+                    reply, err = await ask_mistral([], prompt_content, effective_cfg, system_msg=sys_msg)
+                elif prov == "openrouter" or (prov == "auto" and OWNER_KEYS.get("OPENROUTER_KEY")):
+                    reply, err = await ask_openrouter([], prompt_content, effective_cfg, system_msg=sys_msg)
+                elif prov == "openai" or (prov == "auto" and OWNER_KEYS.get("OPENAI_KEY")):
+                    reply, err = await ask_openai([], prompt_content, effective_cfg, system_msg=sys_msg)
+                elif prov in ("custom", "literouter") and effective_cfg.get("custom_base_url"):
+                    reply, err = await ask_custom([], prompt_content, effective_cfg, system_msg=sys_msg)
+            except Exception as e:
+                err = str(e)
+                continue
+
+    # Clean LLM response and parse JSON
+    parsed_json = None
+    if reply:
+        clean_json_str = reply.strip()
+        if "```" in clean_json_str:
+            match = re.search(r'```(?:json)?\s*([\s\S]*?)\s*```', clean_json_str)
+            if match:
+                clean_json_str = match.group(1).strip()
+        try:
+            parsed_json = json.loads(clean_json_str)
+        except Exception:
+            match = re.search(r'(\{[\s\S]*\})', clean_json_str)
+            if match:
+                try:
+                    parsed_json = json.loads(match.group(1))
+                except Exception:
+                    pass
+
+    # Fallback to heuristic synthesis if LLM was unavailable or failed
+    if not parsed_json or not isinstance(parsed_json, dict):
+        role_guess = "AI Companion"
+        if "yandere" in page_text.lower(): role_guess = "Yandere Companion"
+        elif "tsundere" in page_text.lower(): role_guess = "Tsundere Companion"
+        elif "caretaker" in page_text.lower(): role_guess = "Caretaker Companion"
+        elif "detective" in page_text.lower(): role_guess = "Detective"
+
+        short_d = page_desc[:140] if page_desc else (page_text[:137] + "..." if len(page_text) > 137 else page_text)
+        greeting_text = f"*looks up and smiles warmly* Hello, I am {title}. What would you like to talk about today?"
+
+        sys_prompt = f"[Character: {title}]\n[Role: {role_guess}]\n[Description & Lore:\n{page_text[:3000]}]"
+
+        parsed_json = {
+            "name": title,
+            "role": role_guess,
+            "desc": short_d,
+            "personality": sys_prompt,
+            "greeting": greeting_text,
+            "scenario": f"You are interacting with {title}.",
+            "example_dialogue": f"<START>\n{{{{user}}}}: Hello {title}!\n{{{{char}}}}: {greeting_text}",
+            "tags": [role_guess],
+            "avatar_url": page_img
+        }
+
+    if not parsed_json.get("avatar_url") and page_img:
+        parsed_json["avatar_url"] = page_img
+
+    return parsed_json, None
+
 # --- AUDIO TRANSCRIPTION (Groq Whisper) --------------
 
 async def transcribe_audio(audio_bytes, filename="audio.ogg"):
@@ -2081,16 +2320,18 @@ def should_retry_with_search(reply):
 
 # --- FILE TEXT EXTRACTION -----------------------------
 
-def extract_text_from_pdf(filepath):
+def extract_text_from_pdf(filepath, max_pages=20):
     try:
         import PyPDF2
         text = ""
         with open(filepath, "rb") as f:
             reader = PyPDF2.PdfReader(f)
-            for page in reader.pages:
-                t = page.extract_text()
+            total_pages = len(reader.pages)
+            pages_to_read = min(total_pages, max_pages)
+            for i in range(pages_to_read):
+                t = reader.pages[i].extract_text()
                 if t:
-                    text += t + "\n"
+                    text += f"--- Page {i+1} ---\n" + t + "\n\n"
         if text.strip():
             return text.strip()
     except Exception:
@@ -2111,14 +2352,14 @@ def extract_text_from_docx(filepath):
     except Exception as e:
         return f"[DOCX error: {e}]"
 
-def extract_text_from_csv(filepath):
+def extract_text_from_csv(filepath, max_rows=2000):
     try:
         rows = []
         with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
             reader = csv.reader(f)
             for row in reader:
                 rows.append(" | ".join(row))
-        return "\n".join(rows[:500])
+        return "\n".join(rows[:max_rows])
     except Exception as e:
         return f"[CSV error: {e}]"
 
@@ -2140,11 +2381,22 @@ async def read_file_attachment(attachment):
                 with open(tmp_path, "wb") as f:
                     f.write(data)
         if ext == ".pdf":
-            return extract_text_from_pdf(tmp_path)
+            text = extract_text_from_pdf(tmp_path, max_pages=20)
         elif ext == ".docx":
-            return extract_text_from_docx(tmp_path)
+            text = extract_text_from_docx(tmp_path)
         elif ext == ".csv":
-            return extract_text_from_csv(tmp_path)
+            text = extract_text_from_csv(tmp_path, max_rows=2000)
+        else:
+            text = "Unknown file type."
+        
+        if not text or not text.strip():
+            return "I couldn't extract any readable text from that file."
+        if text.startswith("[") and text.endswith("]"):
+            return text
+        preview = text[:120000]
+        if len(text) > 120000:
+            preview += f"\n\n... [{len(text) - 120000} more characters truncated]"
+        return preview
     except Exception as e:
         return f"File read error: {e}"
     finally:
@@ -2705,6 +2957,8 @@ class UserBot:
 
     def setup_commands(self):
         @self.tree.command(name="ask", description="Ask the AI anything. Attach an image for vision.")
+        @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+        @app_commands.allowed_installs(guilds=True, users=True)
         @app_commands.describe(prompt="Your question or prompt", image="Optional image to analyze")
         async def slash_ask(interaction: discord.Interaction, prompt: str, image: discord.Attachment = None):
             self.record_interaction(interaction.user.id)
@@ -2875,6 +3129,8 @@ class UserBot:
                 await interaction.followup.send(f"Summarization error: {e}", ephemeral=True)
 
         @self.tree.command(name="memory", description="Show what the bot remembers about you")
+        @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+        @app_commands.allowed_installs(guilds=True, users=True)
         async def slash_memory(interaction: discord.Interaction):
             self.record_interaction(interaction.user.id)
             uid = str(interaction.user.id)
@@ -2902,6 +3158,8 @@ class UserBot:
             await interaction.response.send_message(embed=embed, ephemeral=True)
 
         @self.tree.command(name="persona", description="Set notes about yourself for the bot to remember")
+        @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+        @app_commands.allowed_installs(guilds=True, users=True)
         @app_commands.describe(notes="What should I know about you?")
         async def slash_persona(interaction: discord.Interaction, notes: str):
             self.record_interaction(interaction.user.id)
@@ -2929,12 +3187,16 @@ class UserBot:
             await interaction.response.send_message("Got it! I've noted that down in your memory profile. 📝", ephemeral=True)
 
         @self.tree.command(name="reset", description="Clear this channel's context memory")
+        @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+        @app_commands.allowed_installs(guilds=True, users=True)
         async def slash_reset(interaction: discord.Interaction):
             self.record_interaction(interaction.user.id)
             self.clear_context(interaction.channel_id)
             await interaction.response.send_message("🧹 Channel context memory cleared.", ephemeral=True)
 
         @self.tree.command(name="forgetme", description="Wipe all facts, quotes, and long-term memories the AI has about you")
+        @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+        @app_commands.allowed_installs(guilds=True, users=True)
         async def slash_forgetme(interaction: discord.Interaction):
             self.record_interaction(interaction.user.id)
             uid = str(interaction.user.id)
@@ -3053,7 +3315,37 @@ class UserBot:
             except Exception as e:
                 await interaction.followup.send(f"Sync failed: {e}", ephemeral=True)
 
-        @self.tree.command(name="search", description="Search the web using DuckDuckGo")
+        @self.tree.command(name="invite", description="Get the invite link to add this bot to your servers or user apps")
+        @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+        @app_commands.allowed_installs(guilds=True, users=True)
+        async def slash_invite(interaction: discord.Interaction):
+            client_id = self.client.user.id if self.client.user else ""
+            if not client_id:
+                await interaction.response.send_message("Bot client ID unavailable.", ephemeral=True)
+                return
+            server_invite = f"https://discord.com/oauth2/authorize?client_id={client_id}&permissions=8&scope=bot%20applications.commands"
+            user_app_invite = f"https://discord.com/oauth2/authorize?client_id={client_id}&scope=applications.commands"
+            embed = discord.Embed(
+                title=f"🔗 Invite & Install {self.bot_name or 'Bot'}",
+                description="Choose how you'd like to add or use this bot:",
+                color=0x8a9a8a
+            )
+            embed.add_field(
+                name="🏰 Add to Server (Bot & Commands)",
+                value=f"[**Click to Invite to Server**]({server_invite})\n*Adds {self.bot_name} to your Discord server with full features & commands.*",
+                inline=False
+            )
+            embed.add_field(
+                name="👤 Install as User App (Use in DMs & Any Server)",
+                value=f"[**Click to Install to Account**]({user_app_invite})\n*Allows using slash commands anywhere, including private DMs & any server without server invite.*",
+                inline=False
+            )
+            embed.set_footer(text=f"Bot ID: {self.bot_id}")
+            await interaction.response.send_message(embed=embed)
+
+        @self.tree.command(name="search", description="Search the web with real-time AI synthesis")
+        @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
+        @app_commands.allowed_installs(guilds=True, users=True)
         @app_commands.describe(query="What to search for")
         async def slash_search(interaction: discord.Interaction, query: str):
             self.record_interaction(interaction.user.id)
@@ -3066,20 +3358,28 @@ class UserBot:
             if err or not results:
                 await interaction.followup.send(f"Search failed: {err or 'No results found.'}")
                 return
-            reply, ai_err = await self.synthesize_search(interaction.channel_id, query, results)
-            if not ai_err:
+            reply, ai_err = await self.synthesize_search(interaction.channel_id or interaction.user.id, query, results)
+            if not ai_err and reply:
                 header = f"**Search:** `{query}`\n\n"
-                await self.send_split_messages(interaction.channel, header + reply)
+                full_reply = header + reply
                 source_lines = [f"{i}. [{r['title']}]({r['url']})" for i, r in enumerate(results[:5], 1)]
                 source_embed = discord.Embed(title="Sources", description="\n".join(source_lines), color=0x2b2d42)
-                await interaction.followup.send(embed=source_embed)
+                if len(full_reply) <= 2000:
+                    await interaction.followup.send(full_reply, embed=source_embed)
+                else:
+                    chunks = [full_reply[i:i+1950] for i in range(0, len(full_reply), 1950)]
+                    for idx, chunk in enumerate(chunks):
+                        if idx == len(chunks) - 1:
+                            await interaction.followup.send(chunk, embed=source_embed)
+                        else:
+                            await interaction.followup.send(chunk)
                 return
             lines = [f"**Web search:** `{query}`\n"]
             for i, r in enumerate(results[:5], 1):
                 snippet = r["snippet"][:180] + "..." if len(r["snippet"]) > 180 else r["snippet"]
                 lines.append(f"**{i}.** [{r['title']}]({r['url']})\n{snippet}\n")
             embed = discord.Embed(title="Search Results", description="\n".join(lines), color=0x4f8cff)
-            embed.set_footer(text="via DuckDuckGo Lite | synthesis unavailable")
+            embed.set_footer(text="via Web Search")
             await interaction.followup.send(embed=embed)
 
         @self.tree.command(name="transcribe", description="Transcribe the most recent voice/audio message in this channel")
@@ -3775,6 +4075,14 @@ class UserBot:
         if self.config.get("message_split_enabled", False):
             system_msg += "\n\nIf you have multiple separate thoughts or distinct points, separate them with ||SPLIT|| so they can be sent as individual messages. Keep each part conversational."
 
+        system_msg += (
+            "\n\n[STRICT ROLEPLAY DIRECTIVE]:\n"
+            "- You are NOT an AI assistant, language model, or customer service agent. You must strictly stay in character as defined above.\n"
+            "- NEVER use corporate assistant phrases (e.g. 'Let\'s delve deeper into this', 'What are your thoughts?', 'How can I assist you?', 'As an AI').\n"
+            "- NEVER write synthetic narrator stage directions or repetitive physical actions in asterisks like '*turns to you attentively, engaging directly with your words*'.\n"
+            "- Reply directly, authentically, and vividly in character."
+        )
+
         def save_ctx(reply):
             cleaned = clean_llm_reply(reply) or str(reply or '').strip()
             self.add_to_context(channel_id, "user", prompt, user_name=user_name, user_id=user_id)
@@ -4220,6 +4528,36 @@ class UserBot:
         clean_text = content_raw
         if self.client.user:
             clean_text = re.sub(r'<@!?\d+>', '', clean_text).strip()
+
+        # Check for invite in mention / command: e.g. "@Bot invite", "!invite"
+        clean_low = clean_text.lower()
+        if (is_mentioned or is_dm or content_raw.startswith("!invite")) and (
+            clean_low in ("invite", "invite link", "inv", "add", "install", "invite bot", "bot invite", "link") or
+            content_raw.strip().lower() in ("!invite", "!inv") or
+            re.search(r'\b(invite|invite\s+link|add\s+bot|install\s+app)\b', clean_low)
+        ):
+            client_id = self.client.user.id if self.client.user else ""
+            if client_id:
+                server_invite = f"https://discord.com/oauth2/authorize?client_id={client_id}&permissions=8&scope=bot%20applications.commands"
+                user_app_invite = f"https://discord.com/oauth2/authorize?client_id={client_id}&scope=applications.commands"
+                embed = discord.Embed(
+                    title=f"🔗 Invite & Install {self.bot_name or 'Bot'}",
+                    description="Choose how you'd like to add or use this bot:",
+                    color=0x8a9a8a
+                )
+                embed.add_field(
+                    name="🏰 Add to Server (Bot & Commands)",
+                    value=f"[**Click to Invite to Server**]({server_invite})\n*Adds {self.bot_name} to your Discord server with full features & commands.*",
+                    inline=False
+                )
+                embed.add_field(
+                    name="👤 Install as User App (Use in DMs & Any Server)",
+                    value=f"[**Click to Install to Account**]({user_app_invite})\n*Allows using slash commands anywhere, including private DMs & any server without server invite.*",
+                    inline=False
+                )
+                embed.set_footer(text=f"Bot ID: {self.bot_id}")
+                await self.safe_reply(message, embed=embed)
+                return
 
         # Check for ping in mention: e.g. "@Bot ping"
         if (is_mentioned or is_dm) and clean_text.lower() in ("ping", "pong", "!ping", "!pong"):
@@ -4681,16 +5019,37 @@ class UserBot:
                         with open(tmp_path, "wb") as f:
                             f.write(await resp.read())
                 
+                # 1. Extract chronological frames
                 frames_dir = tempfile.mkdtemp()
-                cmd = ["ffmpeg", "-y", "-i", tmp_path, "-vf", "fps=0.5,scale=640:-1", "-vframes", "3", os.path.join(frames_dir, "f%03d.jpg")]
-                subprocess.run(cmd, capture_output=True, timeout=30)
+                cmd = ["ffmpeg", "-y", "-i", tmp_path, "-vf", "fps=0.5,scale=640:-1", "-vframes", "4", os.path.join(frames_dir, "f%03d.jpg")]
+                subprocess.run(cmd, capture_output=True, timeout=35)
                 frame_files = sorted([os.path.join(frames_dir, f) for f in os.listdir(frames_dir) if f.endswith(".jpg")])
                 frame_bytes_list = []
                 for fp in frame_files:
                     with open(fp, "rb") as f:
                         frame_bytes_list.append(f.read())
-                
                 shutil.rmtree(frames_dir, ignore_errors=True)
+
+                # 2. Extract and transcribe video audio track
+                audio_transcription = None
+                audio_tmp_fd, audio_tmp_path = tempfile.mkstemp(suffix=".wav")
+                os.close(audio_tmp_fd)
+                try:
+                    acmd = ["ffmpeg", "-y", "-i", tmp_path, "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1", audio_tmp_path]
+                    subprocess.run(acmd, capture_output=True, timeout=35)
+                    if os.path.exists(audio_tmp_path) and os.path.getsize(audio_tmp_path) > 1024:
+                        with open(audio_tmp_path, "rb") as af:
+                            audio_bytes = af.read()
+                        atext, aerr = await transcribe_audio(audio_bytes, "audio.wav")
+                        if not aerr and atext and atext.strip():
+                            audio_transcription = atext.strip()
+                except Exception as e:
+                    print(f"[VIDEO AUDIO ERROR] {e}")
+                finally:
+                    if os.path.exists(audio_tmp_path):
+                        try: os.remove(audio_tmp_path)
+                        except: pass
+
                 if os.path.exists(tmp_path):
                     os.remove(tmp_path)
 
@@ -4698,19 +5057,26 @@ class UserBot:
                     await message.reply("Could not extract frames from video.")
                     return
 
-                prompt = message.content or "Describe what is happening in this video."
+                user_q = message.content.replace(f"<@{self.client.user.id}>", "").strip()
+                prompt = f"[VIDEO PLAYBACK & AUDIO INGESTION]\nThe user shared a video ({len(frame_bytes_list)} chronological frames attached)."
+                if user_q:
+                    prompt += f"\nUser comment/question: {user_q}"
+                if audio_transcription:
+                    prompt += f"\n\n[VIDEO AUDIO TRACK TRANSCRIPTION]:\n\"{audio_transcription}\""
+                prompt += "\n\nReact and respond in full character to what is shown on screen and what is spoken in the video audio!"
+
                 vision_provider = self.config.get("vision_provider", "gemini")
                 reply, err = None, True
-                if vision_provider == "openai" and (self.config.get("openai_key") or OWNER_KEYS.get("OPENAI_KEY")):
+                if vision_provider == "gemini" or (self.config.get("gemini_key") or OWNER_KEYS.get("GEMINI_KEY")):
+                    reply, err = await ask_gemini_vision(self.config.get("personality", ""), prompt, frame_bytes_list, "image/jpeg", self.config)
+                    if err and (self.config.get("openai_key") or OWNER_KEYS.get("OPENAI_KEY")):
+                        reply, err = await ask_openai_vision(self.config.get("personality", ""), prompt, frame_bytes_list, "image/jpeg", self.config)
+                elif vision_provider == "openai" and (self.config.get("openai_key") or OWNER_KEYS.get("OPENAI_KEY")):
                     reply, err = await ask_openai_vision(self.config.get("personality", ""), prompt, frame_bytes_list, "image/jpeg", self.config)
                     if err and (self.config.get("gemini_key") or OWNER_KEYS.get("GEMINI_KEY")):
                         reply, err = await ask_gemini_vision(self.config.get("personality", ""), prompt, frame_bytes_list, "image/jpeg", self.config)
                 else:
                     reply, err = await ask_gemini_vision(self.config.get("personality", ""), prompt, frame_bytes_list, "image/jpeg", self.config)
-                    if err and (self.config.get("openai_key") or OWNER_KEYS.get("OPENAI_KEY")):
-                        reply, err = await ask_openai_vision(self.config.get("personality", ""), prompt, frame_bytes_list, "image/jpeg", self.config)
-                    if err and (self.config.get("openrouter_key") or OWNER_KEYS.get("OPENROUTER_KEY")):
-                        reply, err = await ask_openrouter_vision(self.config.get("personality", ""), prompt, frame_bytes_list, "image/jpeg", self.config)
                 
                 if not err and reply:
                     self.message_count += 1
@@ -4993,6 +5359,7 @@ def get_auth_user_id(req):
     return token
 
 manager = BotManager()
+bot_loop = None
 _running_tokens = set()
 _bridge_had_results = False
 
@@ -5449,6 +5816,24 @@ def api_web_chat():
                 mime = header.split(";")[0].split(":")[1] if ":" in header else "image/png"
                 img_bytes = base64.b64decode(b64)
                 images.append((img_bytes, mime))
+            else:
+                img_bytes = base64.b64decode(image_data)
+                images.append((img_bytes, "image/jpeg"))
+        except Exception:
+            pass
+
+    audio_data = data.get("audio_data") or data.get("audio")
+    audios = []
+    if audio_data:
+        try:
+            if "," in audio_data:
+                header, b64 = audio_data.split(",", 1)
+                mime = header.split(";")[0].split(":")[1] if ":" in header else "audio/webm"
+                aud_bytes = base64.b64decode(b64)
+                audios.append((aud_bytes, mime))
+            else:
+                aud_bytes = base64.b64decode(audio_data)
+                audios.append((aud_bytes, "audio/webm"))
         except Exception:
             pass
 
@@ -5457,6 +5842,10 @@ def api_web_chat():
         history = data.get("history") or []
         prompt = message or "Hello!"
         
+        # When raw audio or music is present, route straight to Gemini Multimodal
+        if audios or (images and prov in ("auto", "gemini")):
+            return await ask_gemini(system_prompt or cfg.get("personality", ""), history, prompt, cfg, images=images, audios=audios)
+
         slots = cfg.get("model_slots", [])
         if slots and isinstance(slots, list):
             for slot in slots:
@@ -5471,7 +5860,7 @@ def api_web_chat():
                 
                 try:
                     if sprov == "gemini":
-                        reply, err = await ask_gemini(system_prompt or slot_cfg.get("personality", ""), history, prompt, slot_cfg, images=images)
+                        reply, err = await ask_gemini(system_prompt or slot_cfg.get("personality", ""), history, prompt, slot_cfg, images=images, audios=audios)
                     elif sprov == "groq":
                         reply, err = await ask_groq(history, prompt, slot_cfg, system_msg=system_prompt, images=images)
                     elif sprov in ("custom", "literouter"):
@@ -5485,7 +5874,7 @@ def api_web_chat():
                     elif sprov == "openai":
                         reply, err = await ask_openai(history, prompt, slot_cfg, system_msg=system_prompt, images=images)
                     else:
-                        reply, err = await ask_gemini(system_prompt or slot_cfg.get("personality", ""), history, prompt, slot_cfg, images=images)
+                        reply, err = await ask_gemini(system_prompt or slot_cfg.get("personality", ""), history, prompt, slot_cfg, images=images, audios=audios)
                         
                     if not err and reply and reply.strip():
                         return reply, False
@@ -5494,7 +5883,7 @@ def api_web_chat():
                     
         # Fallback to standard provider
         if prov == "gemini":
-            return await ask_gemini(system_prompt or cfg.get("personality", ""), history, prompt, cfg, images=images)
+            return await ask_gemini(system_prompt or cfg.get("personality", ""), history, prompt, cfg, images=images, audios=audios)
         elif prov == "groq":
             return await ask_groq(history, prompt, cfg, system_msg=system_prompt, images=images)
         elif prov in ("custom", "literouter"):
@@ -5508,7 +5897,7 @@ def api_web_chat():
         elif prov == "openai":
             return await ask_openai(history, prompt, cfg, system_msg=system_prompt, images=images)
         else:
-            return await ask_gemini(system_prompt or cfg.get("personality", ""), history, prompt, cfg, images=images)
+            return await ask_gemini(system_prompt or cfg.get("personality", ""), history, prompt, cfg, images=images, audios=audios)
 
     try:
         future = asyncio.run_coroutine_threadsafe(_ask(), bot_loop)
@@ -5516,15 +5905,337 @@ def api_web_chat():
         cnt = record_bot_interaction(bot_id)
         if err or not reply:
             return jsonify({"ok": True, "reply": reply or "Received message. Ready!", "interaction_count": cnt})
-        return jsonify({"ok": True, "reply": reply, "interaction_count": cnt})
+        cleaned_reply = clean_llm_reply(reply) or reply
+        return jsonify({"ok": True, "reply": cleaned_reply, "interaction_count": cnt})
     except Exception as e:
         cnt = record_bot_interaction(bot_id)
         return jsonify({"ok": True, "reply": f"Response generated: ({str(e)})", "interaction_count": cnt})
 
+@app.route("/api/stt", methods=["POST"])
+@app.route("/api/transcribe", methods=["POST"])
+def api_stt():
+    try:
+        audio_bytes = None
+        filename = "audio.webm"
+        
+        # 1. From multipart file upload
+        if "file" in request.files:
+            f = request.files["file"]
+            audio_bytes = f.read()
+            filename = f.filename or "audio.webm"
+        elif "audio" in request.files:
+            f = request.files["audio"]
+            audio_bytes = f.read()
+            filename = f.filename or "audio.webm"
+        else:
+            # 2. From JSON body (base64 string)
+            data = request.get_json(force=True, silent=True) or {}
+            audio_b64 = data.get("audio") or data.get("audio_data") or data.get("file")
+            filename = data.get("filename") or "audio.webm"
+            if audio_b64 and isinstance(audio_b64, str):
+                if "," in audio_b64:
+                    audio_b64 = audio_b64.split(",", 1)[1]
+                audio_bytes = base64.b64decode(audio_b64)
+                
+        if not audio_bytes:
+            return jsonify({"ok": False, "error": "No audio data provided"}), 400
+            
+        async def _do_transcribe():
+            return await transcribe_audio(audio_bytes, filename=filename)
+            
+        if bot_loop and bot_loop.is_running():
+            future = asyncio.run_coroutine_threadsafe(_do_transcribe(), bot_loop)
+            text, err = future.result(timeout=45)
+        else:
+            text, err = asyncio.run(_do_transcribe())
+            
+        if err or text is None:
+            return jsonify({"ok": False, "error": err or "Transcription failed"}), 500
+        return jsonify({"ok": True, "text": (text or "").strip()})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+_yt_info_cache = {}
+
+def get_yt_video_info(url_or_id):
+    import yt_dlp
+    v_id = url_or_id
+    if "youtu.be/" in url_or_id:
+        v_id = url_or_id.split("youtu.be/")[1].split("?")[0].split("&")[0]
+    elif "v=" in url_or_id:
+        v_id = url_or_id.split("v=")[1].split("&")[0]
+    elif "/" in url_or_id:
+        v_id = url_or_id.rstrip("/").split("/")[-1].split("?")[0]
+        
+    now = time.time()
+    if v_id in _yt_info_cache and (now - _yt_info_cache[v_id].get("ts", 0)) < 3600:
+        return _yt_info_cache[v_id]
+        
+    ydl_opts = {
+        "format": "bestaudio/best",
+        "quiet": True,
+        "no_warnings": True,
+        "skip_download": True
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        full_url = f"https://www.youtube.com/watch?v={v_id}" if len(v_id) == 11 else url_or_id
+        info = ydl.extract_info(full_url, download=False)
+        audio_stream_url = info.get("url") or ""
+        title = info.get("title") or "YouTube Video"
+        artist = info.get("uploader") or info.get("artist") or info.get("creator") or "Artist"
+        desc = info.get("description") or ""
+        tags = info.get("tags") or []
+        duration = info.get("duration") or 0
+        
+        transcript_lines = []
+        try:
+            from youtube_transcript_api import YouTubeTranscriptApi
+            api = YouTubeTranscriptApi()
+            try:
+                res = api.fetch(v_id)
+                for s in res.snippets:
+                    transcript_lines.append({
+                        "start": float(s.start),
+                        "dur": float(s.duration),
+                        "text": str(s.text).strip()
+                    })
+            except Exception:
+                tlist = api.list(v_id)
+                try:
+                    tr = tlist.find_transcript(["en", "en-US", "en-GB"])
+                except Exception:
+                    tr = next(iter(tlist))
+                fetched = tr.fetch()
+                for s in fetched.snippets:
+                    transcript_lines.append({
+                        "start": float(s.start),
+                        "dur": float(s.duration),
+                        "text": str(s.text).strip()
+                    })
+        except Exception as te:
+            print(f"[YT TRANSCRIPT FETCH NOTICE] {te}")
+            
+        full_transcript_text = "\n".join([f"[{int(t['start']//60)}:{int(t['start']%60):02d}] {t['text']}" for t in transcript_lines[:50]])
+            
+        data = {
+            "video_id": v_id,
+            "title": title,
+            "artist": artist,
+            "description": desc[:800],
+            "tags": tags[:8],
+            "duration": duration,
+            "audio_url": audio_stream_url,
+            "transcript": transcript_lines,
+            "full_transcript": full_transcript_text,
+            "ts": now
+        }
+        _yt_info_cache[v_id] = data
+        return data
+
+@app.route("/api/youtube_context", methods=["GET", "POST"])
+def api_youtube_context():
+    try:
+        data = request.get_json(force=True, silent=True) if request.method == "POST" else request.args.to_dict()
+        data = data or {}
+        url = (data.get("url") or data.get("video_id") or data.get("v") or "").strip()
+        timestamp = float(data.get("timestamp") or data.get("time") or 0)
+        
+        if not url:
+            return jsonify({"ok": False, "error": "No YouTube URL provided"}), 400
+            
+        info = get_yt_video_info(url)
+        if not info:
+            return jsonify({"ok": False, "error": "Could not extract video info"}), 500
+            
+        cur_dialogue = ""
+        if info.get("transcript"):
+            matching = [t.get("text", "") for t in info["transcript"] if abs(timestamp - t.get("start", 0)) <= 15 or (t.get("start", 0) <= timestamp <= t.get("start", 0) + t.get("dur", 0) + 3)]
+            if matching:
+                cur_dialogue = " ".join(matching)
+                
+        audio_b64 = None
+        if info.get("audio_url"):
+            try:
+                start_sec = max(0, timestamp - 5)
+                tmp_wav = tempfile.mktemp(suffix=".wav")
+                cmd = [
+                    "ffmpeg", "-y",
+                    "-ss", str(start_sec),
+                    "-i", info["audio_url"],
+                    "-t", "6",
+                    "-vn", "-acodec", "pcm_s16le", "-ar", "16000", "-ac", "1",
+                    tmp_wav
+                ]
+                subprocess.run(cmd, capture_output=True, timeout=20)
+                if os.path.exists(tmp_wav) and os.path.getsize(tmp_wav) > 1000:
+                    with open(tmp_wav, "rb") as wf:
+                        audio_b64 = "data:audio/wav;base64," + base64.b64encode(wf.read()).decode("utf-8")
+                    os.remove(tmp_wav)
+            except Exception as fe:
+                print(f"[YT AUDIO SLICE ERROR] {fe}")
+                
+        return jsonify({
+            "ok": True,
+            "video_id": info.get("video_id"),
+            "title": info.get("title"),
+            "artist": info.get("artist"),
+            "description_snippet": info.get("description", "")[:400],
+            "tags": info.get("tags", []),
+            "duration": info.get("duration", 0),
+            "timestamp": timestamp,
+            "dialogue": cur_dialogue,
+            "full_transcript": info.get("full_transcript", ""),
+            "audio_data": audio_b64
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+def extract_png_character_card(png_bytes: bytes) -> str:
+    """Extracts base64/utf-8 text chunks from a PNG file (Tavern / Chub / Janitor AI cards)."""
+    if len(png_bytes) < 8 or png_bytes[:8] != b'\x89PNG\r\n\x1a\n':
+        return ""
+    pos = 8
+    while pos + 8 < len(png_bytes):
+        length = int.from_bytes(png_bytes[pos:pos+4], 'big')
+        chunk_type = png_bytes[pos+4:pos+8]
+        data = png_bytes[pos+8:pos+8+length]
+        if chunk_type in (b'tEXt', b'iTXt'):
+            null_pos = data.find(b'\x00')
+            if null_pos != -1:
+                keyword = data[:null_pos].decode('utf-8', errors='ignore').lower()
+                if keyword in ('chara', 'ccv3', 'character'):
+                    raw_text = data[null_pos+1:].decode('utf-8', errors='ignore').strip()
+                    if raw_text.startswith('{'):
+                        return raw_text
+                    try:
+                        decoded = base64.b64decode(raw_text).decode('utf-8', errors='ignore')
+                        if decoded.startswith('{'):
+                            return decoded
+                    except Exception:
+                        pass
+        pos += 12 + length
+    return ""
+
+def parse_character_card_dict(raw: dict) -> dict:
+    if not isinstance(raw, dict):
+        return {}
+    d = raw.get("data", raw) if (raw.get("spec") == "chara_card_v2" or raw.get("spec_version") == "2.0" or "data" in raw) else raw
+    name = (d.get("name") or d.get("char_name") or d.get("bot_name") or raw.get("name") or "New Character").strip()
+    raw_desc = d.get("description") or d.get("char_desc") or d.get("desc") or raw.get("description") or ""
+    raw_pers = d.get("personality") or d.get("char_personality") or raw.get("personality") or ""
+    raw_scen = d.get("scenario") or d.get("char_scenario") or raw.get("scenario") or ""
+    raw_greet = d.get("first_mes") or d.get("greeting") or d.get("first_message") or raw.get("first_mes") or f"*looks up and smiles* Hello, I am {name}."
+    raw_ex = d.get("mes_example") or d.get("example_dialogue") or raw.get("mes_example") or ""
+    raw_sys = d.get("system_prompt") or raw.get("system_prompt") or ""
+    raw_avatar = d.get("avatar") or d.get("avatar_url") or d.get("pfp") or raw.get("avatar") or ""
+    tags = d.get("tags") or raw.get("tags") or []
+    if isinstance(tags, list):
+        filtered_tags = [t for t in tags if str(t).upper() not in ("NSFW", "ROOT", "OAI", "TAVERN")]
+        role = " • ".join(str(t) for t in filtered_tags[:2]) if filtered_tags else "AI Persona"
+    else:
+        role = "AI Persona"
+
+    short_desc = raw_pers[:140] if raw_pers else (raw_desc[:140] if raw_desc else f"{name} — {role}")
+
+    prompt_parts = []
+    if raw_sys:
+        prompt_parts.append(raw_sys.strip())
+    prompt_parts.append(f"[Character: {name}]")
+    if role:
+        prompt_parts.append(f"[Role: {role}]")
+    if raw_pers:
+        prompt_parts.append(f"[Personality & Traits:\n{raw_pers.strip()}]")
+    if raw_desc:
+        prompt_parts.append(f"[Description & Background:\n{raw_desc.strip()}]")
+    if raw_scen:
+        prompt_parts.append(f"[Scenario & Setting:\n{raw_scen.strip()}]")
+    if raw_ex:
+        prompt_parts.append(f"[Example Dialogue:\n{raw_ex.strip()}]")
+
+    full_prompt = "\n\n".join(prompt_parts)
+
+    return {
+        "name": name,
+        "role": role,
+        "desc": short_desc,
+        "greeting": raw_greet,
+        "personality": full_prompt,
+        "raw_personality": raw_pers,
+        "raw_description": raw_desc,
+        "scenario": raw_scen,
+        "example_dialogue": raw_ex,
+        "avatar_url": raw_avatar,
+        "tags": tags if isinstance(tags, list) else []
+    }
+
+@app.route("/api/pull_personality", methods=["GET", "POST"])
+@app.route("/api/scrape_personality", methods=["GET", "POST"])
+def api_pull_personality():
+    if request.method == "GET":
+        url = request.args.get("url", "").strip()
+        instruction = request.args.get("instruction", "").strip()
+        cfg_overrides = {}
+    else:
+        data = request.get_json(force=True, silent=True) or {}
+        url = (data.get("url") or request.args.get("url") or "").strip()
+        instruction = (data.get("instruction") or request.args.get("instruction") or "").strip()
+        cfg_overrides = data.get("config") or {}
+
+    if not url:
+        return jsonify({"ok": False, "error": "URL parameter is required."}), 400
+
+    async def _do_pull():
+        return await pull_personality_from_link(url, instruction=instruction, cfg=cfg_overrides)
+
+    try:
+        if bot_loop and bot_loop.is_running():
+            future = asyncio.run_coroutine_threadsafe(_do_pull(), bot_loop)
+            character, err = future.result(timeout=50)
+        else:
+            character, err = asyncio.run(_do_pull())
+
+        if err and not character:
+            return jsonify({"ok": False, "error": err}), 400
+        return jsonify({"ok": True, "character": character})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route("/api/import_card", methods=["POST"])
+def api_import_card():
+    raw_json = None
+    if request.content_type and "multipart/form-data" in request.content_type:
+        file = request.files.get("file") or request.files.get("card")
+        if file:
+            filename = file.filename or ""
+            raw_bytes = file.read()
+            if filename.lower().endswith(".json"):
+                try:
+                    raw_json = json.loads(raw_bytes.decode("utf-8"))
+                except Exception as e:
+                    return jsonify({"ok": False, "error": f"Invalid JSON file: {e}"}), 400
+            elif filename.lower().endswith(".png"):
+                try:
+                    raw_str = extract_png_character_card(raw_bytes)
+                    if raw_str:
+                        raw_json = json.loads(raw_str)
+                    else:
+                        return jsonify({"ok": False, "error": "No character metadata found in PNG."}), 400
+                except Exception as e:
+                    return jsonify({"ok": False, "error": f"Could not read character card from PNG: {e}"}), 400
+    else:
+        data = request.get_json(force=True, silent=True) or {}
+        raw_json = data.get("card") or data.get("data") or data
+
+    if not raw_json:
+        return jsonify({"ok": False, "error": "No character card data provided."}), 400
+
+    parsed = parse_character_card_dict(raw_json)
+    return jsonify({"ok": True, "character": parsed})
+
 
 # --- DASHBOARD HTML -----------------------------------
 
-DASHBOARD_HTML = """
+DASHBOARD_HTML = r"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5743,7 +6454,8 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
     <div class="editor-dot dot-yellow"></div>
     <div class="editor-dot dot-green"></div>
     <div class="editor-title" id="editorTitle">Bot SaaS &mdash; Drafting Desk</div>
-    <a href="/studio" style="margin-left:auto; margin-right:8px; background:var(--accent-sage); color:#fff; text-decoration:none; padding:4px 10px; border-radius:4px; font-size:11px; font-weight:600; display:inline-flex; align-items:center; gap:4px;" title="Open Web Bot Studio"><span>🤖 Web Studio ↗</span></a><div style="font-size:10px; color:var(--ink-faint); cursor:pointer; padding:4px 8px; border-radius:4px;" onclick="doLogout()" title="Logout">Exit</div>
+    <a href="/" style="text-decoration:none; margin-left:auto; font-size:11px; color:var(--ink); font-weight:600; padding:4px 10px; border-radius:4px; background:rgba(0,0,0,0.04); border:1px solid rgba(0,0,0,0.08); margin-right:8px; display:inline-flex; align-items:center; gap:4px;" title="Go to Web Studio">✦ Studio ↗</a>
+    <div style="font-size:10px; color:var(--ink-faint); cursor:pointer; padding:4px 8px; border-radius:4px;" onclick="doLogout()" title="Logout">Exit</div>
   </div>
   <div class="editor-body">
     <div class="editor-sidebar">
@@ -5915,19 +6627,31 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
   </div>
 </div>
 
+<input type="file" id="deskCardInput" accept=".json,.png,image/png,application/json" style="display:none;" onchange="handleDeskCardFileUpload(event)">
+
 <div class="paper paper-bl" data-paper="bl">
   <div class="paper-clip"></div>
   <div class="paper-close">&#10005;</div>
-  <div class="paper-header">&#128030; Memory &amp; Context</div>
+  <div class="paper-header">&#127760; Lore &amp; Card Import</div>
   <div class="paper-body">
     <div class="paper-content">
-      <h3>Memory Profiling</h3>
-      <div style="font-size:11px; color:var(--ink-muted); line-height:1.6;">
-        User memory is tracked across conversations. The bot remembers:
-        <br>&bull; User facts and preferences
-        <br>&bull; Notable user quotes &amp; inside jokes
-        <br>&bull; Discord activities &amp; guild roles
-        <br>&bull; Scene context in servers &amp; DMs
+      <h3>Import Character Persona</h3>
+      <div style="font-size:11px; color:var(--ink-muted); margin-bottom:12px; line-height:1.5;">
+        Upload Chub, Janitor AI, or Tavern card files (.json, .png) or pull lore directly from Wiki / Fandom URLs. Automatically fills all bot settings.
+      </div>
+
+      <div class="paper-item" onclick="document.getElementById('deskCardInput').click()" style="justify-content:center; background:var(--accent-sage); color:#fff; border:none; margin-bottom:10px;">
+        <span style="font-weight:600; font-size:11px;">📁 UPLOAD CHARACTER FILE (.JSON, .PNG)</span>
+      </div>
+
+      <label style="font-size:10px; text-transform:uppercase; color:var(--ink-faint); margin-top:8px;">Pull Lore from Wiki Link</label>
+      <input type="url" id="deskWikiUrlInput2" placeholder="https://*.fandom.com/wiki/... or Wikipedia URL" style="margin-bottom:6px;">
+      <div class="paper-item" onclick="pullDeskPersonalityFromWiki('deskWikiUrlInput2')" style="justify-content:center; background:rgba(138,154,138,0.15); border-color:rgba(138,154,138,0.3); font-size:11px; font-weight:600;">
+        ⚡ PULL &amp; APPLY LORE
+      </div>
+
+      <div style="margin-top:14px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.06); font-size:10px; color:var(--ink-faint); line-height:1.5;">
+        Supports V1/V2 Character Cards &amp; Janitor exports (e.g. <code>main_sasaki-yukari_spec_v2.json</code>).
       </div>
     </div>
   </div>
@@ -5950,6 +6674,13 @@ input:focus, textarea:focus, select:focus { border-color:var(--accent-sage); }
 </div>
 
 <!-- DESK OBJECTS -->
+
+<div class="desk-object sticky-note" title="Enter Web Studio" onclick="window.location.href='/'" style="cursor:pointer; position:absolute; bottom:24%; left:18%; width:88px; height:88px; background:#fff3a8; transform:rotate(6deg); box-shadow:1px 3px 10px rgba(0,0,0,0.12); padding:8px; display:flex; align-items:center; justify-content:center; z-index:30; border-radius:2px; transition:transform 0.18s ease, box-shadow 0.18s ease;">
+  <div style="font-size:11px; font-weight:700; text-align:center; color:#5a5030; line-height:1.3; user-select:none;">
+    ✦<br>AI Studio<br>↗
+  </div>
+</div>
+
 <div class="desk-object compass" title="Compass" onclick="showToast('Compass points to creativity')">
   <div class="compass-handle"></div><div class="compass-joint"></div>
   <div class="compass-leg left"></div><div class="compass-leg right"></div>
@@ -6090,6 +6821,9 @@ async function doRegister() {
 function doLogout() {
   currentSession = null; currentBot = null; bots = [];
   localStorage.removeItem("sb_session");
+  localStorage.removeItem("my_bots");
+  localStorage.removeItem("bot_saas_user_id");
+  localStorage.removeItem("bot_saas_user_email");
   $("authOverlay").style.display = "flex";
   renderBotsList();
   showLanding();
@@ -6098,6 +6832,10 @@ function doLogout() {
 function onAuthSuccess() {
   $("authOverlay").style.display = "none";
   showToast("Welcome back");
+  if(currentSession && currentSession.user) {
+    localStorage.setItem("bot_saas_user_id", currentSession.user.id);
+    localStorage.setItem("bot_saas_user_email", currentSession.user.email || "");
+  }
   loadBots();
 }
 
@@ -6109,7 +6847,7 @@ function extractClientId(token) {
       const pad = (4 - b64.length % 4) % 4;
       b64 += "=".repeat(pad);
       const id = atob(b64);
-      if(/^\\d+$/.test(id)) return id;
+      if(/^\d+$/.test(id)) return id;
     }
   } catch(e){}
   return null;
@@ -6126,28 +6864,71 @@ async function addBot() {
   setStatus("addBotStatus", "Saving...", "info");
   try {
     let botName = "Bot " + clientId.slice(-4);
+    let avatarUrl = null;
     try {
-      const dres = await fetch("https://discord.com/api/v10/users/@me", { headers:{"Authorization":"Bot "+token} });
-      if(dres.ok) { const d = await dres.json(); botName = d.username || botName; }
+      const dres = await fetch("/api/discord_info?token=" + encodeURIComponent(token));
+      if(dres.ok) {
+        const d = await dres.json();
+        if(d && d.ok) {
+          botName = d.username || botName;
+          avatarUrl = d.avatar_url || avatarUrl;
+        }
+      }
     } catch(e){}
+    if(!avatarUrl) {
+      try {
+        const disc = (BigInt(clientId) >> 22n) % 6n;
+        avatarUrl = `https://cdn.discordapp.com/embed/avatars/${disc}.png`;
+      } catch(e){}
+    }
 
     const existing = await sbQuery("user_bots", { match:{user_id: currentSession.user.id, bot_id: clientId} });
     if(existing && existing.length > 0) {
+      const exSettings = existing[0].settings || {};
+      // If we got a real custom avatar from Discord API, update it. If it's just a fallback embed avatar, preserve existing custom avatar!
+      if (avatarUrl && !avatarUrl.includes('/embed/avatars/')) {
+        exSettings.avatar_url = avatarUrl;
+        exSettings.pfp = avatarUrl;
+      } else if (!exSettings.avatar_url && !exSettings.pfp && avatarUrl) {
+        exSettings.avatar_url = avatarUrl;
+        exSettings.pfp = avatarUrl;
+      }
       await sbQuery("user_bots", { method:"PATCH", match:{id: existing[0].id}, body:{
-        discord_token: token, bot_name: botName, is_active: true
+        discord_token: token, bot_name: botName, is_active: true, settings: exSettings
       }});
       showToast("Token updated for existing bot");
     } else {
+      const initSettings = getDefaultSettings();
+      if(avatarUrl) {
+        initSettings.avatar_url = avatarUrl;
+        initSettings.pfp = avatarUrl;
+      }
       await sbQuery("user_bots", { method:"POST", body:{
         user_id: currentSession.user.id,
         discord_token: token,
         bot_id: clientId,
         bot_name: botName,
         is_active: true,
-        settings: getDefaultSettings()
+        settings: initSettings
       }});
       showToast("Bot connected successfully");
     }
+
+    // Direct backend sync
+    try {
+      const authHdr = currentSession && currentSession.access_token ? { 'Authorization': 'Bearer ' + currentSession.access_token } : {};
+      await fetch('/api/bots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHdr },
+        body: JSON.stringify({
+          id: clientId,
+          token: token,
+          name: botName,
+          owner_id: currentSession.user.id,
+          config: getDefaultSettings()
+        })
+      });
+    } catch(e) {}
     $("tokenInput").value = "";
     setStatus("addBotStatus", "", "ok");
     loadBots();
@@ -6161,6 +6942,13 @@ async function loadBots() {
   if(!currentSession) return;
   try {
     bots = await sbQuery("user_bots", { match:{user_id: currentSession.user.id}, order:"created_at.desc" });
+    if(bots && Array.isArray(bots)) {
+      localStorage.setItem("my_bots", JSON.stringify(bots));
+    }
+    if(currentSession.user) {
+      localStorage.setItem("bot_saas_user_id", currentSession.user.id);
+      localStorage.setItem("bot_saas_user_email", currentSession.user.email || "");
+    }
     renderBotsList();
     updateTerminal("Loaded " + bots.length + " bot(s)", "User: " + currentSession.user.email, "Supabase: connected");
   } catch(e) {
@@ -6342,6 +7130,18 @@ function renderSettings(bot) {
     '</div>' +
     '<div id="settingsStatus" class="status" style="margin-bottom:10px;"></div>' +
 
+    '<div class="settings-group" style="background:rgba(138,154,138,0.08); border:1.5px solid rgba(138,154,138,0.25); border-radius:6px; padding:12px; margin-bottom:12px;">' +
+    '<div class="settings-group-title" style="color:var(--ink); font-weight:700; margin-bottom:8px;">🌐 Import Card / Wiki Lore</div>' +
+    '<div style="display:flex; gap:6px; margin-bottom:8px;">' +
+    '<div class="paper-item" onclick="document.getElementById(\'deskCardInput\').click()" style="flex:1; justify-content:center; background:var(--accent-sage); color:#fff; border:none; font-size:11px; font-weight:600; padding:8px;">📁 Upload File (.json, .png)</div>' +
+    '</div>' +
+    '<div style="font-size:10px; color:var(--ink-faint); margin-bottom:4px;">Or pull lore from Wiki / Fandom URL:</div>' +
+    '<div style="display:flex; gap:6px;">' +
+    '<input type="url" id="deskWikiUrlInput" placeholder="https://*.fandom.com/wiki/... or Wikipedia" style="flex:1; font-size:11px; padding:6px 8px;">' +
+    '<div class="paper-item" id="deskWikiPullBtn" onclick="pullDeskPersonalityFromWiki(\'deskWikiUrlInput\')" style="background:rgba(138,154,138,0.15); border-color:rgba(138,154,138,0.3); font-size:11px; font-weight:600; white-space:nowrap; padding:6px 12px;">⚡ Pull Lore</div>' +
+    '</div>' +
+    '</div>' +
+
     '<div class="settings-group"><div class="settings-group-title">Personality</div>' +
     mkRow("", mkArea("personality", 3, "How should your bot behave?")) +
     '</div>' +
@@ -6476,7 +7276,8 @@ function renderSettings(bot) {
 async function saveSettings() {
   if(!currentBot) { setStatus("settingsStatus", "No bot selected", "err"); return; }
   const keys = Object.keys(getDefaultSettings());
-  const newSettings = {};
+  const oldSettings = (currentBot && currentBot.settings) || {};
+  const newSettings = { ...oldSettings };
   keys.forEach(function(k){
     const el = $("set_" + k);
     if(!el) return;
@@ -6485,12 +7286,51 @@ async function saveSettings() {
     else if(typeof def === "number") newSettings[k] = parseFloat(el.value) || 0;
     else newSettings[k] = el.value;
   });
+
+  // Preserve avatar, PFP, owner, and interactions so drafting updates never lose them
+  if (oldSettings.avatar_url && !newSettings.avatar_url) newSettings.avatar_url = oldSettings.avatar_url;
+  if (oldSettings.pfp && !newSettings.pfp) newSettings.pfp = oldSettings.pfp;
+  if (oldSettings.owner_username && !newSettings.owner_username) newSettings.owner_username = oldSettings.owner_username;
+  if (oldSettings.interactions && !newSettings.interactions) newSettings.interactions = oldSettings.interactions;
+
   setStatus("settingsStatus", "Saving...", "info");
   try {
-    await sbQuery("user_bots", { method:"PATCH", match:{id: currentBot.id}, body:{ settings: newSettings, updated_at: new Date().toISOString() } });
+    if(currentBot.id) {
+      await sbQuery("user_bots", { method:"PATCH", match:{id: currentBot.id}, body:{ settings: newSettings, updated_at: new Date().toISOString() } });
+    }
     currentBot.settings = newSettings;
-    setStatus("settingsStatus", "Saved successfully", "ok");
-    showToast("Settings saved");
+
+    // Direct sync to backend /api/bots/<bot_id>/config
+    const bid = currentBot.bot_id || currentBot.id;
+    if(bid) {
+      try {
+        const token = currentSession ? currentSession.access_token : '';
+        const headers = { 'Content-Type': 'application/json' };
+        if(token) headers['Authorization'] = 'Bearer ' + token;
+        const uid = currentSession && currentSession.user ? currentSession.user.id : '';
+        let url = '/api/bots/' + encodeURIComponent(bid) + '/config';
+        if(uid) url += '?user_id=' + encodeURIComponent(uid);
+        await fetch(url, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({
+            name: currentBot.bot_name || '',
+            personality: newSettings.personality || '',
+            config: newSettings
+          })
+        });
+      } catch(backendErr) {
+        console.warn('[SYNC] Backend sync error:', backendErr);
+      }
+    }
+
+    // Direct sync to localStorage
+    if(bots && Array.isArray(bots)) {
+      localStorage.setItem("my_bots", JSON.stringify(bots));
+    }
+
+    setStatus("settingsStatus", "Saved and synced successfully", "ok");
+    showToast("Settings & Prompt synced");
   } catch(e) {
     setStatus("settingsStatus", e.message, "err");
   }
@@ -6502,6 +7342,228 @@ function resetSettings() {
   currentBot.settings = getDefaultSettings();
   renderSettings(currentBot);
   setStatus("settingsStatus", "Defaults loaded. Click SAVE to apply.", "info");
+}
+
+/* ---------- CHARACTER CARD & WIKI IMPORTER ---------- */
+function extractPngTextChunks(arrayBuffer) {
+  try {
+    const view = new DataView(arrayBuffer);
+    if (view.getUint32(0) !== 0x89504E47 || view.getUint32(4) !== 0x0D0A1A0A) return null;
+    let offset = 8;
+    const chunks = {};
+    const decoder = new TextDecoder('utf-8');
+
+    while (offset < view.byteLength) {
+      if (offset + 8 > view.byteLength) break;
+      const length = view.getUint32(offset);
+      const type = String.fromCharCode(view.getUint8(offset + 4), view.getUint8(offset + 5), view.getUint8(offset + 6), view.getUint8(offset + 7));
+      const chunkDataOffset = offset + 8;
+      if (chunkDataOffset + length > view.byteLength) break;
+
+      if (type === 'tEXt' || type === 'iTXt') {
+        const chunkBytes = new Uint8Array(arrayBuffer, chunkDataOffset, length);
+        const nullIdx = chunkBytes.indexOf(0);
+        if (nullIdx !== -1) {
+          const keyword = decoder.decode(chunkBytes.subarray(0, nullIdx)).toLowerCase();
+          if (['chara', 'ccv3', 'character'].includes(keyword)) {
+            let rawStr = '';
+            if (type === 'tEXt') {
+              rawStr = decoder.decode(chunkBytes.subarray(nullIdx + 1)).trim();
+            } else {
+              let textStart = nullIdx + 3;
+              let nullCount = 0;
+              for (let i = textStart; i < chunkBytes.length && nullCount < 2; i++) {
+                if (chunkBytes[i] === 0) { nullCount++; textStart = i + 1; }
+              }
+              rawStr = decoder.decode(chunkBytes.subarray(textStart)).trim();
+            }
+            if (rawStr.startsWith('{')) chunks[keyword] = rawStr;
+            else {
+              try { chunks[keyword] = decodeURIComponent(escape(atob(rawStr))); }
+              catch (e) { try { chunks[keyword] = atob(rawStr); } catch (e2) {} }
+            }
+          }
+        }
+      }
+      offset += 12 + length;
+    }
+    return chunks;
+  } catch (e) { return null; }
+}
+
+function parseCharacterCardData(raw, sourceFileName) {
+  let data = raw;
+  if (typeof data === 'string') {
+    try { data = JSON.parse(data); } catch (e) {}
+  }
+  if (!data || typeof data !== 'object') return null;
+
+  const d = (data.spec === 'chara_card_v2' || data.spec_version === '2.0' || data.data) ? (data.data || {}) : data;
+  const name = (d.name || d.char_name || d.bot_name || data.name || (sourceFileName ? sourceFileName.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ') : '') || 'New Character').trim();
+  const rawDesc = d.description || d.char_desc || d.desc || data.description || '';
+  const rawPers = d.personality || d.char_personality || d.personality_summary || data.personality || '';
+  const rawScenario = d.scenario || d.char_scenario || data.scenario || '';
+  const rawGreeting = d.first_mes || d.greeting || d.first_message || d.initial_message || data.first_mes || ("*looks up and smiles* Hello, I am " + name + ".");
+  const rawExamples = d.mes_example || d.example_dialogue || d.examples || data.mes_example || '';
+  const rawSysPrompt = d.system_prompt || data.system_prompt || '';
+  const rawAvatar = d.avatar || d.avatar_url || d.pfp || data.avatar || data.avatar_url || data.pfp || '';
+  const tags = Array.isArray(d.tags) ? d.tags : (Array.isArray(data.tags) ? data.tags : []);
+
+  let role = d.role || data.role || '';
+  if (!role && tags.length > 0) {
+    const cleanTags = tags.filter(t => t && String(t).length < 20 && !['NSFW', 'ROOT', 'OAI', 'TAVERN'].includes(String(t).toUpperCase()));
+    if (cleanTags.length > 0) role = cleanTags.slice(0, 2).join(' • ');
+  }
+  if (!role) role = 'AI Persona';
+
+  let shortDesc = rawPers ? rawPers.slice(0, 140) : (rawDesc ? rawDesc.slice(0, 140) : `${name} — ${role}`);
+
+  let promptParts = [];
+  if (rawSysPrompt) promptParts.push(rawSysPrompt.trim());
+  promptParts.push(`[Character: ${name}]`);
+  if (role) promptParts.push(`[Role: ${role}]`);
+  if (rawPers) promptParts.push(`[Personality & Traits:\n${rawPers.trim()}]`);
+  if (rawDesc) promptParts.push(`[Description & Background:\n${rawDesc.trim()}]`);
+  if (rawScenario) promptParts.push(`[Scenario & Setting:\n${rawScenario.trim()}]`);
+  if (rawExamples) promptParts.push(`[Example Dialogue:\n${rawExamples.trim()}]`);
+
+  const fullPrompt = promptParts.join('\n\n');
+
+  return {
+    name: name,
+    role: role,
+    desc: shortDesc,
+    greeting: rawGreeting,
+    personality: fullPrompt,
+    raw_personality: rawPers,
+    raw_description: rawDesc,
+    scenario: rawScenario,
+    example_dialogue: rawExamples,
+    avatar_url: rawAvatar,
+    tags: tags
+  };
+}
+
+async function applyCardToDeskSettings(card) {
+  if (!card) return;
+  if (currentBot) {
+    currentBot.bot_name = card.name || currentBot.bot_name;
+    if (!currentBot.settings) currentBot.settings = getDefaultSettings();
+    currentBot.settings.personality = card.personality || currentBot.settings.personality;
+    currentBot.settings.desc = card.desc || currentBot.settings.desc;
+    currentBot.settings.greeting = card.greeting || currentBot.settings.greeting;
+    if (card.avatar_url) {
+      currentBot.settings.avatar_url = card.avatar_url;
+      currentBot.settings.pfp = card.avatar_url;
+    }
+    renderSettings(currentBot);
+    showDashboard(currentBot);
+    await saveSettings();
+    updateTerminal('Imported character: ' + card.name, 'Personality & Avatar applied to bot', 'Synced');
+    showToast(`✓ Imported character "${card.name}" into bot settings!`);
+  } else {
+    updateTerminal('Card imported: ' + card.name, 'Connect a bot token to activate this persona', '');
+    showToast(`✓ Character "${card.name}" loaded! Connect a bot token to apply.`);
+    openPaperByClass('paper-top');
+  }
+}
+
+async function handleDeskCardFileUpload(e) {
+  const file = e.target ? (e.target.files && e.target.files[0]) : e;
+  if (!file) return;
+
+  const fname = file.name || 'character_card';
+  const ext = fname.toLowerCase().slice(fname.lastIndexOf('.'));
+  showToast(`Reading character file: ${fname}...`);
+
+  if (ext === '.json') {
+    try {
+      const text = await file.text();
+      const rawJson = JSON.parse(text);
+      const card = parseCharacterCardData(rawJson, fname);
+      if (card) {
+        await applyCardToDeskSettings(card);
+      } else {
+        showToast('Could not find character fields in JSON.');
+      }
+    } catch (err) {
+      showToast('Error reading JSON: ' + err.message);
+    }
+  } else if (ext === '.png') {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const chunks = extractPngTextChunks(arrayBuffer);
+      let cardData = null;
+      if (chunks) {
+        const rawJsonStr = chunks.chara || chunks.ccv3 || chunks.character;
+        if (rawJsonStr) {
+          try { cardData = JSON.parse(rawJsonStr); } catch (pe) {}
+        }
+      }
+      if (cardData) {
+        const card = parseCharacterCardData(cardData, fname);
+        await applyCardToDeskSettings(card);
+      } else {
+        showToast(`Loaded PNG "${fname}" (No embedded character card found).`);
+      }
+    } catch (err) {
+      showToast('Error processing PNG: ' + err.message);
+    }
+  }
+  if (e.target && e.target.value) e.target.value = '';
+}
+
+async function pullDeskPersonalityFromWiki(inputElemId = 'deskWikiUrlInput') {
+  const inp = $(inputElemId) || $('deskWikiUrlInput') || $('deskWikiUrlInput2');
+  const url = inp ? inp.value.trim() : '';
+  if (!url) {
+    showToast('Enter a wiki or character link first');
+    if (inp) inp.focus();
+    return;
+  }
+
+  showToast('Fetching wiki lore and generating personality...');
+  updateTerminal('Pulling lore from URL...', url.slice(0, 45) + '...', '');
+
+  try {
+    const res = await fetch('/api/pull_personality', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url })
+    });
+    const data = await res.json();
+    if (data && data.ok && data.character) {
+      await applyCardToDeskSettings(data.character);
+      showToast(`✓ Synthesized character "${data.character.name}" from Wiki!`);
+    } else {
+      const wikiMatch = url.match(/wikipedia\.org\/wiki\/([^#?]+)/i);
+      if (wikiMatch) {
+        const pageTitle = decodeURIComponent(wikiMatch[1]);
+        const wres = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(pageTitle)}`);
+        if (wres.ok) {
+          const wdata = await wres.json();
+          const wtitle = wdata.title || pageTitle.replace(/_/g, ' ');
+          const wextract = wdata.extract || '';
+          const wimg = (wdata.originalimage || wdata.thumbnail || {}).source || '';
+          const fallbackCard = {
+            name: wtitle,
+            role: 'Historical / Character Persona',
+            desc: wextract.slice(0, 140),
+            greeting: `*looks up and greets you calmly* Greetings. I am ${wtitle}.`,
+            personality: `[Character: ${wtitle}]\n[Lore & Background:\n${wextract}]`,
+            avatar_url: wimg
+          };
+          await applyCardToDeskSettings(fallbackCard);
+          showToast(`✓ Pulled Wikipedia summary for "${wtitle}"!`);
+          return;
+        }
+      }
+      throw new Error((data && data.error) || 'Failed to extract lore from link');
+    }
+  } catch (err) {
+    showToast('Pull failed: ' + err.message);
+    updateTerminal('Pull lore error', err.message, '');
+  }
 }
 
 /* ---------- PAPER UI ---------- */
@@ -6573,13 +7635,9 @@ document.addEventListener("keydown", function(e){
 })();
 </script>
 </body>
-</html>
-
 """
 
 # --- MAIN RUNNER --------------------------------------
-
-bot_loop = None
 
 def run_flask():
     port = int(os.getenv("PORT", "5000"))
@@ -6608,3 +7666,4 @@ if __name__ == "__main__":
     finally:
         bridge.stop()
         bot_loop.close()
+
