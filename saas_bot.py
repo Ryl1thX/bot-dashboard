@@ -5701,7 +5701,58 @@ def api_bots_list_or_add():
             except Exception:
                 pass
 
-    # 3. From bots.json if present
+    # 3. From community_bots.json if present
+    comm_bots_path = os.path.join(SCRIPT_DIR, "community_bots.json")
+    if os.path.exists(comm_bots_path):
+        try:
+            with open(comm_bots_path, "r", encoding="utf-8") as f:
+                cjson = json.load(f)
+            c_list = cjson if isinstance(cjson, list) else cjson.get("bots", [])
+            for bitem in c_list:
+                bid = str(bitem.get("id") or bitem.get("bot_id") or "")
+                if not bid or bid in seen_ids:
+                    continue
+                cfg = bitem.get("config", {}) or {}
+                b_owner = str(bitem.get("owner_id") or "")
+                b_priv = (cfg.get("privacy") if cfg.get("privacy") is not None else bitem.get("privacy", "public")) or "public"
+                is_my_bot = bool(user_id and (b_owner == user_id or bitem.get("access_key") == user_id))
+                if scope == "mine":
+                    if not is_owner and not is_my_bot:
+                        continue
+                else:
+                    if b_priv == "private" and not is_my_bot and not is_owner:
+                        continue
+                seen_ids.add(bid)
+                m_cnt = int(bitem.get("message_count", 0) or bitem.get("interactions", 0) or 0)
+                owner_un = bitem.get("owner_username") or bitem.get("owner_name") or cfg.get("owner_username") or ""
+                bots.append({
+                    "id": bid,
+                    "name": bitem.get("name") or bitem.get("bot_name") or f"Bot {bid[:6]}",
+                    "emoji": bitem.get("emoji", "✦"),
+                    "pfp": cfg.get("avatar_url") or cfg.get("pfp") or bitem.get("pfp"),
+                    "role": cfg.get("role") or bitem.get("role") or (cfg.get("provider", "Custom").upper() + " Persona"),
+                    "desc": cfg.get("desc") or bitem.get("desc") or (cfg.get("personality", "")[:140]),
+                    "personality_preview": (cfg.get("personality", "")[:140]),
+                    "personality": cfg.get("personality", "") or bitem.get("personality", ""),
+                    "provider": cfg.get("provider", "auto") or bitem.get("provider", "auto"),
+                    "model": cfg.get("model", "") or bitem.get("model", ""),
+                    "model_slots": cfg.get("model_slots", []) or bitem.get("model_slots", []),
+                    "online": False,
+                    "is_active": True,
+                    "is_discord": bool(bitem.get("token") or bitem.get("is_discord")),
+                    "is_mine": is_my_bot or is_owner,
+                    "privacy": b_priv,
+                    "access_key": bitem.get("access_key", ""),
+                    "owner_id": b_owner,
+                    "owner_username": owner_un,
+                    "config": cfg,
+                    "message_count": m_cnt,
+                    "interactions": m_cnt
+                })
+        except Exception:
+            pass
+
+    # 4. From bots.json if present
     bots_json_path = os.path.join(SCRIPT_DIR, "bots.json")
     if os.path.exists(bots_json_path):
         try:

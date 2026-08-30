@@ -147,7 +147,7 @@ function renderAvatarHtml(pfpUrl, fallbackChar, bg) {
 /* PERMANENT INTERACTION COUNTER (SYNCS DISCORD + WEB) */
 function getBotInteractionCount(botId) {
   if (!botId) return 0;
-  const botObj = (allBotsList && allBotsList.find(b => b.id === botId));
+  const botObj = (allBotsList && allBotsList.find(b => String(b.id) === String(botId) || String(b.bot_id) === String(botId)));
   // Server count is always the authoritative global count (across all users)
   const serverCount = botObj ? parseInt(botObj.interactions || botObj.message_count || 0, 10) : 0;
   // Local is a fallback only for when server hasn't been updated yet
@@ -165,7 +165,7 @@ function incrementBotInteractionCount(botId) {
   const cur = getBotInteractionCount(botId);
   const next = cur + 1;
   localStorage.setItem(`bot_saas_perm_count_${botId}`, next);
-  const botObj = (allBotsList && allBotsList.find(b => b.id === botId));
+  const botObj = (allBotsList && allBotsList.find(b => String(b.id) === String(botId) || String(b.bot_id) === String(botId)));
   if (botObj) {
     botObj.interactions = next;
     botObj.message_count = next;
@@ -1291,7 +1291,7 @@ async function editBot(botId) {
     } catch(e) {
       console.warn('editBot fetch error:', e);
     }
-    const found = allBotsList.find(b => b.id === botId);
+    const found = allBotsList.find(b => String(b.id) === String(botId) || String(b.bot_id) === String(botId));
     if(found) {
       if (!botName) botName = found.name;
       if (!botAvatar) botAvatar = found.pfp;
@@ -1371,7 +1371,7 @@ async function editBot(botId) {
 }
 
 async function deleteBot(botId) {
-  const bot = allBotsList.find(b => b.id === botId);
+  const bot = allBotsList.find(b => String(b.id) === String(botId) || String(b.bot_id) === String(botId));
   if(!bot) return;
   if(!confirm('Are you sure you want to delete "' + bot.name + '"?')) return;
 
@@ -1814,7 +1814,7 @@ async function savePersonaForm(andStartChat) {
 
 /* CHAT ARENA LOGIC */
 async function startChatWith(botId) {
-  activePersona = allBotsList.find(b => b.id === botId) || allBotsList[0];
+  activePersona = allBotsList.find(b => String(b.id) === String(botId) || String(b.bot_id) === String(botId)) || allBotsList[0];
   $('charName').innerText = activePersona.name;
 
   // Set active session for this bot
@@ -2044,7 +2044,7 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
   messages.push({ role: 'user', content: message });
 
   // 1. Direct custom endpoint call from browser (PRIORITY 1: works for Ollama, LiteRouter, tunnels, localhost)
-  if (customBaseUrl || provider === 'custom') {
+  if (provider === 'custom' && customBaseUrl) {
     let ep = customBaseUrl.trim();
     if (ep) {
       if (!ep.endsWith('/chat/completions')) {
