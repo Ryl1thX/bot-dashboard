@@ -1,0 +1,1805 @@
+"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bot SaaS — Drafting Desk</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+        --bg: #e8e8e4;
+        --bg-warm: #e2e2dc;
+        --paper: rgba(252, 252, 248, 0.78);
+        --paper-solid: #fafaf6;
+        --ink: #2a2a2a;
+        --ink-muted: #6b6b6b;
+        --ink-faint: #9a9a9a;
+        --accent-sage: #8a9a8a;
+        --accent-steel: #7a8a9a;
+        --accent-clay: #b8a898;
+        --accent-gold: #c4a882;
+        --grid: rgba(100, 130, 100, 0.08);
+        --shadow-soft: rgba(0,0,0,0.06);
+        --shadow-medium: rgba(0,0,0,0.10);
+        --shadow-deep: rgba(0,0,0,0.18);
+        --transition-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        --transition-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+        --transition-dramatic: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    body {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: var(--bg);
+        font-family: 'Inter', system-ui, sans-serif;
+        position: relative;
+        touch-action: none;
+    }
+    .desk-surface {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0.4;
+        background-image:
+            linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+            linear-gradient(0deg, var(--grid) 1px, transparent 1px);
+        background-size: 40px 40px;
+    }
+    .desk-vignette {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.04) 100%);
+        z-index: 2;
+    }
+    .editor-desk {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: min(82vw, 960px);
+        height: min(72vh, 640px);
+        background: var(--paper-solid);
+        border-radius: 6px;
+        box-shadow:
+            0 1px 2px rgba(0,0,0,0.04),
+            0 4px 12px rgba(0,0,0,0.06),
+            0 16px 48px rgba(0,0,0,0.08);
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        transition: transform 0.7s var(--transition-dramatic), box-shadow 0.7s var(--transition-dramatic);
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+    .editor-desk.pushed {
+        transform: translate(-50%, -50%) scale(0.94);
+        box-shadow:
+            0 1px 2px rgba(0,0,0,0.03),
+            0 2px 6px rgba(0,0,0,0.04);
+        filter: brightness(0.97);
+    }
+    .editor-header {
+        height: 44px;
+        background: #f5f5f0;
+        display: flex;
+        align-items: center;
+        padding: 0 18px;
+        gap: 10px;
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    .editor-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dot-red { background: #d4a5a5; }
+    .dot-yellow { background: #d4c4a5; }
+    .dot-green { background: #a5c4a5; }
+    .editor-title {
+        margin-left: 10px;
+        color: var(--ink-muted);
+        font-size: 12px;
+        font-weight: 500;
+        letter-spacing: 0.3px;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .editor-body {
+        flex: 1;
+        display: flex;
+        overflow: hidden;
+    }
+    .editor-sidebar {
+        width: 48px;
+        background: #f0f0ea;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding-top: 14px;
+        gap: 6px;
+        border-right: 1px solid rgba(0,0,0,0.05);
+    }
+    .sidebar-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--ink-faint);
+        font-size: 14px;
+        cursor: pointer;
+        transition: all 0.35s var(--transition-smooth);
+        position: relative;
+    }
+    .sidebar-icon:hover, .sidebar-icon.active {
+        background: rgba(138, 154, 138, 0.15);
+        color: var(--accent-sage);
+        transform: scale(1.08);
+    }
+    .sidebar-icon.active::before {
+        content: '';
+        position: absolute;
+        left: -8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 3px;
+        height: 16px;
+        background: var(--accent-sage);
+        border-radius: 0 2px 2px 0;
+    }
+    .editor-code {
+        flex: 1;
+        padding: 22px 24px;
+        font-family: 'JetBrains Mono', 'Consolas', monospace;
+        font-size: 13px;
+        line-height: 1.7;
+        color: var(--ink);
+        overflow-y: auto;
+        background: #fdfdf9;
+    }
+    .code-line { display: flex; gap: 18px; }
+    .line-num { color: #bbb; min-width: 28px; text-align: right; user-select: none; font-size: 12px; }
+    .kw { color: #7a8a9a; font-weight: 500; }
+    .str { color: #a09080; }
+    .fn { color: #6a8a6a; }
+    .cls { color: #8a7a6a; }
+    .cm { color: #aaa; font-style: italic; }
+    .var { color: #5a7a8a; }
+    .num { color: #a08060; }
+    .paper {
+        position: fixed;
+        background: var(--paper);
+        backdrop-filter: blur(12px) saturate(1.2);
+        -webkit-backdrop-filter: blur(12px) saturate(1.2);
+        border-radius: 5px;
+        box-shadow:
+            0 1px 3px var(--shadow-soft),
+            0 4px 16px var(--shadow-medium),
+            inset 0 1px 0 rgba(255,255,255,0.6);
+        cursor: pointer;
+        z-index: 20;
+        transition: all 0.55s var(--transition-smooth);
+        overflow: hidden;
+        user-select: none;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    .paper::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background-image:
+            linear-gradient(90deg, rgba(100,130,100,0.04) 1px, transparent 1px),
+            linear-gradient(0deg, rgba(100,130,100,0.04) 1px, transparent 1px);
+        background-size: 20px 20px;
+        pointer-events: none;
+        opacity: 0.6;
+    }
+    .paper::before {
+        content: '';
+        position: absolute;
+        z-index: 3;
+        pointer-events: none;
+    }
+    .paper-header {
+        height: 38px;
+        background: linear-gradient(180deg, rgba(245,245,240,0.9) 0%, rgba(235,235,228,0.8) 100%);
+        border-bottom: 1px solid rgba(0,0,0,0.06);
+        display: flex;
+        align-items: center;
+        padding: 0 16px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--ink-muted);
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        position: relative;
+        z-index: 2;
+        font-family: 'Inter', sans-serif;
+    }
+    .paper-body {
+        padding: 18px;
+        opacity: 0;
+        transition: opacity 0.4s ease 0.15s;
+        position: relative;
+        z-index: 2;
+        height: calc(100% - 38px);
+        overflow-y: auto;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+    }
+    .paper.open .paper-body { opacity: 1; }
+    .paper-top {
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%) translateY(-72%) rotateX(6deg);
+        width: 300px;
+        height: 340px;
+        transform-origin: top center;
+    }
+    .paper-top:hover {
+        transform: translateX(-50%) translateY(-50%) rotateX(3deg);
+        box-shadow: 0 8px 32px var(--shadow-medium);
+    }
+    .paper-top.pulled {
+        transform: translateX(-50%) translateY(-20%) rotateX(0deg) scale(0.97);
+        box-shadow: 0 12px 40px var(--shadow-deep);
+    }
+    .paper-top.open {
+        transform: translateX(-50%) translateY(24px) rotateX(-6deg) scale(1);
+        box-shadow:
+            0 32px 64px var(--shadow-deep),
+            0 8px 24px var(--shadow-medium);
+        z-index: 100;
+        background: rgba(252, 252, 248, 0.92);
+    }
+    .paper-bottom {
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%) translateY(88%) rotateX(-6deg);
+        width: 340px;
+        height: 280px;
+        transform-origin: bottom center;
+    }
+    .paper-bottom:hover {
+        transform: translateX(-50%) translateY(65%) rotateX(-3deg);
+        box-shadow: 0 -8px 32px var(--shadow-medium);
+    }
+    .paper-bottom.pulled {
+        transform: translateX(-50%) translateY(35%) rotateX(0deg) scale(0.97);
+        box-shadow: 0 -12px 40px var(--shadow-deep);
+    }
+    .paper-bottom.open {
+        transform: translateX(-50%) translateY(-24px) rotateX(6deg) scale(1);
+        box-shadow:
+            0 -32px 64px var(--shadow-deep),
+            0 -8px 24px var(--shadow-medium);
+        z-index: 100;
+        background: rgba(252, 252, 248, 0.92);
+    }
+    .paper-left {
+        left: 0;
+        top: 50%;
+        transform: translateY(-50%) translateX(-90%) rotateY(-6deg);
+        width: 280px;
+        height: 400px;
+        transform-origin: left center;
+    }
+    .paper-left:hover {
+        transform: translateY(-50%) translateX(-68%) rotateY(-3deg);
+        box-shadow: 8px 4px 32px var(--shadow-medium);
+    }
+    .paper-left.pulled {
+        transform: translateY(-50%) translateX(-38%) rotateY(0deg) scale(0.97);
+        box-shadow: 12px 4px 40px var(--shadow-deep);
+    }
+    .paper-left.open {
+        transform: translateY(-50%) translateX(24px) rotateY(6deg) scale(1);
+        box-shadow:
+            32px 10px 64px var(--shadow-deep),
+            10px 4px 24px var(--shadow-medium);
+        z-index: 100;
+        background: rgba(252, 252, 248, 0.92);
+    }
+    .paper-right {
+        right: 0;
+        top: 50%;
+        transform: translateY(-50%) translateX(90%) rotateY(6deg);
+        width: 340px;
+        height: 520px;
+        transform-origin: right center;
+    }
+    .paper-right:hover {
+        transform: translateY(-50%) translateX(68%) rotateY(3deg);
+        box-shadow: -8px 4px 32px var(--shadow-medium);
+    }
+    .paper-right.pulled {
+        transform: translateY(-50%) translateX(38%) rotateY(0deg) scale(0.97);
+        box-shadow: -12px 4px 40px var(--shadow-deep);
+    }
+    .paper-right.open {
+        transform: translateY(-50%) translateX(-24px) rotateY(-6deg) scale(1);
+        box-shadow:
+            -32px 10px 64px var(--shadow-deep),
+            -10px 4px 24px var(--shadow-medium);
+        z-index: 100;
+        background: rgba(252, 252, 248, 0.92);
+    }
+    .paper-tl {
+        top: 0;
+        left: 0;
+        transform: translate(-72%, -72%) rotate(-10deg);
+        width: 240px;
+        height: 240px;
+        transform-origin: top left;
+    }
+    .paper-tl:hover {
+        transform: translate(-52%, -52%) rotate(-5deg);
+        box-shadow: 8px 8px 32px var(--shadow-medium);
+    }
+    .paper-tl.pulled {
+        transform: translate(-32%, -32%) rotate(-3deg) scale(0.97);
+        box-shadow: 12px 12px 40px var(--shadow-deep);
+    }
+    .paper-tl.open {
+        transform: translate(24px, 24px) rotate(2deg) scale(1);
+        box-shadow: 24px 24px 56px var(--shadow-deep);
+        z-index: 100;
+        background: rgba(252, 252, 248, 0.92);
+    }
+    .paper-tr {
+        top: 0;
+        right: 0;
+        transform: translate(72%, -72%) rotate(10deg);
+        width: 220px;
+        height: 260px;
+        transform-origin: top right;
+    }
+    .paper-tr:hover {
+        transform: translate(52%, -52%) rotate(5deg);
+        box-shadow: -8px 8px 32px var(--shadow-medium);
+    }
+    .paper-tr.pulled {
+        transform: translate(32%, -32%) rotate(3deg) scale(0.97);
+        box-shadow: -12px 12px 40px var(--shadow-deep);
+    }
+    .paper-tr.open {
+        transform: translate(-24px, 24px) rotate(-2deg) scale(1);
+        box-shadow: -24px 24px 56px var(--shadow-deep);
+        z-index: 100;
+        background: rgba(252, 252, 248, 0.92);
+    }
+    .paper-bl {
+        bottom: 0;
+        left: 0;
+        transform: translate(-72%, 72%) rotate(10deg);
+        width: 260px;
+        height: 220px;
+        transform-origin: bottom left;
+    }
+    .paper-bl:hover {
+        transform: translate(-52%, 52%) rotate(5deg);
+        box-shadow: 8px -8px 32px var(--shadow-medium);
+    }
+    .paper-bl.pulled {
+        transform: translate(-32%, 32%) rotate(3deg) scale(0.97);
+        box-shadow: 12px -12px 40px var(--shadow-deep);
+    }
+    .paper-bl.open {
+        transform: translate(24px, -24px) rotate(-2deg) scale(1);
+        box-shadow: 24px -24px 56px var(--shadow-deep);
+        z-index: 100;
+        background: rgba(252, 252, 248, 0.92);
+    }
+    .paper-br {
+        bottom: 0;
+        right: 0;
+        transform: translate(72%, 72%) rotate(-10deg);
+        width: 240px;
+        height: 240px;
+        transform-origin: bottom right;
+    }
+    .paper-br:hover {
+        transform: translate(52%, 52%) rotate(-5deg);
+        box-shadow: -8px -8px 32px var(--shadow-medium);
+    }
+    .paper-br.pulled {
+        transform: translate(32%, 32%) rotate(-3deg) scale(0.97);
+        box-shadow: -12px -12px 40px var(--shadow-deep);
+    }
+    .paper-br.open {
+        transform: translate(-24px, -24px) rotate(2deg) scale(1);
+        box-shadow: -24px -24px 56px var(--shadow-deep);
+        z-index: 100;
+        background: rgba(252, 252, 248, 0.92);
+    }
+    .paper-clip {
+        position: absolute;
+        width: 36px;
+        height: 10px;
+        border: 2px solid #b8b0a0;
+        border-radius: 0 0 6px 6px;
+        border-top: none;
+        top: 8px;
+        z-index: 5;
+        opacity: 0.5;
+    }
+    .paper-tl .paper-clip { right: 28px; transform: rotate(-12deg); }
+    .paper-tr .paper-clip { left: 28px; transform: rotate(12deg); }
+    .paper-bl .paper-clip { right: 28px; transform: rotate(12deg); }
+    .paper-br .paper-clip { left: 28px; transform: rotate(-12deg); }
+    .paper-top .paper-clip { right: 36px; transform: rotate(-8deg); }
+    .paper-bottom .paper-clip { left: 36px; transform: rotate(8deg); }
+    .paper-left .paper-clip { top: 28px; right: 8px; transform: rotate(90deg); }
+    .paper-right .paper-clip { top: 28px; left: 8px; transform: rotate(-90deg); }
+    .paper-content {
+        padding: 14px;
+        font-size: 12.5px;
+        color: var(--ink-muted);
+        line-height: 1.55;
+        font-family: 'Inter', sans-serif;
+    }
+    .paper-content h3 {
+        font-size: 11px;
+        margin-bottom: 14px;
+        color: var(--ink);
+        border-bottom: 1.5px solid var(--accent-sage);
+        padding-bottom: 6px;
+        display: inline-block;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        font-weight: 600;
+    }
+    .paper-item {
+        padding: 8px 12px;
+        margin: 5px 0;
+        background: rgba(0,0,0,0.02);
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.3s var(--transition-smooth);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border: 1px solid transparent;
+    }
+    .paper-item:hover {
+        background: rgba(138, 154, 138, 0.08);
+        border-color: rgba(138, 154, 138, 0.2);
+        transform: translateX(3px);
+    }
+    .paper-item .icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 5px;
+        background: rgba(138, 154, 138, 0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: var(--accent-sage);
+    }
+    .paper-close {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: rgba(0,0,0,0.05);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        cursor: pointer;
+        opacity: 0;
+        transition: all 0.3s ease;
+        color: var(--ink-muted);
+        z-index: 10;
+    }
+    .paper.open .paper-close { opacity: 1; }
+    .paper-close:hover { background: rgba(200,100,100,0.15); color: #a06060; }
+    .desk-object {
+        position: fixed;
+        z-index: 18;
+        cursor: pointer;
+        transition: all 0.45s var(--transition-bounce);
+        filter: drop-shadow(0 3px 6px rgba(0,0,0,0.08));
+    }
+    .desk-object:hover {
+        transform: scale(1.06) rotate(-1deg);
+        filter: drop-shadow(0 8px 20px rgba(0,0,0,0.14));
+        z-index: 50;
+    }
+    .desk-object:active {
+        transform: scale(0.96) rotate(1deg);
+    }
+    .compass {
+        top: 7%;
+        right: 8%;
+        width: 70px;
+        height: 90px;
+        transform: rotate(25deg);
+    }
+    .compass-leg {
+        position: absolute;
+        width: 4px;
+        background: linear-gradient(180deg, #888 0%, #666 100%);
+        border-radius: 2px;
+    }
+    .compass-leg.left {
+        height: 70px;
+        left: 28px;
+        top: 12px;
+        transform: rotate(-8deg);
+        transform-origin: top center;
+    }
+    .compass-leg.right {
+        height: 70px;
+        left: 38px;
+        top: 12px;
+        transform: rotate(8deg);
+        transform-origin: top center;
+    }
+    .compass-joint {
+        position: absolute;
+        top: 6px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 14px;
+        height: 14px;
+        background: linear-gradient(135deg, #aaa 0%, #888 100%);
+        border-radius: 50%;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .compass-joint::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 6px;
+        height: 6px;
+        background: #777;
+        border-radius: 50%;
+    }
+    .compass-handle {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 8px;
+        height: 10px;
+        background: linear-gradient(180deg, #999 0%, #777 100%);
+        border-radius: 2px 2px 0 0;
+    }
+    .compass-point {
+        position: absolute;
+        bottom: 0;
+        width: 0;
+        height: 0;
+        border-left: 2px solid transparent;
+        border-right: 2px solid transparent;
+    }
+    .compass-point.left {
+        left: 26px;
+        border-top: 8px solid #555;
+    }
+    .compass-point.right {
+        left: 40px;
+        border-top: 6px solid #555;
+    }
+    .pencil {
+        top: 14%;
+        left: 6%;
+        width: 150px;
+        height: 12px;
+        transform: rotate(-28deg);
+    }
+    .pencil-body {
+        width: 130px;
+        height: 10px;
+        background: linear-gradient(180deg, #f0e6d0 0%, #d8ccb0 100%);
+        border-radius: 2px;
+        position: relative;
+        box-shadow: inset 0 -1px 2px rgba(0,0,0,0.06);
+    }
+    .pencil-body::after {
+        content: '';
+        position: absolute;
+        left: -14px;
+        top: 0;
+        width: 0;
+        height: 0;
+        border-top: 5px solid transparent;
+        border-bottom: 5px solid transparent;
+        border-right: 14px solid #e8dcc8;
+    }
+    .pencil-body::before {
+        content: '';
+        position: absolute;
+        left: -18px;
+        top: 3px;
+        width: 0;
+        height: 0;
+        border-top: 2px solid transparent;
+        border-bottom: 2px solid transparent;
+        border-right: 5px solid #4a4a4a;
+    }
+    .pencil-eraser {
+        position: absolute;
+        right: -14px;
+        top: 0;
+        width: 14px;
+        height: 10px;
+        background: linear-gradient(180deg, #d4b8a8 0%, #c4a898 100%);
+        border-radius: 0 3px 3px 0;
+    }
+    .pencil-ferrule {
+        position: absolute;
+        right: -3px;
+        top: 0;
+        width: 3px;
+        height: 10px;
+        background: #a0a0a0;
+    }
+    .ruler {
+        bottom: 8%;
+        left: 4%;
+        width: 220px;
+        height: 36px;
+        transform: rotate(10deg);
+    }
+    .ruler-body {
+        width: 220px;
+        height: 30px;
+        background: linear-gradient(180deg, #e8e4dc 0%, #d8d4cc 100%);
+        border-radius: 3px;
+        position: relative;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 2px 6px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.06);
+    }
+    .ruler-markings {
+        position: absolute;
+        bottom: 5px;
+        left: 10px;
+        right: 10px;
+        height: 16px;
+        background: repeating-linear-gradient(
+            90deg,
+            #888 0px,
+            #888 1px,
+            transparent 1px,
+            transparent 9px
+        );
+    }
+    .ruler-markings::after {
+        content: '';
+        position: absolute;
+        bottom: 7px;
+        left: 0;
+        right: 0;
+        height: 9px;
+        background: repeating-linear-gradient(
+            90deg,
+            #888 0px,
+            #888 1px,
+            transparent 1px,
+            transparent 49px
+        );
+    }
+    .eraser {
+        bottom: 18%;
+        right: 6%;
+        width: 52px;
+        height: 28px;
+        transform: rotate(-12deg);
+    }
+    .eraser-body {
+        width: 52px;
+        height: 22px;
+        background: linear-gradient(180deg, #f5f0e8 0%, #e8e0d4 50%, #f0ebe0 50%, #e5ddd0 100%);
+        border-radius: 4px;
+        position: relative;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 2px 6px rgba(0,0,0,0.06);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    .eraser-body::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: rgba(0,0,0,0.06);
+    }
+    .triangle {
+        top: 65%;
+        right: 5%;
+        width: 70px;
+        height: 70px;
+        transform: rotate(15deg);
+    }
+    .triangle-body {
+        width: 0;
+        height: 0;
+        border-left: 35px solid transparent;
+        border-right: 35px solid transparent;
+        border-bottom: 60px solid rgba(200, 210, 200, 0.25);
+        position: relative;
+        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.06));
+    }
+    .triangle-body::after {
+        content: '';
+        position: absolute;
+        top: 6px;
+        left: -28px;
+        width: 0;
+        height: 0;
+        border-left: 28px solid transparent;
+        border-right: 28px solid transparent;
+        border-bottom: 48px solid rgba(220, 225, 220, 0.4);
+    }
+    .coffee-cup {
+        top: 6%;
+        left: 10%;
+        width: 52px;
+        height: 44px;
+    }
+    .coffee-cup .cup-body {
+        width: 40px;
+        height: 36px;
+        background: linear-gradient(135deg, #f5f0e8 0%, #e8e0d4 100%);
+        border-radius: 3px 3px 18px 18px;
+        position: relative;
+        box-shadow: inset -3px 0 6px rgba(0,0,0,0.04), 0 3px 8px rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    .coffee-cup .cup-handle {
+        position: absolute;
+        right: -12px;
+        top: 6px;
+        width: 14px;
+        height: 18px;
+        border: 3px solid #d8d0c4;
+        border-radius: 0 10px 10px 0;
+        border-left: none;
+    }
+    .coffee-cup .coffee-surface {
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        right: 3px;
+        height: 6px;
+        background: #5a4a3a;
+        border-radius: 50%;
+        opacity: 0.85;
+    }
+    .steam {
+        position: absolute;
+        top: -8px;
+        left: 50%;
+        width: 6px;
+        height: 16px;
+        background: rgba(180,180,180,0.25);
+        border-radius: 50%;
+        filter: blur(5px);
+        animation: steam-rise 3.5s ease-in-out infinite;
+    }
+    .steam:nth-child(2) { left: 30%; animation-delay: 0.6s; height: 14px; }
+    .steam:nth-child(3) { left: 70%; animation-delay: 1.2s; height: 15px; }
+    @keyframes steam-rise {
+        0%, 100% { transform: translateY(0) scaleX(1); opacity: 0; }
+        50% { transform: translateY(-18px) scaleX(1.4); opacity: 0.5; }
+    }
+    .blueprint {
+        bottom: 6%;
+        right: 18%;
+        width: 90px;
+        height: 24px;
+        transform: rotate(-6deg);
+    }
+    .blueprint-body {
+        width: 90px;
+        height: 20px;
+        background: linear-gradient(180deg, #c8d4d0 0%, #b0c0bc 100%);
+        border-radius: 10px;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.3), 0 2px 6px rgba(0,0,0,0.08);
+        position: relative;
+    }
+    .blueprint-body::after {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 60px;
+        height: 2px;
+        background: rgba(255,255,255,0.3);
+        border-radius: 1px;
+    }
+    .sticky-note {
+        bottom: 24%;
+        left: 18%;
+        width: 76px;
+        height: 76px;
+        background: #f5f0d0;
+        transform: rotate(6deg);
+        box-shadow: 1px 3px 10px rgba(0,0,0,0.08);
+        padding: 10px;
+        font-size: 10px;
+        color: #7a7050;
+        font-family: 'Inter', sans-serif;
+        line-height: 1.4;
+        border-radius: 2px;
+    }
+    .sticky-note::before {
+        content: '';
+        position: absolute;
+        top: -6px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 20px;
+        height: 10px;
+        background: rgba(255,255,255,0.5);
+        border-radius: 1px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+    .glasses {
+        top: 20%;
+        right: 20%;
+        width: 72px;
+        height: 26px;
+        transform: rotate(-4deg);
+    }
+    .glass-lens {
+        position: absolute;
+        width: 28px;
+        height: 24px;
+        background: rgba(200,210,220,0.12);
+        border: 1.5px solid #777;
+        border-radius: 3px 3px 14px 14px;
+    }
+    .glass-lens.left { left: 0; }
+    .glass-lens.right { right: 0; }
+    .glass-bridge {
+        position: absolute;
+        top: 7px;
+        left: 30px;
+        width: 12px;
+        height: 1.5px;
+        background: #777;
+    }
+    .glass-arm {
+        position: absolute;
+        top: 5px;
+        width: 18px;
+        height: 1.5px;
+        background: #777;
+    }
+    .glass-arm.left { left: -16px; transform: rotate(-18deg); }
+    .glass-arm.right { right: -16px; transform: rotate(18deg); }
+    .backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(230, 230, 224, 0.5);
+        backdrop-filter: blur(2px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.6s ease;
+        z-index: 15;
+    }
+    .backdrop.active {
+        opacity: 1;
+        pointer-events: all;
+    }
+    .toast {
+        position: fixed;
+        bottom: 90px;
+        left: 50%;
+        transform: translateX(-50%) translateY(16px);
+        background: rgba(42, 42, 42, 0.9);
+        color: #f0f0e8;
+        padding: 12px 28px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        z-index: 200;
+        opacity: 0;
+        transition: all 0.4s var(--transition-smooth);
+        pointer-events: none;
+        white-space: nowrap;
+        letter-spacing: 0.3px;
+        font-family: 'Inter', sans-serif;
+    }
+    @media (max-width: 768px) {
+        .editor-desk {
+            width: 90vw;
+            height: 58vh;
+        }
+        .paper-top, .paper-bottom { width: 240px; height: 280px; }
+        .paper-left, .paper-right { width: 220px; height: 320px; }
+        .paper-tl, .paper-tr, .paper-bl, .paper-br { width: 160px; height: 160px; }
+        .pencil { width: 110px; }
+        .pencil-body { width: 90px; }
+        .ruler { width: 160px; }
+        .ruler-body { width: 160px; }
+        .compass { width: 55px; height: 75px; }
+        .compass-leg { height: 55px; }
+    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.18); }
+</style>
+</head>
+<body>
+<!-- LOGIN OVERLAY -->
+<div id="loginOverlay" style="position:fixed; inset:0; z-index:1000; background:var(--bg); display:none; align-items:center; justify-content:center; font-family:'Inter',sans-serif;">
+    <div style="background:var(--paper-solid); padding:32px; border-radius:6px; box-shadow:0 16px 48px rgba(0,0,0,0.08); width:min(90vw,320px); text-align:center; border:1px solid rgba(0,0,0,0.06);">
+        <div style="font-family:'Playfair Display',serif; font-size:24px; color:var(--ink); margin-bottom:4px;">Bot SaaS</div>
+        <div style="font-size:12px; color:var(--ink-muted); margin-bottom:20px;">Loading...</div>
+    </div>
+</div>
+<div class="desk-surface"></div>
+<div class="desk-vignette"></div>
+<div class="backdrop" id="backdrop"></div>
+<div class="editor-desk" id="editorDesk">
+    <div class="editor-header">
+        <div class="editor-dot dot-red"></div>
+        <div class="editor-dot dot-yellow"></div>
+        <div class="editor-dot dot-green"></div>
+        <div class="editor-title" id="editorTitle">Bot SaaS — Drafting Desk</div>
+        <div style="margin-left:auto; font-size:10px; color:var(--ink-faint); cursor:pointer; padding:4px 8px; border-radius:4px;" onclick="doLogout()" title="Logout">Exit</div>
+    </div>
+    <div class="editor-body">
+        <div class="editor-sidebar">
+            <div class="sidebar-icon active" onclick="openPaperByClass('paper-left')" title="My Bots">📁</div>
+            <div class="sidebar-icon" onclick="openPaperByClass('paper-tr')" title="AI Status">⚡</div>
+            <div class="sidebar-icon" onclick="openPaperByClass('paper-bl')" title="Contexts">🐛</div>
+            <div class="sidebar-icon" onclick="openPaperByClass('paper-right')" title="Settings">🔧</div>
+        </div>
+        <div class="editor-code" id="codeArea">
+            <div id="center-landing" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; text-align:center;">
+                <div style="font-family:'Playfair Display',serif; font-size:32px; color:var(--ink); margin-bottom:10px; letter-spacing:-0.5px;">Bot SaaS</div>
+                <div style="font-size:13px; color:var(--ink-muted); line-height:1.7; max-width:340px;">
+                    Connect your Discord bot to our shared AI backend.<br>
+                    Click the <b>Project</b> paper above to begin.
+                </div>
+                <div style="margin-top:24px; font-size:11px; color:var(--ink-faint);">
+                    Papers on the edges are your menus. Desk objects are shortcuts.
+                </div>
+            </div>
+            <div id="center-dashboard" style="display:none; padding:18px 8px;">
+                <div style="font-family:'Playfair Display',serif; font-size:22px; color:var(--ink); margin-bottom:16px;" id="dashTitle">Dashboard</div>
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div style="background:rgba(0,0,0,0.02); border-radius:6px; padding:14px; border:1px solid rgba(0,0,0,0.04);">
+                        <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin-bottom:4px;">Uptime</div>
+                        <div style="font-size:17px; font-weight:600; color:var(--ink);" id="center-uptime">--</div>
+                    </div>
+                    <div style="background:rgba(0,0,0,0.02); border-radius:6px; padding:14px; border:1px solid rgba(0,0,0,0.04);">
+                        <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--ink-faint); margin-bottom:4px;">Messages</div>
+                        <div style="font-size:17px; font-weight:600; color:var(--ink);" id="center-messages">0</div>
+                    </div>
+                </div>
+                <div style="margin-top:14px; font-size:12px; color:var(--ink-muted); line-height:1.7;" id="center-status">
+                    Select a paper on the edge to manage your bot.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="paper paper-top" data-paper="top">
+    <div class="paper-clip"></div>
+    <div class="paper-close">✕</div>
+    <div class="paper-header">📂 Project</div>
+    <div class="paper-body">
+        <div class="paper-content" id="top-landing">
+            <h3>Connect Bot</h3>
+            <label style="margin-top:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Discord Bot Token</label>
+            <input type="password" id="tokenInput" placeholder="Paste your Bot Token here" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px;">Your token is stored server-side so the bot stays online.</div>
+            <div class="paper-item" onclick="connectBot()" style="justify-content:center; background:var(--accent-sage); color:#fff; border:none;"><span style="font-weight:600; letter-spacing:0.5px; font-size:11px;">CONNECT</span></div>
+            <div id="connectStatus" class="status-mini" style="font-size:10px; text-align:center; margin-top:4px; min-height:14px;"></div>
+            <div style="margin-top:12px; font-size:10px; color:var(--ink-faint); line-height:1.6;">1. Create a bot at Discord Developer Portal<br>2. Copy the Bot Token and paste it above<br>3. Customise personality, AI model, voice, and more<br>4. Invite the bot to your servers and ping it to chat</div>
+        </div>
+        <div class="paper-content" id="top-dashboard" style="display:none;">
+            <h3>Bot Status</h3>
+            <div class="paper-item"><span class="icon" style="background:rgba(138,154,138,0.15);">●</span><span id="botNameDisplay">--</span></div>
+            <div class="paper-item"><span class="icon">⏱</span><span id="uptime">--</span></div>
+            <div class="paper-item"><span class="icon">💬</span><span id="msgCount">0 messages</span></div>
+            <div class="paper-item"><span class="icon">🧠</span><span id="ctxCount">0 contexts</span></div>
+            <div style="margin-top:12px; display:flex; gap:6px;">
+                <div class="paper-item" onclick="showInvite()" style="flex:1; justify-content:center; background:rgba(138,154,138,0.12); border-color:rgba(138,154,138,0.25);">Invite</div>
+                <div class="paper-item" onclick="disconnectBot()" style="flex:1; justify-content:center; background:rgba(200,100,100,0.08); color:#a06060; border-color:rgba(200,100,100,0.15);">Disconnect</div>
+            </div>
+            <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,0,0,0.06);">
+                <div class="paper-item" onclick="showConnectForm()" style="justify-content:center; background:rgba(0,0,0,0.02); border-color:rgba(0,0,0,0.08);"><span style="font-size:10px; color:var(--ink-muted);">+ Connect Another Bot</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="paper paper-bottom" data-paper="bottom">
+    <div class="paper-clip"></div>
+    <div class="paper-close">✕</div>
+    <div class="paper-header">💻 Terminal</div>
+    <div class="paper-body">
+        <div class="paper-content">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11px; line-height:1.9; color:var(--ink-muted);">
+                <div style="color:#6a9a6a;">➜  bot-saas git:(main) node server.js</div>
+                <div>> discord-bot@1.0.0 start</div>
+                <div style="margin-top:8px; color:#7a8a9a;" id="term-line-1">Waiting for connection...</div>
+                <div style="color:#a09070;" id="term-line-2">--</div>
+                <div style="color:#8a7a8a;" id="term-line-3">--</div>
+                <div style="margin-top:8px; color:#6a9a6a;">➜  _</div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="paper paper-left" data-paper="left">
+    <div class="paper-clip"></div>
+    <div class="paper-close">✕</div>
+    <div class="paper-header">🗂️ Explorer</div>
+    <div class="paper-body">
+        <div class="paper-content">
+            <h3>My Bots</h3>
+            <div id="myBotsList"></div>
+        </div>
+    </div>
+</div>
+<div class="paper paper-right" data-paper="right">
+    <div class="paper-clip"></div>
+    <div class="paper-close">✕</div>
+    <div class="paper-header">⚙️ Settings</div>
+    <div class="paper-body">
+        <div class="paper-content">
+            <h3>Personality</h3>
+            <textarea id="personality" placeholder="How should your bot behave?" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px; min-height:50px; resize:vertical;"></textarea>
+            <h3>AI Provider</h3>
+            <select id="provider" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"><option value="auto">Auto (Gemini -> Groq -> OpenRouter -> HF)</option><option value="gemini">Gemini Only</option><option value="groq">Groq Only</option><option value="openrouter">OpenRouter Only</option><option value="huggingface">Hugging Face Only</option></select>
+            <h3>Models</h3>
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Gemini</label>
+            <input type="text" id="geminiModel" list="geminiModels" placeholder="e.g. gemini-3.1-flash-lite" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <datalist id="geminiModels">
+                <option value="gemini-2.0-flash">
+                <option value="gemini-2.0-flash-lite">
+                <option value="gemini-2.0-flash-lite-preview-06-17">
+                <option value="gemini-2.5-flash-lite-preview-06-17">
+                <option value="gemini-2.0-pro-exp-02-05">
+                <option value="gemini-1.5-flash">
+                <option value="gemini-1.5-pro">
+            </datalist>
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Groq</label>
+            <input type="text" id="groqModel" placeholder="e.g. llama-3.1-8b-instant" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Hugging Face</label>
+            <input type="text" id="hfModel" placeholder="e.g. meta-llama/Llama-3.3-70B-Instruct (blank = auto)" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">OpenRouter</label>
+            <select id="model" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"><option value="nvidia/nemotron-3-ultra-550b-a55b:free">Nemotron 3 Ultra 550B (Free)</option><option value="openrouter/free">Auto (Free)</option><option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (Free)</option><option value="meta-llama/llama-3.3-70b-instruct:free">Llama 3.3 70B (Free)</option><option value="deepseek/deepseek-chat:free">DeepSeek Chat (Free)</option><option value="mistralai/mistral-7b-instruct:free">Mistral 7B (Free)</option><option value="nvidia/llama-3.1-nemotron-70b-instruct:free">Nemotron 70B (Free)</option></select>
+            <div style="display:flex; align-items:center; gap:6px; margin:6px 0;"><input type="checkbox" id="useCustom" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Use Custom Model</label></div>
+            <input type="text" id="customModel" placeholder="e.g. anthropic/claude-3.5-sonnet" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <h3>Generation</h3>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div><label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Max Tokens</label><input type="number" id="maxTokens" min="50" max="4000" value="800" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"></div>
+                <div><label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Temperature</label><input type="number" id="temperature" min="0" max="2" step="0.1" value="0.7" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"></div>
+                <div><label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Top P</label><input type="number" id="topP" min="0" max="1" step="0.05" value="1.0" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"></div>
+                <div><label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Cooldown</label><input type="number" id="cooldown" min="0" max="300" value="10" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"></div>
+            </div>
+            <h3>Memory</h3>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="ctxEnabled" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Context Enabled</label></div>
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Max Context</label><input type="number" id="maxCtx" min="1" max="50" value="10" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <h3>Voice (Fish Audio)</h3>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="ttsEnabled" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">TTS Enabled</label></div>
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Voice ID</label><input type="text" id="fishVoiceId" placeholder="paste Fish Audio voice ID" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Model</label>
+            <select id="fishModel" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"><option value="s2.1-pro-free">s2.1-pro-free</option><option value="s2-pro">s2-pro</option><option value="s2">s2</option></select>
+            <h3>Vision</h3>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="visionEnabled" checked style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Vision Enabled</label></div>
+            <div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px; line-height:1.5;">When enabled, the bot analyzes images attached to @mentions and DMs. Supports Gemini &amp; OpenRouter vision models.</div>
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Vision Provider</label>
+            <select id="visionProvider" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"><option value="openrouter">OpenRouter</option><option value="gemini">Gemini</option></select>
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">OpenRouter Vision Model (optional)</label>
+            <input type="text" id="visionModel" value="nex-agi/nex-n2-pro" placeholder="leave blank for free fallbacks" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Gemini Vision Model</label>
+            <input type="text" id="geminiVisionModel" value="gemini-1.5-flash-latest" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <h3>File &amp; Video</h3>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="fileReadingEnabled" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Read PDF/DOCX/CSV attachments</label></div>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="videoWatchingEnabled" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Watch video attachments (ffmpeg)</label></div>
+            <div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px; line-height:1.5;">PDF extraction needs pymupdf / pdfplumber / PyPDF2 / pdftotext. Video needs ffmpeg+ffprobe installed on host.</div>
+            <h3>Auto Features</h3>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="autoSearch" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Auto web search (realtime queries)</label></div>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="autoStt" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Auto-STT (transcribe audio msgs)</label></div>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="userMemoryEnabled" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">User memory (per-user profiles)</label></div>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="openChatEnabled" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Open chat (reply on name trigger)</label></div>
+            <h3>Message Splitting</h3>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="messageSplitEnabled" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Split long replies into multiple msgs</label></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+                <div><label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Min</label><input type="number" id="messageSplitMin" min="1" max="10" value="1" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"></div>
+                <div><label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Max</label><input type="number" id="messageSplitMax" min="1" max="10" value="3" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"></div>
+                <div><label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Delay(s)</label><input type="number" id="messageSplitDelay" min="0" max="10" step="0.1" value="1.0" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"></div>
+            </div>
+            <h3>Random DMs</h3>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="randomDmsEnabled" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Send random DMs to past users</label></div>
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Interval (minutes)</label>
+            <input type="number" id="randomDmsIntervalMinutes" min="5" max="1440" value="60" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">DM Prompt</label>
+            <input type="text" id="randomDmsPrompt" placeholder="casual check-in prompt" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <h3>Random Chat</h3>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="randomChatEnabled" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Randomly join channel conversations</label></div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+                <div><label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Chance (0-1)</label><input type="number" id="randomChatChance" min="0" max="1" step="0.01" value="0.05" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"></div>
+                <div><label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Context msgs</label><input type="number" id="randomChatContextLimit" min="5" max="200" value="50" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;"></div>
+            </div>
+            <h3>Bot Name Triggers</h3>
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Comma-separated words that wake the bot</label>
+            <input type="text" id="botNameTriggers" placeholder="bot, ai, help" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <h3>Bot Conversation</h3>
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:6px;"><input type="checkbox" id="botConvEnabled" style="width:auto; margin:0;"><label style="margin:0; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Allow Bot-to-Bot Chat</label></div>
+            <label style="font-size:10px; text-transform:uppercase; letter-spacing:0.5px; color:var(--ink-faint);">Max Exchanges (1-3)</label>
+            <input type="number" id="botConvMax" min="1" max="3" value="2" style="width:100%; background:rgba(0,0,0,0.02); border:1px solid rgba(0,0,0,0.08); border-radius:4px; color:var(--ink); padding:6px 8px; font-size:11px; font-family:'Inter',sans-serif; outline:none; margin-top:4px; margin-bottom:6px;">
+            <div style="font-size:10px; color:var(--ink-faint); margin-bottom:8px; line-height:1.5;">OFF by default to prevent infinite loops. When ON, bots may chat with each other for only 1-3 messages before stopping.</div>
+            <div class="paper-item" onclick="saveConfig()" style="margin-top:14px; justify-content:center; background:var(--accent-sage); color:#fff; border:none;"><span style="font-weight:600; letter-spacing:0.5px; font-size:11px;">APPLY CHANGES</span></div>
+            <div id="saveStatus" class="status-mini" style="font-size:10px; text-align:center; margin-top:4px; min-height:14px;"></div>
+        </div>
+    </div>
+</div>
+<div class="paper paper-tl" data-paper="tl">
+    <div class="paper-clip"></div>
+    <div class="paper-close">✕</div>
+    <div class="paper-header">📝 Notes</div>
+    <div class="paper-body">
+        <div class="paper-content">
+            <div style="font-family:'JetBrains Mono',monospace; font-size:11.5px; line-height:1.9; color:var(--ink-muted);">
+                <div style="color:var(--ink); font-weight:600; margin-bottom:6px; font-size:11px; text-transform:uppercase; letter-spacing:1px; border-bottom:1.5px solid var(--accent-sage); padding-bottom:4px; display:inline-block;">Commands</div><br>
+                <span style="color:#7a8a9a;">/ask</span> &lt;prompt&gt;<br>
+                <span style="color:#7a8a9a;">/reset</span> — clear memory<br>
+                <span style="color:#7a8a9a;">/purgeall</span> — owner wipe<br>
+                <span style="color:#7a8a9a;">!tts</span> on | off<br>
+                <span style="color:#7a8a9a;">!voice</span> &lt;id&gt;<br>
+                <span style="color:#7a8a9a;">@Bot</span> — chat<br>
+                <span style="color:#7a8a9a;">!reset</span> — text reset
+            </div>
+        </div>
+    </div>
+</div>
+<div class="paper paper-tr" data-paper="tr">
+    <div class="paper-clip"></div>
+    <div class="paper-close">✕</div>
+    <div class="paper-header">🔀 AI Status</div>
+    <div class="paper-body">
+        <div class="paper-content">
+            <h3>Backend</h3>
+            <div class="paper-item"><span class="icon" id="globGemini" style="background:#e8f5e9; color:#4caf50; font-size:10px;">●</span>Gemini</div>
+            <div class="paper-item"><span class="icon" id="globGroq" style="background:#f3e5f5; color:#9c27b0; font-size:10px;">●</span>Groq</div>
+            <div class="paper-item"><span class="icon" id="globOR" style="background:#e3f2fd; color:#2196f3; font-size:10px;">●</span>OpenRouter</div>
+            <div class="paper-item"><span class="icon" id="globFish" style="background:#fff3e0; color:#ff9800; font-size:10px;">●</span>Fish Audio</div>
+            <div class="paper-item"><span class="icon" id="globHF" style="background:#fffde7; color:#f9a825; font-size:10px;">●</span>Hugging Face</div>
+            <div class="paper-item"><span class="icon" id="globVision" style="background:#f3e5f5; color:#9c27b0; font-size:10px;">●</span>Vision</div>
+            <div style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+                <div class="paper-item" onclick="testProvider('gemini')" style="justify-content:center; font-size:10px;">Test Gemini</div>
+                <div class="paper-item" onclick="testProvider('groq')" style="justify-content:center; font-size:10px;">Test Groq</div>
+                <div class="paper-item" onclick="testProvider('openrouter')" style="justify-content:center; font-size:10px;">Test OpenRouter</div>
+                <div class="paper-item" onclick="testProvider('huggingface')" style="justify-content:center; font-size:10px;">Test HuggingFace</div>
+            </div>
+            <div id="testGeminiResult" class="status-mini" style="font-size:10px; text-align:center; margin-top:6px; min-height:14px;"></div>
+            <div id="testGroqResult" class="status-mini" style="font-size:10px; text-align:center; margin-top:2px; min-height:14px;"></div>
+            <div id="testORResult" class="status-mini" style="font-size:10px; text-align:center; margin-top:2px; min-height:14px;"></div>
+            <div id="testHFResult" class="status-mini" style="font-size:10px; text-align:center; margin-top:2px; min-height:14px;"></div>
+        </div>
+    </div>
+</div>
+<div class="paper paper-bl" data-paper="bl">
+    <div class="paper-clip"></div>
+    <div class="paper-close">✕</div>
+    <div class="paper-header">🐛 Contexts</div>
+    <div class="paper-body">
+        <div class="paper-content">
+            <h3>Active Memory</h3>
+            <div id="channelList"></div>
+            <div class="paper-item" onclick="clearAllCtx()" style="margin-top:10px; justify-content:center; background:rgba(200,100,100,0.08); color:#a06060; border-color:rgba(200,100,100,0.15);"><span style="font-size:10px; font-weight:600;">CLEAR ALL</span></div>
+        </div>
+    </div>
+</div>
+<div class="paper paper-br" data-paper="br">
+    <div class="paper-clip"></div>
+    <div class="paper-close">✕</div>
+    <div class="paper-header">🧩 Extras</div>
+    <div class="paper-body">
+        <div class="paper-content">
+            <h3>Tools</h3>
+            <div class="paper-item" onclick="loadRaw(); toggleRawPanel();"><span class="icon">⚙️</span>View Raw Config</div>
+            <div id="rawPanel" style="display:none; margin-top:8px; padding:8px; background:rgba(0,0,0,0.02); border-radius:4px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--ink-muted); overflow-x:auto; max-height:100px; overflow-y:auto;">
+                <pre id="rawJson" style="margin:0;"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="desk-object compass" title="Compass — Test Providers">
+    <div class="compass-handle"></div>
+    <div class="compass-joint"></div>
+    <div class="compass-leg left"></div>
+    <div class="compass-leg right"></div>
+    <div class="compass-point left"></div>
+    <div class="compass-point right"></div>
+</div>
+<div class="desk-object coffee-cup" title="Coffee — Refresh Status">
+    <div class="steam"></div>
+    <div class="steam"></div>
+    <div class="steam"></div>
+    <div class="cup-body">
+        <div class="coffee-surface"></div>
+        <div class="cup-handle"></div>
+    </div>
+</div>
+<div class="desk-object pencil" title="Pencil — Edit Settings">
+    <div class="pencil-body">
+        <div class="pencil-ferrule"></div>
+        <div class="pencil-eraser"></div>
+    </div>
+</div>
+<div class="desk-object ruler" title="Ruler — Toggle Grid">
+    <div class="ruler-body">
+        <div class="ruler-markings"></div>
+    </div>
+</div>
+<div class="desk-object eraser" title="Eraser — Clear Memory">
+    <div class="eraser-body"></div>
+</div>
+<div class="desk-object triangle" title="Set Square — Align">
+    <div class="triangle-body"></div>
+</div>
+<div class="desk-object blueprint" title="Blueprint — Invite Link">
+    <div class="blueprint-body"></div>
+</div>
+<div class="desk-object sticky-note" title="Quick Note"></div>
+<div class="desk-object glasses" title="Reading Glasses — Raw Config">
+    <div class="glass-lens left"></div>
+    <div class="glass-lens right"></div>
+    <div class="glass-bridge"></div>
+    <div class="glass-arm left"></div>
+    <div class="glass-arm right"></div>
+</div>
+<script>
+    (function() {
+        const API_BASE = window.API_BASE || '';
+        function apiFetch(url, opts) {
+            opts = opts || {};
+            opts.headers = opts.headers || {};
+            if (url !== '/api/login') {
+                opts.headers['Authorization'] = 'Bearer ' + (localStorage.getItem('dashboard_auth_token') || '');
+            }
+            return fetch(API_BASE + url, opts);
+        }
+        async function doLogin() {
+            const pw = document.getElementById('loginPassword').value;
+            const err = document.getElementById('loginError');
+            try {
+                const res = await apiFetch('/api/login', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:pw})});
+                const data = await res.json();
+                if (data.ok) {
+                    localStorage.setItem('dashboard_auth_token', data.token);
+                    document.getElementById('loginOverlay').style.display = 'none';
+                    initApp();
+                } else {
+                    err.textContent = data.error || 'Login failed';
+                }
+            } catch(e) {
+                err.textContent = 'Network error';
+            }
+        }
+        document.getElementById('loginPassword').addEventListener('keypress', e => { if(e.key==='Enter') doLogin(); });
+        function doLogout() {
+            localStorage.removeItem('current_bot_key');
+            location.reload();
+        }
+        window.doLogin = doLogin;
+        window.doLogout = doLogout;
+        function initApp() {
+        const papers = document.querySelectorAll('.paper');
+        const backdrop = document.getElementById('backdrop');
+        const editorDesk = document.getElementById('editorDesk');
+        let activePaper = null;
+        let isAnimating = false;
+        papers.forEach(paper => {
+            const closeBtn = paper.querySelector('.paper-close');
+            paper.addEventListener('click', function(e) {
+                if (e.target === closeBtn || closeBtn.contains(e.target)) {
+                    e.stopPropagation();
+                    closePaper(paper);
+                    if (activePaper === paper) {
+                        activePaper = null;
+                        backdrop.classList.remove('active');
+                        editorDesk.classList.remove('pushed');
+                    }
+                    return;
+                }
+                if (paper.classList.contains('open')) return;
+                openPaper(paper);
+            });
+        });
+        function openPaper(paper) {
+            if (activePaper && activePaper !== paper) {
+                closePaper(activePaper);
+                activePaper.classList.remove('pulled');
+            }
+            activePaper = paper;
+            paper.classList.add('pulled');
+            backdrop.classList.add('active');
+            editorDesk.classList.add('pushed');
+            requestAnimationFrame(() => {
+                paper.classList.remove('pulled');
+                paper.classList.add('open');
+            });
+        }
+        function closePaper(paper) {
+            paper.classList.remove('open');
+            paper.classList.add('pulled');
+            setTimeout(() => {
+                paper.classList.remove('pulled');
+            }, 400);
+        }
+        window.openPaperByClass = function(cls) {
+            const p = document.querySelector('.' + cls);
+            if (!p) return;
+            if (p.classList.contains('open')) return;
+            if (activePaper && activePaper !== p) {
+                closePaper(activePaper);
+                activePaper.classList.remove('pulled');
+                activePaper = null;
+            }
+            openPaper(p);
+        };
+        backdrop.addEventListener('click', () => {
+            if (activePaper) {
+                closePaper(activePaper);
+                activePaper.classList.remove('pulled');
+                activePaper = null;
+                backdrop.classList.remove('active');
+                editorDesk.classList.remove('pushed');
+            }
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && activePaper) {
+                closePaper(activePaper);
+                activePaper.classList.remove('pulled');
+                activePaper = null;
+                backdrop.classList.remove('active');
+                editorDesk.classList.remove('pushed');
+            }
+        });
+        const objects = document.querySelectorAll('.desk-object');
+        objects.forEach(obj => {
+            obj.addEventListener('click', function() {
+                const currentTransform = this.style.transform;
+                this.style.transform = (currentTransform || '') + ' scale(0.92)';
+                setTimeout(() => { this.style.transform = currentTransform || ''; }, 120);
+                const title = this.getAttribute('title');
+                if (title.includes('Coffee')) {
+                    showToast('☕ Refreshed');
+                    if (currentAccessKey) { loadBotStatus(); loadGlobalStatus(); }
+                } else if (title.includes('Eraser')) {
+                    if (currentAccessKey) { clearAllCtx(); }
+                    else { showToast('Connect a bot first'); }
+                } else if (title.includes('Pencil')) {
+                    const rightPaper = document.querySelector('.paper-right');
+                    if (!rightPaper.classList.contains('open')) openPaper(rightPaper);
+                    showToast('✏️ Edit mode');
+                } else if (title.includes('Ruler')) {
+                    showToast('📏 Guidelines toggled');
+                } else if (title.includes('Compass')) {
+                    showToast('📐 Testing providers...');
+                    if (currentAccessKey) { testProvider('gemini'); }
+                } else if (title.includes('Triangle')) {
+                    showToast('📐 Alignment grid');
+                } else if (title.includes('Blueprint')) {
+                    showToast('📋 Opening invite...');
+                    showInvite();
+                } else if (title.includes('Note')) {
+                    showToast('📝 Check the Notes paper');
+                    const tlPaper = document.querySelector('.paper-tl');
+                    if (!tlPaper.classList.contains('open')) openPaper(tlPaper);
+                } else if (title.includes('Glasses')) {
+                    showToast('👓 Raw config view');
+                    const brPaper = document.querySelector('.paper-br');
+                    if (!brPaper.classList.contains('open')) openPaper(brPaper);
+                    loadRaw(); toggleRawPanel();
+                }
+            });
+        });
+        function showToast(message) {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateX(-50%) translateY(0)';
+            });
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(-50%) translateY(16px)';
+                setTimeout(() => toast.remove(), 400);
+            }, 2200);
+        }
+        document.querySelectorAll('.sidebar-icon').forEach(icon => {
+            icon.addEventListener('click', function() {
+                document.querySelectorAll('.sidebar-icon').forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        document.querySelectorAll('.paper-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.stopPropagation();
+                this.style.background = 'rgba(138, 154, 138, 0.15)';
+                setTimeout(() => { this.style.background = ''; }, 200);
+            });
+        });
+        document.addEventListener('contextmenu', e => {
+            if (e.target.closest('.paper') || e.target.closest('.editor-desk')) return;
+            e.preventDefault();
+        });
+        // ===== DASHBOARD API LOGIC =====
+        let currentAccessKey = localStorage.getItem('current_bot_key') || '';
+        let currentBotId = '';
+        let myBots = JSON.parse(localStorage.getItem('my_bots') || '[]');
+        let currentConfig = {};
+        function showStatus(id, msg, ok) {
+            const s = document.getElementById(id);
+            if (!s) return;
+            s.textContent = msg;
+            s.className = 'status-mini ' + (ok === 'info' ? 'info' : (ok ? 'ok' : 'err'));
+            setTimeout(() => { s.textContent = ''; s.className = 'status-mini'; }, 4000);
+        }
+        async function connectBot() {
+            const token = document.getElementById('tokenInput').value.trim();
+            if (!token) return showStatus('connectStatus', 'Enter a token', false);
+            showStatus('connectStatus', 'Validating...', 'info');
+            try {
+                const res = await apiFetch('/api/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token})});
+                const data = await res.json();
+                if (!data.ok) {
+                    showStatus('connectStatus', data.error, false);
+                    return;
+                }
+                const existing = myBots.find(b => b.access_key === data.access_key);
+                if (!existing) {
+                    myBots.push({access_key: data.access_key, bot_name: 'Connected Bot', bot_id: ''});
+                    localStorage.setItem('my_bots', JSON.stringify(myBots));
+                }
+                localStorage.setItem('current_bot_key', data.access_key);
+                showStatus('connectStatus', data.message, true);
+                setTimeout(() => openDashboard(data.access_key), 600);
+            } catch(e) {
+                showStatus('connectStatus', 'Network error: ' + e, false);
+            }
+        }
+        window.connectBot = connectBot;
+        async function openDashboard(key) {
+            currentAccessKey = key;
+            localStorage.setItem('current_bot_key', key);
+            document.getElementById('center-landing').style.display = 'none';
+            document.getElementById('center-dashboard').style.display = 'block';
+            document.getElementById('top-landing').style.display = 'none';
+            document.getElementById('top-dashboard').style.display = 'block';
+            await loadGlobalStatus();
+            await loadBotStatus();
+            await loadConfig();
+            await loadChannels();
+            renderMyBots();
+        }
+        window.openDashboard = openDashboard;
+        function backToLanding() {
+            currentAccessKey = '';
+            localStorage.removeItem('current_bot_key');
+            document.getElementById('center-landing').style.display = 'flex';
+            document.getElementById('center-dashboard').style.display = 'none';
+            document.getElementById('top-landing').style.display = 'block';
+            document.getElementById('top-dashboard').style.display = 'none';
+            renderMyBots();
+        }
+        window.backToLanding = backToLanding;
+        function showConnectForm() {
+            document.getElementById('top-landing').style.display = 'block';
+            document.getElementById('top-dashboard').style.display = 'none';
+        }
+        window.showConnectForm = showConnectForm;
+        async function disconnectBot() {
+            if (!confirm('Disconnect this bot? It will go offline.')) return;
+            try {
+                const res = await apiFetch('/api/bot/' + currentAccessKey + '/disconnect', {method:'POST'});
+                const data = await res.json();
+                if (data.ok) {
+                    myBots = myBots.filter(b => b.access_key !== currentAccessKey);
+                    localStorage.setItem('my_bots', JSON.stringify(myBots));
+                    renderMyBots();
+                    backToLanding();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown'));
+                }
+            } catch(e) {
+                alert('Error: ' + e);
+            }
+        }
+        window.disconnectBot = disconnectBot;
+        function showInvite() {
+            if (!currentBotId) return;
+            const url = 'https://discord.com/oauth2/authorize?client_id=' + currentBotId + '&permissions=274877910080&scope=bot%20applications.commands';
+            window.open(url, '_blank');
+        }
+        window.showInvite = showInvite;
+        async function loadGlobalStatus() {
+            try {
+                const res = await apiFetch('/api/status');
+                const d = await res.json();
+                const setStatus = (id, on) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    if (on) { el.style.background = '#e8f5e9'; el.style.color = '#4caf50'; }
+                    else { el.style.background = '#ffebee'; el.style.color = '#f44336'; }
+                };
+                setStatus('globGemini', d.gemini);
+                setStatus('globGroq', d.groq);
+                setStatus('globOR', d.openrouter);
+                setStatus('globFish', d.fish_audio);
+                setStatus('globHF', d.huggingface);
+                setStatus('globVision', d.vision);
+            } catch(e) {}
+        }
+        window.loadGlobalStatus = loadGlobalStatus;
+        async function loadBotStatus() {
+            try {
+                const res = await apiFetch('/api/bot/' + currentAccessKey + '/status');
+                const d = await res.json();
+                if (!d.ok) return;
+                document.getElementById('editorTitle').textContent = (d.bot_name || 'Bot') + ' — Drafting Desk';
+                document.getElementById('dashTitle').textContent = (d.bot_name || 'Bot') + ' Dashboard';
+                document.getElementById('botNameDisplay').textContent = d.bot_name || '--';
+                document.getElementById('uptime').textContent = d.uptime;
+                document.getElementById('msgCount').textContent = d.messages + ' messages';
+                document.getElementById('ctxCount').textContent = d.contexts + ' contexts';
+                document.getElementById('center-uptime').textContent = d.uptime;
+                document.getElementById('center-messages').textContent = d.messages;
+                currentBotId = d.bot_id || '';
+                const b = myBots.find(x => x.access_key === currentAccessKey);
+                if (b) { b.bot_name = d.bot_name; b.bot_id = d.bot_id; localStorage.setItem('my_bots', JSON.stringify(myBots)); }
+                document.getElementById('term-line-1').textContent = 'Bot: ' + (d.bot_name || 'Unknown') + ' | Online: ' + (d.online ? 'Yes' : 'No');
+                document.getElementById('term-line-2').textContent = 'Messages: ' + d.messages + ' | Contexts: ' + d.contexts;
+                document.getElementById('term-line-3').textContent = 'Uptime: ' + d.uptime;
+                renderMyBots();
+            } catch(e) {}
+        }
+        window.loadBotStatus = loadBotStatus;
+        async function loadConfig() {
+            try {
+                const res = await apiFetch('/api/bot/' + currentAccessKey + '/config');
+                currentConfig = await res.json();
+                document.getElementById('personality').value = currentConfig.personality || '';
+                document.getElementById('provider').value = currentConfig.provider || 'auto';
+                document.getElementById('geminiModel').value = currentConfig.gemini_model || '';
+                document.getElementById('groqModel').value = currentConfig.groq_model || '';
+                document.getElementById('hfModel').value = currentConfig.huggingface_model || '';
+                document.getElementById('model').value = currentConfig.model || '';
+                document.getElementById('useCustom').checked = !!currentConfig.use_custom_model;
+                document.getElementById('customModel').value = currentConfig.custom_model || '';
+                document.getElementById('maxTokens').value = currentConfig.max_tokens || 800;
+                document.getElementById('temperature').value = currentConfig.temperature || 0.7;
+                document.getElementById('topP').value = currentConfig.top_p || 1.0;
+                document.getElementById('cooldown').value = currentConfig.cooldown_seconds || 10;
+                document.getElementById('ctxEnabled').checked = !!currentConfig.context_enabled;
+                document.getElementById('maxCtx').value = currentConfig.max_context || 10;
+                document.getElementById('ttsEnabled').checked = !!currentConfig.tts_enabled;
+                document.getElementById('fishVoiceId').value = currentConfig.fish_voice_id || '';
+                document.getElementById('fishModel').value = currentConfig.fish_model || 's2.1-pro-free';
+                document.getElementById('visionEnabled').checked = !!currentConfig.vision_enabled;
+                document.getElementById('visionProvider').value = currentConfig.vision_provider || 'openrouter';
+                document.getElementById('visionModel').value = currentConfig.vision_model || '';
+                document.getElementById('geminiVisionModel').value = currentConfig.gemini_vision_model || 'gemini-1.5-flash-latest';
+                document.getElementById('fileReadingEnabled').checked = !!currentConfig.file_reading_enabled;
+                document.getElementById('videoWatchingEnabled').checked = !!currentConfig.video_watching_enabled;
+                document.getElementById('autoSearch').checked = !!currentConfig.auto_search;
+                document.getElementById('autoStt').checked = !!currentConfig.auto_stt;
+                document.getElementById('userMemoryEnabled').checked = !!currentConfig.user_memory_enabled;
+                document.getElementById('openChatEnabled').checked = !!currentConfig.open_chat_enabled;
+                document.getElementById('messageSplitEnabled').checked = !!currentConfig.message_split_enabled;
+                document.getElementById('messageSplitMin').value = currentConfig.message_split_min || 1;
+                document.getElementById('messageSplitMax').value = currentConfig.message_split_max || 3;
+                document.getElementById('messageSplitDelay').value = currentConfig.message_split_delay || 1.0;
+                document.getElementById('randomDmsEnabled').checked = !!currentConfig.random_dms_enabled;
+                document.getElementById('randomDmsIntervalMinutes').value = currentConfig.random_dms_interval_minutes || 60;
+                document.getElementById('randomDmsPrompt').value = currentConfig.random_dms_prompt || '';
+                document.getElementById('randomChatEnabled').checked = !!currentConfig.random_chat_enabled;
+                document.getElementById('randomChatChance').value = currentConfig.random_chat_chance || 0.05;
+                document.getElementById('randomChatContextLimit').value = currentConfig.random_chat_context_limit || 50;
+                document.getElementById('botNameTriggers').value = (currentConfig.bot_name_triggers || []).join(', ');
+                document.getElementById('botConvEnabled').checked = !!currentConfig.bot_conversation_enabled;
+                document.getElementById('botConvMax').value = currentConfig.bot_conversation_max || 2;
+            } catch(e) {}
+        }
+        window.loadConfig = loadConfig;
+        async function saveConfig() {
+            const payload = {
+                personality: document.getElementById('personality').value,
+                provider: document.getElementById('provider').value,
+                gemini_model: document.getElementById('geminiModel').value,
+                groq_model: document.getElementById('groqModel').value,
+                huggingface_model: document.getElementById('hfModel').value,
+                model: document.getElementById('model').value,
+                use_custom_model: document.getElementById('useCustom').checked,
+                custom_model: document.getElementById('customModel').value,
+                max_tokens: parseInt(document.getElementById('maxTokens').value),
+                temperature: parseFloat(document.getElementById('temperature').value),
+                top_p: parseFloat(document.getElementById('topP').value),
+                cooldown_seconds: parseInt(document.getElementById('cooldown').value),
+                context_enabled: document.getElementById('ctxEnabled').checked,
+                max_context: parseInt(document.getElementById('maxCtx').value),
+                tts_enabled: document.getElementById('ttsEnabled').checked,
+                fish_voice_id: document.getElementById('fishVoiceId').value,
+                fish_model: document.getElementById('fishModel').value,
+                vision_enabled: document.getElementById('visionEnabled').checked,
+                vision_provider: document.getElementById('visionProvider').value,
+                vision_model: document.getElementById('visionModel').value,
+                gemini_vision_model: document.getElementById('geminiVisionModel').value,
+                file_reading_enabled: document.getElementById('fileReadingEnabled').checked,
+                video_watching_enabled: document.getElementById('videoWatchingEnabled').checked,
+                auto_search: document.getElementById('autoSearch').checked,
+                auto_stt: document.getElementById('autoStt').checked,
+                user_memory_enabled: document.getElementById('userMemoryEnabled').checked,
+                open_chat_enabled: document.getElementById('openChatEnabled').checked,
+                message_split_enabled: document.getElementById('messageSplitEnabled').checked,
+                message_split_min: parseInt(document.getElementById('messageSplitMin').value),
+                message_split_max: parseInt(document.getElementById('messageSplitMax').value),
+                message_split_delay: parseFloat(document.getElementById('messageSplitDelay').value),
+                random_dms_enabled: document.getElementById('randomDmsEnabled').checked,
+                random_dms_interval_minutes: parseInt(document.getElementById('randomDmsIntervalMinutes').value),
+                random_dms_prompt: document.getElementById('randomDmsPrompt').value,
+                random_chat_enabled: document.getElementById('randomChatEnabled').checked,
+                random_chat_chance: parseFloat(document.getElementById('randomChatChance').value),
+                random_chat_context_limit: parseInt(document.getElementById('randomChatContextLimit').value),
+                bot_name_triggers: document.getElementById('botNameTriggers').value,
+                bot_conversation_enabled: document.getElementById('botConvEnabled').checked,
+                bot_conversation_max: parseInt(document.getElementById('botConvMax').value),
+                frequency_penalty: parseFloat(document.getElementById('freqPenalty') ? document.getElementById('freqPenalty').value : 0),
+                presence_penalty: parseFloat(document.getElementById('presPenalty') ? document.getElementById('presPenalty').value : 0)
+            };
+            const res = await apiFetch('/api/bot/' + currentAccessKey + '/config', {
+                method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            showStatus('saveStatus', data.ok ? 'Saved!' : 'Error: ' + data.error, data.ok);
+            if (data.ok) loadRaw();
+        }
+        window.saveConfig = saveConfig;
+        async function testProvider(name) {
+            const idMap = { gemini: 'testGeminiResult', groq: 'testGroqResult', openrouter: 'testORResult', huggingface: 'testHFResult' };
+            showStatus(idMap[name], 'Testing...', 'info');
+            const res = await apiFetch('/api/bot/' + currentAccessKey + '/test/' + name, {method:'POST'});
+            const data = await res.json();
+            showStatus(idMap[name], data.ok ? 'OK: ' + data.reply.substring(0,120) + '...' : 'Failed: ' + data.error, data.ok);
+        }
+        window.testProvider = testProvider;
+        async function loadChannels() {
+            try {
+                const res = await apiFetch('/api/bot/' + currentAccessKey + '/channels');
+                const d = await res.json();
+                const list = document.getElementById('channelList');
+                if (!d.channels || !d.channels.length) {
+                    list.innerHTML = '<div style="font-size:11px; color:var(--ink-faint);">No active contexts.</div>';
+                    return;
+                }
+                list.innerHTML = d.channels.map(c => `
+                    <div class="paper-item" style="justify-content:space-between;">
+                        <span style="font-size:11px;">Channel ${c.id} — ${c.messages} msg</span>
+                        <span style="font-size:10px; color:#a06060; cursor:pointer;" onclick="clearChannel('${c.id}')">Clear</span>
+                    </div>
+                `).join('');
+            } catch(e) {}
+        }
+        window.loadChannels = loadChannels;
+        async function clearAllCtx() {
+            const res = await apiFetch('/api/bot/' + currentAccessKey + '/clear', {method:'POST'});
+            const data = await res.json();
+            showToast(data.ok ? '🧹 All memory cleared' : 'Error clearing');
+            loadChannels();
+            loadBotStatus();
+        }
+        window.clearAllCtx = clearAllCtx;
+        async function clearChannel(id) {
+            const res = await apiFetch('/api/bot/' + currentAccessKey + '/clear/' + id, {method:'POST'});
+            loadChannels();
+            loadBotStatus();
+        }
+        window.clearChannel = clearChannel;
+        function loadRaw() {
+            document.getElementById('rawJson').textContent = JSON.stringify(currentConfig, null, 2);
+        }
+        window.loadRaw = loadRaw;
+        function toggleRawPanel() {
+            const p = document.getElementById('rawPanel');
+            p.style.display = p.style.display === 'none' ? 'block' : 'none';
+        }
+        window.toggleRawPanel = toggleRawPanel;
+        function renderMyBots() {
+            const list = document.getElementById('myBotsList');
+            if (!myBots.length) { 
+                list.innerHTML = '<div style="font-size:11px; color:var(--ink-faint); padding:8px 0;">No bots connected yet.<br>Open the Project paper above to connect one.</div>'; 
+                return; 
+            }
+            let html = '';
+            for (const b of myBots) {
+                html += `<div class="paper-item" style="justify-content:space-between;">
+                    <span style="font-size:11px;">${b.bot_name || 'Unnamed Bot'}</span>
+                    <div style="display:flex; gap:6px;">
+                        <span style="font-size:10px; color:var(--accent-sage); cursor:pointer;" onclick="openDashboard('${b.access_key}')">Open</span>
+                        <span style="font-size:10px; color:#a06060; cursor:pointer;" onclick="forgetBot('${b.access_key}')">Forget</span>
+                    </div>
+                </div>`;
+            }
+            list.innerHTML = html;
+        }
+        window.renderMyBots = renderMyBots;
+        function forgetBot(key) {
+            myBots = myBots.filter(b => b.access_key !== key);
+            localStorage.setItem('my_bots', JSON.stringify(myBots));
+            if (currentAccessKey === key) { backToLanding(); }
+            renderMyBots();
+        }
+        window.forgetBot = forgetBot;
+        if (currentAccessKey) {
+            openDashboard(currentAccessKey);
+        } else {
+            renderMyBots();
+        }
+        setInterval(() => { if (currentAccessKey) { loadBotStatus(); } }, 5000);
+        console.log('%c Bot SaaS ', 'background: #8a9a8a; color: #f5f5f0; font-size: 18px; font-weight: 600; padding: 8px 18px; border-radius: 4px; font-family: Inter, sans-serif;');
+        console.log('%c Drafting Desk loaded. Click papers on the edges to explore. ', 'color: #999; font-family: Inter, sans-serif;');
+        }
+        // Local dashboard — no password required
+        document.getElementById('loginOverlay').style.display = 'none';
+        initApp();
+    })();
+</script>
+</body>
+</html>
+"""
+
+# --- MAIN ---------------------------------------------
+
+bot_loop = None
+
+def run_flask():
+    port = int(os.getenv("PORT", "5000"))
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+
+async def main():
+    global bot_loop
+    bot_loop = asyncio.get_running_loop()
+    # Start Supabase bridge for remote config polling
+    if SUPABASE_URL and SUPABASE_SERVICE_KEY:
+        asyncio.create_task(bridge.start())
+    else:
+        print("[MAIN] Supabase not configured — bridge disabled. Set SUPABASE_URL + SUPABASE_SERVICE_KEY.")
+    await manager.run()
+
+if __name__ == "__main__":
+    bot_loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(bot_loop)
+    threading.Thread(target=run_flask, daemon=True).start()
+
+    async def startup():
+        global bot_loop
+        bot_loop = asyncio.get_running_loop()
+        await manager.load_all()
+        if SUPABASE_URL and SUPABASE_SERVICE_KEY:
+            print(f"[MAIN] Starting Supabase bridge: {SUPABASE_URL}")
+            asyncio.create_task(bridge.start())
+        else:
+            print("[MAIN] Supabase bridge disabled. Set SUPABASE_URL + SUPABASE_SERVICE_KEY to enable remote bot sync.")
+        await manager.run()
+
+    try:
+        bot_loop.run_until_complete(startup())
+    except KeyboardInterrupt:
+        print("[MAIN] Shutting down...")
+    finally:
+        bridge.stop()
+        bot_loop.close(

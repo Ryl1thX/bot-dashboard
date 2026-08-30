@@ -6300,10 +6300,10 @@ async function loadTheaterYouTubeVideo() {
     if (iframe) {
       iframe.style.display = 'block';
       iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
-      iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      iframe.removeAttribute('referrerpolicy');
       iframe.setAttribute('allowfullscreen', 'true');
       const originParam = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file')) ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
-      iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&playsinline=1&rel=0${originParam}`;
+      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&playsinline=1&rel=0${originParam}`;
     }
 
     const extBtn = $('theaterExternalYtBtn');

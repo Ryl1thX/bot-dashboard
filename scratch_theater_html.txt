@@ -1,0 +1,125 @@
+  <div class="theater-cinema-overlay" id="watchTogetherTheaterModal">
+    <!-- Responsive Floating Top Bar -->
+    <div class="theater-top-bar">
+      <!-- Row 1: Header Badge + Action Buttons -->
+      <div class="theater-top-row1">
+        <div style="display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden;">
+          <span style="font-size:14px; flex-shrink:0;">🍿</span>
+          <span style="font-size:12px; font-weight:700; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="theaterBotBadge">Co-Watching with Yuna</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+          <button type="button" class="chat-top-btn" id="theaterScreenFeedBtn" onclick="toggleTheaterScreenFeed()" style="padding:4px 10px; font-size:11px; border-radius:14px; background:rgba(229,192,123,0.15); color:#e5c07b; border:1px solid rgba(229,192,123,0.3);" title="Stream screen/tab to AI">🖥️ Screen Feed</button>
+          <button type="button" class="chat-top-btn" onclick="closeWatchTogetherTheater()" style="padding:4px 10px; font-size:11px; border-radius:14px;">✕ Close</button>
+        </div>
+      </div>
+      <!-- Row 2: Search Input & Media Buttons -->
+      <div class="theater-top-row2">
+        <input type="text" class="composer-input" id="theaterYoutubeUrlInput" placeholder="Paste YouTube link (youtu.be/...) or Video URL" onkeydown="if(event.key==='Enter') loadTheaterYouTubeVideo()" style="background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:16px; padding:5px 12px; font-size:11.5px; flex:1; min-width:0; color:#fff;">
+        <button type="button" class="btn-primary" onclick="loadTheaterYouTubeVideo()" style="padding:5px 12px; font-size:11px; border-radius:16px; white-space:nowrap; flex-shrink:0;">▶ Play</button>
+        <input type="file" id="theaterFileInput" accept="video/*" style="display:none;" onchange="loadTheaterLocalFile(event)">
+        <button type="button" class="chat-top-btn" onclick="$('theaterFileInput').click()" style="padding:5px 9px; font-size:11px; border-radius:16px; white-space:nowrap; flex-shrink:0;" title="Open local video file">📁 File</button>
+      </div>
+    </div>
+
+    <!-- Main Video Screen -->
+    <div class="theater-screen-wrapper">
+      <iframe class="theater-iframe" id="theaterIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <video class="theater-iframe" id="theaterHtml5Video" style="display:none; width:100%; height:100%; object-fit:contain;" controls autoplay playsinline></video>
+    </div>
+
+    <!-- Floating Cinematic Companion HUD -->
+    <div class="theater-companion-hud">
+      <!-- Typewriter Speech Bubble -->
+      <div class="theater-reaction-bubble" id="theaterReactionBubble" title="Click to fast-forward text">
+        <span style="font-size:16px; flex-shrink:0;">🍿</span>
+        <div id="theaterReactionText" class="theater-reaction-text">Ready to watch together! Paste a YouTube link or choose a video above.</div>
+      </div>
+
+      <!-- Quick Chat Input Box -->
+      <form class="theater-type-form" onsubmit="sendTheaterUserMessage(event)">
+        <input type="text" class="theater-chat-input" id="theaterChatInput" placeholder="Talk to companion (or ask about this scene)..." autocomplete="off">
+        <button type="submit" class="theater-send-btn">Send ➔</button>
+      </form>
+
+      <!-- Action & Live Vision Status Bar -->
+      <div style="display:flex; align-items:center; justify-content:space-between; width:100%; border-top:1px solid rgba(255,255,255,0.06); padding-top:4px; font-size:10.5px; flex-wrap:wrap; gap:4px;">
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <span style="color:var(--accent); font-weight:600;" id="theaterVideoStatus">● AI Ingesting Video Stream</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+          <label style="display:flex; align-items:center; gap:4px; color:var(--text-muted); cursor:pointer;">
+            <input type="checkbox" id="theaterAutoChimeIn" checked>
+            <span>Auto-Chime</span>
+          </label>
+          <button type="button" class="btn-primary" onclick="askCompanionAboutVideo()" style="padding:2px 9px; font-size:10.5px; background:rgba(229,192,123,0.15); color:#e5c07b; border:1px solid rgba(229,192,123,0.3); border-radius:6px;">💬 Ask Thoughts</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN VOICE CALL OVERLAY --><!-- FULLSCREEN VOICE CALL OVERLAY --><!-- FULLSCREEN VOICE CALL OVERLAY -->
+  <div class="voice-call-overlay" id="voiceCallModal">
+    <div style="display:flex; flex-direction:column; align-items:center; text-align:center;">
+      <div class="voice-avatar-halo" id="voiceAvatarHalo">
+        <div class="char-avatar" id="voiceCallAvatar" style="width:110px; height:110px; font-size:40px; border-radius:50%; box-shadow:0 8px 32px rgba(0,0,0,0.6);">Y</div>
+      </div>
+      <h2 style="font-size:20px; font-weight:700; margin-top:14px; color:var(--text-primary);" id="voiceCallBotName">Yuna</h2>
+      <div style="font-size:11px; color:var(--accent); font-weight:600; text-transform:uppercase; letter-spacing:1px; margin-top:4px;" id="voiceCallStatus">Connected • Listening</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; align-items:center; width:100%; max-width:580px;">
+      <canvas class="voice-wave-canvas" id="voiceWaveCanvas"></canvas>
+      <div class="voice-mic-level-container" title="Real-time Microphone Decibel Volume">
+        <div class="voice-mic-level-bar" id="voiceMicLevelBar"></div>
+      </div>
+      <div class="voice-caption-box" id="voiceCaptionBox">
+        <em>Listening for your voice... speak anytime</em>
+      </div>
+    </div>
+
+    <div class="voice-controls">
+      <button type="button" class="voice-ctrl-btn" id="voiceMicToggleBtn" onclick="toggleVoiceCallMic()" title="Toggle Microphone Permission & Mute">
+        🎙️
+      </button>
+      <button type="button" class="voice-ctrl-btn talk-btn" id="voiceTalkBtn" onclick="handleVoicePushToTalk()" title="Tap to Speak / Done Speaking">
+        <span id="voiceTalkBtnLabel">🎙️ Tap to Speak</span>
+      </button>
+      <button type="button" class="voice-ctrl-btn end-call" onclick="endVoiceCall()" title="End Voice Call">
+        📞
+      </button>
+      <button type="button" class="voice-ctrl-btn" id="voiceSpeakerToggleBtn" onclick="toggleVoiceCallSpeaker()" title="Mute/Unmute Speaker">
+        🔊
+      </button>
+    </div>
+  </div>
+
+  <!-- VIEW 6: USER PROFILE -->
+  <div class="view-panel" id="view-profile" style="display:none;">
+    <div class="top-action-bar">
+      <div>
+        <div class="section-title">User Profile</div>
+        <div class="section-sub">Personalize your identity, memory context, and custom chat bubble palettes</div>
+      </div>
+    </div>
+
+    <div class="profile-grid">
+      <div>
+        <div class="profile-card">
+          <div class="field">
+            <label>Your Profile Picture</label>
+            <div class="pfp-zone" id="userPfpZone" style="height:110px;" onclick="document.getElementById('userPfpInput').click()">
+              <img id="userPfpImg" style="display:none;" alt="">
+              <div class="pfp-overlay">Click to change</div>
+              <div class="pfp-placeholder" id="userPfpPlaceholder">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <span>Upload User Avatar</span>
+              </div>
+            </div>
+            <input type="file" id="userPfpInput" accept="image/*" style="display:none;" onchange="handleUserPfp(event)">
+          </div>
+
+          <div class="field">
+            <label>Your Display Name</label>
+            <input type="text" id="userNameInput" placeholder="e.g. Commander, Alex, Traveler" value="User">
+          </div>
+
