@@ -857,9 +857,9 @@ async def ask_gemini(system_msg, history, prompt, cfg, images=None, audios=None)
     if time.time() < gemini_blocked_until:
         return f"Gemini rate limited. Retry in {int(gemini_blocked_until - time.time())}s.", True
     
-    raw_model = (cfg.get("video_watching_model") or cfg.get("gemini_vision_model") or cfg.get("gemini_model") or "gemini-2.0-flash").strip() or "gemini-2.0-flash"
+    raw_model = (cfg.get("video_watching_model") or cfg.get("gemini_vision_model") or cfg.get("gemini_model") or "gemini-3.6-flash").strip() or "gemini-3.6-flash"
     candidates = [raw_model]
-    for m in ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.5-flash"]:
+    for m in ["gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest", "gemini-flash-lite-latest"]:
         if m not in candidates:
             candidates.append(m)
 
@@ -910,10 +910,14 @@ async def ask_gemini(system_msg, history, prompt, cfg, images=None, audios=None)
                             continue
                         return f"Gemini Error: {err}", True
                     try:
-                        reply = data["candidates"][0]["content"]["parts"][0]["text"]
-                        if reply and reply.strip():
-                            return reply.strip(), False
-                    except (KeyError, IndexError):
+                        cands = data.get("candidates", [])
+                        if cands:
+                            parts = cands[0].get("content", {}).get("parts", [])
+                            texts = [p.get("text", "") for p in parts if isinstance(p, dict) and p.get("text")]
+                            reply = "".join(texts).strip()
+                            if reply:
+                                return reply, False
+                    except Exception:
                         continue
             except Exception:
                 continue
@@ -1392,6 +1396,28 @@ async def ask_openrouter(history, prompt, cfg, system_msg=None, images=None):
                     retry_after = min(retry_after, 3600)
                     openrouter_blocked_until = time.time() + retry_after
                     return f"OpenRouter rate limited. Retry in {retry_after}s.", True
+                if resp.status == 402:
+                    # Auto-fallback: reduce max_tokens to what the account can afford
+                    m_afford = re.search(r'can only afford (\d+)', text)
+                    new_max = int(m_afford.group(1)) if m_afford else 150
+                    if new_max > 20 and payload["max_tokens"] > new_max:
+                        payload["max_tokens"] = max(20, new_max - 5)
+                        async with session.post(
+                            "https://openrouter.ai/api/v1/chat/completions",
+                            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
+                                     "HTTP-Referer": "https://localhost", "X-Title": "DiscordBot"},
+                            json=payload, timeout=aiohttp.ClientTimeout(total=45),
+                        ) as r2:
+                            if r2.status == 200:
+                                d2 = await r2.json()
+                                try:
+                                    msg = d2["choices"][0]["message"]
+                                    reply = msg.get("content") or msg.get("reasoning")
+                                    if reply and reply.strip():
+                                        return reply.strip(), False
+                                except Exception:
+                                    pass
+                    return f"OpenRouter Error 402 (Insufficient credits): {text[:400]}", True
                 if resp.status != 200:
                     return f"OpenRouter Error {resp.status}: {text[:400]}", True
                 data = await resp.json()
@@ -1525,9 +1551,9 @@ async def ask_gemini_vision(system_msg, prompt, image_bytes_or_list, mime_type, 
     if time.time() < gemini_blocked_until:
         return f"Gemini rate limited. Retry in {int(gemini_blocked_until - time.time())}s.", True
 
-    raw_model = (cfg.get("gemini_vision_model", "gemini-3-flash-preview") or "").strip() or "gemini-3-flash-preview"
+    raw_model = (cfg.get("gemini_vision_model", "gemini-3.6-flash") or "").strip() or "gemini-3.6-flash"
     candidates = [raw_model]
-    for m in ["gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-flash-lite-latest", "gemini-2.0-flash"]:
+    for m in ["gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest", "gemini-flash-lite-latest"]:
         if m not in candidates:
             candidates.append(m)
 
@@ -1571,10 +1597,14 @@ async def ask_gemini_vision(system_msg, prompt, image_bytes_or_list, mime_type, 
                             return f"Gemini vision quota exceeded.", True
                         continue
                     try:
-                        reply = data["candidates"][0]["content"]["parts"][0]["text"]
-                        if reply and reply.strip():
-                            return reply.strip(), False
-                    except (KeyError, IndexError):
+                        cands = data.get("candidates", [])
+                        if cands:
+                            parts = cands[0].get("content", {}).get("parts", [])
+                            texts = [p.get("text", "") for p in parts if isinstance(p, dict) and p.get("text")]
+                            reply = "".join(texts).strip()
+                            if reply:
+                                return reply, False
+                    except Exception:
                         continue
             except Exception:
                 continue

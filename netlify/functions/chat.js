@@ -334,7 +334,7 @@ Stay strictly in character as ${botName} at all times. Speak directly, authentic
     // =========================================================================
     if (!reply && (userGeminiKey || process.env.GEMINI_KEY)) {
       const gKey = userGeminiKey || process.env.GEMINI_KEY || '';
-      const geminiCandidates = ['gemini-3.5-flash', 'gemini-3.1-flash-lite', 'gemini-flash-latest', 'gemini-3.5-flash-lite'];
+      const geminiCandidates = ['gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest'];
       for (const gm of geminiCandidates) {
         try {
           const contents = [];
