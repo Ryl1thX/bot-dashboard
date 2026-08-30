@@ -932,7 +932,7 @@ async def ask_groq(history, prompt, cfg, system_msg=None, images=None):
         if gm not in groq_candidates:
             groq_candidates.append(gm)
 
-    sys_content = system_msg if system_msg is not None else cfg.get("personality", "")
+    sys_content = system_msg or cfg.get("personality", "")
     messages = []
     if sys_content and sys_content.strip():
         messages.append({"role": "system", "content": sys_content.strip()})
@@ -1348,7 +1348,7 @@ async def ask_openrouter(history, prompt, cfg, system_msg=None, images=None):
             return cfg["custom_model"].strip()
         return cfg.get("model", "meta-llama/llama-3.3-70b-instruct:free")
 
-    sys_content = system_msg if system_msg is not None else cfg.get("personality", "")
+    sys_content = system_msg or cfg.get("personality", "")
     messages = []
     if sys_content and sys_content.strip():
         messages.append({"role": "system", "content": sys_content.strip()})
@@ -1433,7 +1433,7 @@ async def ask_huggingface(history, prompt, cfg, system_msg=None):
 
     # Sanitize and merge messages to prevent 400 Bad Request on strict HF endpoints
     messages = []
-    sys_content = (system_msg if system_msg is not None else cfg.get("personality", "")).strip()
+    sys_content = (system_msg or cfg.get("personality", "")).strip()
     if sys_content:
         messages.append({"role": "system", "content": sys_content})
     for h in history:
@@ -5149,6 +5149,57 @@ async def sync_interaction_count_to_supabase(bot_id: str, count: int):
     except Exception:
         pass
 
+async def sync_bot_crud_to_supabase(bot_id: str, method: str, bot_dict: dict = None):
+    """Syncs bot creation, updates, and deletions to Supabase so Netlify frontend stays in sync with localhost."""
+    if not SUPABASE_SERVICE_KEY or not SUPABASE_URL or not bot_id:
+        return
+    try:
+        url = f"{SUPABASE_URL}/rest/v1/user_bots?bot_id=eq.{bot_id}"
+        headers = {
+            "apikey": SUPABASE_SERVICE_KEY,
+            "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        }
+        async with aiohttp.ClientSession() as session:
+            if method == "DELETE":
+                async with session.delete(url, headers=headers): pass
+                return
+                
+            async with session.get(url, headers=headers) as resp:
+                if resp.status == 200:
+                    rows = await resp.json()
+                    now_str = time.strftime('%Y-%m-%dT%H:%M:%S.000Z', time.gmtime())
+                    if rows and len(rows) > 0:
+                        payload = {
+                            "settings": bot_dict.get("config", {}),
+                            "bot_name": bot_dict.get("bot_name", "Bot"),
+                            "updated_at": now_str
+                        }
+                        async with session.patch(url, headers=headers, json=payload): pass
+                    else:
+                        payload = {
+                            "bot_id": bot_id,
+                            "user_id": bot_dict.get("owner_id", ""),
+                            "bot_name": bot_dict.get("bot_name", "Bot"),
+                            "is_active": True,
+                            "created_at": now_str,
+                            "updated_at": now_str,
+                            "settings": bot_dict.get("config", {})
+                        }
+                        token = bot_dict.get("token", "")
+                        if token:
+                            if fernet:
+                                try:
+                                    payload["encrypted_token"] = fernet.encrypt(token.encode()).decode()
+                                except: pass
+                            else:
+                                payload["discord_token"] = token
+                                
+                        async with session.post(f"{SUPABASE_URL}/rest/v1/user_bots", headers=headers, json=payload): pass
+    except Exception as e:
+        print(f"[BRIDGE] sync_bot_crud_to_supabase error: {e}")
+
 def record_bot_interaction(bot_id: str):
     if not bot_id:
         return 0
@@ -5496,6 +5547,8 @@ def api_bots_list_or_add():
             except Exception:
                 pass
                 
+        asyncio.run_coroutine_threadsafe(sync_bot_crud_to_supabase(bot_id, "POST", bot_dict), bot_loop)
+                
         return jsonify({"ok": True, "bot": {
             "id": bot_id,
             "name": name,
@@ -5732,6 +5785,7 @@ def api_bot_single_crud(bot_id):
                 os.remove(path)
             except Exception:
                 pass
+        asyncio.run_coroutine_threadsafe(sync_bot_crud_to_supabase(bot_id, "DELETE"), bot_loop)
         return jsonify({"ok": True, "deleted": bot_id})
 
     # POST - update bot config
@@ -5762,6 +5816,14 @@ def api_bot_single_crud(bot_id):
         if user_id and not file_data.get("owner_id"):
             file_data["owner_id"] = user_id
         _atomic_json_save(path, file_data, backup=False)
+
+    bd = {
+        "bot_name": name,
+        "config": cfg,
+        "owner_id": bot_obj.owner_id if bot_obj else file_data.get("owner_id", ""),
+        "token": bot_obj.token if bot_obj else file_data.get("token", "")
+    }
+    asyncio.run_coroutine_threadsafe(sync_bot_crud_to_supabase(bot_id, "PATCH", bd), bot_loop)
 
     return jsonify({
         "ok": True,
@@ -5804,8 +5866,19 @@ def api_web_chat():
             except Exception:
                 pass
                 
+
+    bot_name = name if 'name' in locals() else (cfg.get("name") or "AI Persona")
+    identity_directive = f"""[STRICT CHARACTER DIRECTIVE]
+You are strictly {bot_name}. You are NOT an AI assistant, customer service chatbot, or corporate language model.
+NEVER use generic corporate assistant phrases (e.g. "Let's delve deeper into this", "What are your thoughts?", "How can I assist you?", "As an AI").
+NEVER write synthetic narrator stage directions or repetitive physical actions in asterisks.
+Stay strictly in character as {bot_name} at all times. Speak directly, authentically, and vividly in character."""
+
     if system_prompt:
-        cfg["personality"] = system_prompt
+        cfg["personality"] = f"{identity_directive}\n\n{system_prompt}"
+    else:
+        cfg["personality"] = f"{identity_directive}\n\n{cfg.get('personality', '')}"
+
         
     images = []
     if image_data:
@@ -5856,21 +5929,21 @@ def api_web_chat():
                 
                 try:
                     if sprov == "gemini":
-                        reply, err = await ask_gemini(system_prompt or slot_cfg.get("personality", ""), history, prompt, slot_cfg, images=images, audios=audios)
+                        reply, err = await ask_gemini(slot_cfg.get("personality", ""), history, prompt, slot_cfg, images=images, audios=audios)
                     elif sprov == "groq":
-                        reply, err = await ask_groq(history, prompt, slot_cfg, system_msg=system_prompt, images=images)
+                        reply, err = await ask_groq(history, prompt, slot_cfg, system_msg=cfg.get("personality", ""), images=images)
                     elif sprov in ("custom", "literouter"):
-                        reply, err = await ask_custom(history, prompt, slot_cfg, system_msg=system_prompt, images=images)
+                        reply, err = await ask_custom(history, prompt, slot_cfg, system_msg=cfg.get("personality", ""), images=images)
                     elif sprov == "deepseek":
-                        reply, err = await ask_deepseek(history, prompt, slot_cfg, system_msg=system_prompt, images=images)
+                        reply, err = await ask_deepseek(history, prompt, slot_cfg, system_msg=cfg.get("personality", ""), images=images)
                     elif sprov == "mistral":
-                        reply, err = await ask_mistral(history, prompt, slot_cfg, system_msg=system_prompt, images=images)
+                        reply, err = await ask_mistral(history, prompt, slot_cfg, system_msg=cfg.get("personality", ""), images=images)
                     elif sprov == "openrouter":
-                        reply, err = await ask_openrouter(history, prompt, slot_cfg, system_msg=system_prompt, images=images)
+                        reply, err = await ask_openrouter(history, prompt, slot_cfg, system_msg=cfg.get("personality", ""), images=images)
                     elif sprov == "openai":
-                        reply, err = await ask_openai(history, prompt, slot_cfg, system_msg=system_prompt, images=images)
+                        reply, err = await ask_openai(history, prompt, slot_cfg, system_msg=cfg.get("personality", ""), images=images)
                     else:
-                        reply, err = await ask_gemini(system_prompt or slot_cfg.get("personality", ""), history, prompt, slot_cfg, images=images, audios=audios)
+                        reply, err = await ask_gemini(slot_cfg.get("personality", ""), history, prompt, slot_cfg, images=images, audios=audios)
                         
                     if not err and reply and reply.strip() and not ("rate limited" in reply.lower() or "quota exceeded" in reply.lower()):
                         return reply, False
@@ -5879,42 +5952,42 @@ def api_web_chat():
 
         # 2. Specific configured provider
         if prov == "gemini":
-            reply, err = await ask_gemini(system_prompt or cfg.get("personality", ""), history, prompt, cfg, images=images, audios=audios)
+            reply, err = await ask_gemini(cfg.get("personality", ""), history, prompt, cfg, images=images, audios=audios)
             if not err and reply and reply.strip() and not ("rate limited" in reply.lower() or "quota exceeded" in reply.lower()):
                 return reply, False
         elif prov == "groq":
-            reply, err = await ask_groq(history, prompt, cfg, system_msg=system_prompt, images=images)
+            reply, err = await ask_groq(history, prompt, cfg, system_msg=cfg.get("personality", ""), images=images)
             if not err and reply and reply.strip():
                 return reply, False
         elif prov in ("custom", "literouter"):
-            reply, err = await ask_custom(history, prompt, cfg, system_msg=system_prompt, images=images)
+            reply, err = await ask_custom(history, prompt, cfg, system_msg=cfg.get("personality", ""), images=images)
             if not err and reply and reply.strip():
                 return reply, False
         elif prov == "mistral":
-            reply, err = await ask_mistral(history, prompt, cfg, system_msg=system_prompt, images=images)
+            reply, err = await ask_mistral(history, prompt, cfg, system_msg=cfg.get("personality", ""), images=images)
             if not err and reply and reply.strip():
                 return reply, False
         elif prov == "openrouter":
-            reply, err = await ask_openrouter(history, prompt, cfg, system_msg=system_prompt, images=images)
+            reply, err = await ask_openrouter(history, prompt, cfg, system_msg=cfg.get("personality", ""), images=images)
             if not err and reply and reply.strip():
                 return reply, False
         elif prov == "deepseek":
-            reply, err = await ask_deepseek(history, prompt, cfg, system_msg=system_prompt, images=images)
+            reply, err = await ask_deepseek(history, prompt, cfg, system_msg=cfg.get("personality", ""), images=images)
             if not err and reply and reply.strip():
                 return reply, False
         elif prov == "openai":
-            reply, err = await ask_openai(history, prompt, cfg, system_msg=system_prompt, images=images)
+            reply, err = await ask_openai(history, prompt, cfg, system_msg=cfg.get("personality", ""), images=images)
             if not err and reply and reply.strip():
                 return reply, False
 
         # 3. Auto Cascade: Gemini -> Groq -> OpenRouter -> Mistral -> DeepSeek -> OpenAI
         providers_to_try = [
-            lambda: ask_gemini(system_prompt or cfg.get("personality", ""), history, prompt, cfg, images=images, audios=audios),
-            lambda: ask_groq(history, prompt, cfg, system_msg=system_prompt, images=images),
-            lambda: ask_openrouter(history, prompt, cfg, system_msg=system_prompt, images=images),
-            lambda: ask_mistral(history, prompt, cfg, system_msg=system_prompt, images=images),
-            lambda: ask_deepseek(history, prompt, cfg, system_msg=system_prompt, images=images),
-            lambda: ask_openai(history, prompt, cfg, system_msg=system_prompt, images=images),
+            lambda: ask_gemini(cfg.get("personality", ""), history, prompt, cfg, images=images, audios=audios),
+            lambda: ask_groq(history, prompt, cfg, system_msg=cfg.get("personality", ""), images=images),
+            lambda: ask_openrouter(history, prompt, cfg, system_msg=cfg.get("personality", ""), images=images),
+            lambda: ask_mistral(history, prompt, cfg, system_msg=cfg.get("personality", ""), images=images),
+            lambda: ask_deepseek(history, prompt, cfg, system_msg=cfg.get("personality", ""), images=images),
+            lambda: ask_openai(history, prompt, cfg, system_msg=cfg.get("personality", ""), images=images),
         ]
         for try_fn in providers_to_try:
             try:

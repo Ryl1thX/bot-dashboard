@@ -112,6 +112,7 @@ export default async function handler(req, res) {
     // GET: List bots with Auto-Deduplication
     // ==========================================
     if (method === 'GET') {
+      const scope = queryParams.scope || 'all';
       const resp = await fetch(`${SUPABASE_URL}/rest/v1/user_bots?select=*&order=created_at.desc`, {
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,
@@ -136,8 +137,8 @@ export default async function handler(req, res) {
           const isPrivate = (privacy === 'private');
           const ownerUid = String(sb.user_id || cfg.owner_id || '');
 
-          // Relaxed privacy check: allow the user to see all their imported bots
-          if (isPrivate && !isAdmin && (!reqUserId || (ownerUid !== reqUserId && ownerUid !== '966725838252933190' && ownerUid !== '954003399442042950'))) {
+          // Only filter by privacy if requested specifically by scope=mine
+          if (scope === 'mine' && !isAdmin && (!reqUserId || (ownerUid !== reqUserId && String(cfg.owner_id) !== reqUserId && String(sb.user_id) !== reqUserId))) {
             continue;
           }
 
