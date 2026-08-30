@@ -5820,7 +5820,7 @@ def api_bot_single_crud(bot_id):
     if not user_id and token_str:
         user_id = verify_supabase_user(token_str)
         
-    is_owner = (ADMIN_USER_ID and user_id == ADMIN_USER_ID)
+    is_owner = bool(OWNER_ID and user_id == str(OWNER_ID))
     
     bot_obj = manager.bots.get(bot_id)
     path = os.path.join(USERS_DIR, f"{bot_id}.json")
@@ -5943,6 +5943,17 @@ def api_web_chat():
                 for bitem in b_list:
                     if str(bitem.get("id") or bitem.get("bot_id")) == bot_id:
                         cfg.update(bitem.get("config", {}))
+                        break
+            except Exception:
+                pass
+        if bot_id and not cfg.get("personality") and os.path.exists(os.path.join(SCRIPT_DIR, "community_bots.json")):
+            try:
+                with open(os.path.join(SCRIPT_DIR, "community_bots.json"), "r", encoding="utf-8") as f:
+                    cjson = json.load(f)
+                c_list = cjson if isinstance(cjson, list) else cjson.get("bots", [])
+                for bitem in c_list:
+                    if str(bitem.get("id") or bitem.get("bot_id")) == bot_id:
+                        cfg.update(bitem.get("config", {}) or bitem)
                         break
             except Exception:
                 pass
