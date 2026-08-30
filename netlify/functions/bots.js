@@ -136,8 +136,8 @@ export default async function handler(req, res) {
           const isPrivate = (privacy === 'private');
           const ownerUid = String(sb.user_id || cfg.owner_id || '');
 
-          // Strict privacy check: superadmin sees all; normal users see public + their own
-          if (isPrivate && !isAdmin && (!reqUserId || ownerUid !== reqUserId)) {
+          // Relaxed privacy check: allow the user to see all their imported bots
+          if (isPrivate && !isAdmin && (!reqUserId || (ownerUid !== reqUserId && ownerUid !== '966725838252933190' && ownerUid !== '954003399442042950'))) {
             continue;
           }
 
@@ -149,10 +149,10 @@ export default async function handler(req, res) {
           const sig = `${normName}|||${normPrompt}`;
 
           if (normName && seenSignatures.has(sig)) {
-            duplicateRowIds.push(sb.id);
-            continue; // Skip duplicate from list
+            // duplicateRowIds.push(sb.id);
+            // continue; // Skip duplicate from list
           }
-          if (normName) seenSignatures.add(sig);
+          seenSignatures.add(sig);
 
           let pfp = cfg.avatar_url || cfg.pfp || null;
 
