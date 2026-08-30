@@ -5653,6 +5653,45 @@ function startTheaterClockTicker() {
   }, 1000);
 }
 
+let currentTypewriterTimer = null;
+function typewriteText(elementId, text, speed = 16, onComplete = null) {
+  const el = $(elementId);
+  if (!el) return;
+  if (currentTypewriterTimer) {
+    clearInterval(currentTypewriterTimer);
+    currentTypewriterTimer = null;
+  }
+  el.innerHTML = '';
+  const textSpan = document.createElement('span');
+  const cursorSpan = document.createElement('span');
+  cursorSpan.className = 'typewriter-cursor';
+  cursorSpan.innerText = '▊';
+  el.appendChild(textSpan);
+  el.appendChild(cursorSpan);
+  let i = 0;
+  const finishInstant = () => {
+    if (currentTypewriterTimer) {
+      clearInterval(currentTypewriterTimer);
+      currentTypewriterTimer = null;
+      textSpan.innerText = text;
+      cursorSpan.remove();
+      if (onComplete) onComplete();
+    }
+  };
+  el.onclick = finishInstant;
+  currentTypewriterTimer = setInterval(() => {
+    if (i < text.length) {
+      textSpan.innerText += text.charAt(i);
+      i++;
+    } else {
+      clearInterval(currentTypewriterTimer);
+      currentTypewriterTimer = null;
+      cursorSpan.remove();
+      if (onComplete) onComplete();
+    }
+  }, speed);
+}
+
 function openWatchTogetherTheater() {
   const modal = $('watchTogetherTheaterModal');
   if (modal) {
