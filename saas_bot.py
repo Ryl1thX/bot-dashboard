@@ -5375,18 +5375,6 @@ def after_request(response):
     return response
 
 @app.route("/")
-@app.route("/dashboard")
-@app.route("/dashboard.html")
-def dashboard_page():
-    path = os.path.join(SCRIPT_DIR, "dashboard.html")
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return Response(f.read(), mimetype="text/html; charset=utf-8")
-        except Exception:
-            pass
-    return Response(DASHBOARD_HTML, mimetype="text/html; charset=utf-8")
-
 @app.route("/studio")
 @app.route("/studio.html")
 @app.route("/chat")
@@ -5408,6 +5396,21 @@ def studio_page():
             except Exception as e:
                 return f"Studio read error: {e}", 500
     return "Studio index.html not found", 404
+
+@app.route("/dashboard")
+@app.route("/dashboard.html")
+@app.route("/drafting")
+@app.route("/drafting.html")
+@app.route("/desk")
+def dashboard_page():
+    path = os.path.join(SCRIPT_DIR, "dashboard.html")
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return Response(f.read(), mimetype="text/html; charset=utf-8")
+        except Exception:
+            pass
+    return Response(DASHBOARD_HTML, mimetype="text/html; charset=utf-8")
 
 @app.route("/designs/<path:filename>")
 def serve_designs(filename):
