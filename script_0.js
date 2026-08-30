@@ -1990,7 +1990,7 @@ function cleanLlmReply(rawText) {
     cand = splitParts[0].trim();
     if (cand.length > 5) text = cand;
   } else {
-    text = text.replace(/^(?:Here'?s\s+(?:a\s+)?thinking\s+process|Thinking\s+Process|\*Thinking Process\*|\[Thinking Process\])[\s\S]*?(?=\n\n(?:[A-Z*"\'\u201c\u2018]|[\u4e00-\u9fa5]|$))/i, '');
+    text = text.replace(/^(?:Here'?s\s+(?:a\s+)?thinking\s+process|Thinking\s+Process|\*Thinking Process\*|\[Thinking Process\]|The user is asking|According to (?:my )?instructions|Analysis:|User Input:?)[\s\S]*?(?=\n\n(?:[A-Z*"\'\u201c\u2018]|[\u4e00-\u9fa5]|$))/i, '').replace(/^(?:So I need to:?|Plan:|Steps:?)[\s\S]*?(?=\n\n(?:[A-Z*"\'\u201c\u2018]|[\u4e00-\u9fa5]|$))/i, '');
     text = text.replace(/^(?:\d+\.\s+\*\*[A-Za-z\s]+:\*\*|\d+\.\s+Analyze User Input)[\s\S]*?(?=\n\n(?:[A-Z*"\'\u201c\u2018]|[\u4e00-\u9fa5]|$))/i, '');
   }
   // 3. Clean any leftover Draft: / Response: markers
