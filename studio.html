@@ -1652,7 +1652,7 @@ body.sidebar-hidden .sidebar {
 
         <!-- SETTINGS -->
         <button class="chat-top-btn" onclick="openSettingsModal()" title="Chat Controls">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33-1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09A1.65 1.65 0 0 0-1.51 1z"></path></svg>
         </button>
       </div>
     </div>
@@ -1708,18 +1708,17 @@ body.sidebar-hidden .sidebar {
   </div>
 
   <!-- FULLSCREEN CINEMA / THEATER OVERLAY -->
-  <!-- FULLSCREEN CINEMA / THEATER OVERLAY -->
   <div class="theater-cinema-overlay" id="watchTogetherTheaterModal">
     <!-- Responsive Floating Top Bar -->
     <div class="theater-top-bar">
       <!-- Row 1: Header Badge + Action Buttons -->
       <div class="theater-top-row1" style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:8px;">
-        <div style="display:flex; align-items:center; gap:6px; min-width:0; overflow:hidden;">
-          <span style="font-size:14px; flex-shrink:0;">🍿</span>
-          <span style="font-size:12px; font-weight:700; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="theaterBotBadge">Co-Watching with Yuna</span>
+        <div style="display:flex; align-items:center; gap:8px; min-width:0; overflow:hidden;">
+          <div id="theaterHeaderAvatar" style="width:24px; height:24px; border-radius:50%; overflow:hidden; flex-shrink:0; display:grid; place-items:center; background:var(--accent); color:#fff; font-size:11px; font-weight:700;">✦</div>
+          <span style="font-size:12.5px; font-weight:700; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" id="theaterBotBadge">Co-Watching with Yuna</span>
         </div>
         <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-          <button type="button" class="chat-top-btn" id="theaterMicToggleBtn" onclick="toggleTheaterContinuousEar()" style="padding:4px 10px; font-size:11px; border-radius:14px; background:rgba(97,175,239,0.15); color:#61afef; border:1px solid rgba(97,175,239,0.3);" title="Toggle Call Mode / Mic in Theater">🎙️ Call Mode</button>
+          <a id="theaterExternalYtBtn" href="#" target="_blank" rel="noopener noreferrer" class="chat-top-btn" style="padding:4px 10px; font-size:11px; border-radius:14px; text-decoration:none; display:none; color:#ff4d4f; border:1px solid rgba(255,77,79,0.3); background:rgba(255,77,79,0.1);" title="Open original video on YouTube">🔗 Open on YouTube</a>
           <button type="button" class="chat-top-btn" id="theaterScreenFeedBtn" onclick="toggleTheaterScreenFeed()" style="padding:4px 10px; font-size:11px; border-radius:14px; background:rgba(229,192,123,0.15); color:#e5c07b; border:1px solid rgba(229,192,123,0.3);" title="Stream screen/tab to AI">🖥️ Screen Feed</button>
           <button type="button" class="chat-top-btn" onclick="closeWatchTogetherTheater()" style="padding:4px 10px; font-size:11px; border-radius:14px;">✕ Close</button>
         </div>
@@ -1735,30 +1734,28 @@ body.sidebar-hidden .sidebar {
 
     <!-- Main Video Screen -->
     <div class="theater-screen-wrapper">
-      <iframe class="theater-iframe" id="theaterIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      <iframe class="theater-iframe" id="theaterIframe" src="" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
       <video class="theater-iframe" id="theaterHtml5Video" style="display:none; width:100%; height:100%; object-fit:contain;" controls autoplay playsinline></video>
     </div>
 
     <!-- Floating Cinematic Companion HUD -->
     <div class="theater-companion-hud">
       <!-- Typewriter Speech Bubble -->
-      <div class="theater-reaction-bubble" id="theaterReactionBubble" title="Click to fast-forward text">
-        <span style="font-size:16px; flex-shrink:0;">🍿</span>
-        <div id="theaterReactionText" class="theater-reaction-text">Ready to watch together! Paste a YouTube link or choose a video above.</div>
+      <div class="theater-reaction-bubble" id="theaterReactionBubble" title="Click to fast-forward text" style="display:flex; align-items:flex-start; gap:10px;">
+        <div id="theaterBubbleAvatar" style="width:30px; height:30px; border-radius:50%; overflow:hidden; flex-shrink:0; display:grid; place-items:center; background:var(--accent); color:#fff; font-size:12px; font-weight:700;">✦</div>
+        <div id="theaterReactionText" class="theater-reaction-text" style="flex:1; min-width:0;">Ready to watch together! Paste a YouTube link or choose a video above.</div>
       </div>
 
-      <!-- Quick Chat Input Box & Mic Button -->
+      <!-- Quick Chat Input Box -->
       <form class="theater-type-form" onsubmit="sendTheaterUserMessage(event)" style="display:flex; align-items:center; gap:6px; width:100%;">
-        <button type="button" class="theater-send-btn" id="theaterMicBtn" onclick="toggleTheaterContinuousEar()" style="background:rgba(97,175,239,0.15); color:#61afef; border:1px solid rgba(97,175,239,0.3); padding:6px 10px; border-radius:8px; cursor:pointer;" title="Voice Call / Talk to AI">🎙️</button>
-        <input type="text" class="theater-chat-input" id="theaterChatInput" placeholder="Talk to companion (or speak hands-free with Call Mode)..." autocomplete="off" style="flex:1; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:6px 12px; color:#fff; font-size:12px;">
-        <button type="submit" class="theater-send-btn" style="background:var(--accent); color:#fff; border:none; padding:6px 14px; border-radius:8px; font-weight:600; cursor:pointer;">Send ➔</button>
+        <input type="text" class="theater-chat-input" id="theaterChatInput" placeholder="Talk to companion about what you're watching..." autocomplete="off" style="flex:1; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:7px 12px; color:#fff; font-size:12px;">
+        <button type="submit" class="theater-send-btn" style="background:var(--accent); color:#fff; border:none; padding:7px 16px; border-radius:8px; font-weight:600; cursor:pointer;">Send ➔</button>
       </form>
 
-      <!-- Action & Live Vision / Mic Status Bar -->
+      <!-- Action & Live Vision Status Bar -->
       <div style="display:flex; align-items:center; justify-content:space-between; width:100%; border-top:1px solid rgba(255,255,255,0.06); padding-top:4px; font-size:10.5px; flex-wrap:wrap; gap:4px;">
         <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
           <span style="color:var(--accent); font-weight:600;" id="theaterVideoStatus">● AI Video Ingestion Ready</span>
-          <span id="theaterMicStatus" style="font-size:10.5px; color:#61afef; display:none;">● 🎤 Listening for your voice...</span>
         </div>
         <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
           <label style="display:flex; align-items:center; gap:4px; color:var(--text-muted); cursor:pointer;">
@@ -5663,6 +5660,11 @@ function openWatchTogetherTheater() {
       if ('speechSynthesis' in window) window.speechSynthesis.resume();
     } catch(e) {}
     if (activePersona) {
+      const botPfp = activePersona.pfp || (activePersona.config && activePersona.config.avatar_url) || null;
+      const botInitial = (activePersona.name && activePersona.name[0].toUpperCase()) || '✦';
+      const avatarHtml = renderAvatarHtml(botPfp, botInitial);
+      if ($('theaterHeaderAvatar')) $('theaterHeaderAvatar').innerHTML = avatarHtml;
+      if ($('theaterBubbleAvatar')) $('theaterBubbleAvatar').innerHTML = avatarHtml;
       $('theaterBotBadge').innerText = `Co-Watching with ${activePersona.name}`;
       if (!watchTogetherCurrentVideo) {
         typewriteText('theaterReactionText', `Ready to watch together! Paste a YouTube link, file, or share your screen above.`);
@@ -5671,8 +5673,7 @@ function openWatchTogetherTheater() {
     updateTheaterFeedStatus();
     startTheaterClipBuffering();
     startTheaterClockTicker();
-    // Theater mic listening disabled - pure video/audio analysis
-    showToast('🍿 Fullscreen Cinema Theater opened');
+    showToast('🍿 Cinema Theater opened');
   }
 }
 
@@ -6246,7 +6247,17 @@ async function loadTheaterYouTubeVideo() {
     const iframe = $('theaterIframe');
     if (iframe) {
       iframe.style.display = 'block';
-      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1&playsinline=1&rel=0`;
+      iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+      iframe.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      iframe.setAttribute('allowfullscreen', 'true');
+      const originParam = (window.location.origin && window.location.origin !== 'null' && !window.location.origin.startsWith('file')) ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
+      iframe.src = `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&enablejsapi=1&playsinline=1&rel=0${originParam}`;
+    }
+
+    const extBtn = $('theaterExternalYtBtn');
+    if (extBtn) {
+      extBtn.href = `https://www.youtube.com/watch?v=${videoId}`;
+      extBtn.style.display = 'inline-flex';
     }
 
     showToast('▶ Playing in Cinema Theater');
@@ -6406,12 +6417,12 @@ function startTheaterCommentaryLoop() {
 
     // EXACT REAL PLAYBACK STATE CHECK
     const playbackState = getExactVideoPlaybackState();
-    if (playbackState.isPaused) {
-      // STOP AUTO COMMENTING WHILE PAUSED!
+    if (playbackState.isPaused && playbackState.isHtml5) {
+      // Only pause commentary if HTML5 video is explicitly paused
       return;
     }
 
-    const curSec = Math.floor(playbackState.currentTime);
+    const curSec = Math.floor(playbackState.currentTime || ((Date.now() - (theaterPlayStartedAt || Date.now())) / 1000));
     const clipResult = await getTheaterTemporalClipStrip();
     let videoAudioDialogue = getRecentVideoDialogueSummary(curSec);
 
@@ -6497,7 +6508,7 @@ function startTheaterCommentaryLoop() {
       logTheaterTerminal('error', 'AUTO_CHIME_ERROR', `Commentary loop error: ${e.message}`, e.stack);
       console.warn('Auto chime notice:', e);
     }
-  }, 22000);
+  }, 16000);
 }
 
 async function handleTheaterUserSpokenOrTypedMessage(userText) {
