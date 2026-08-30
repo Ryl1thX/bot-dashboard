@@ -3895,7 +3895,7 @@ function cleanLlmReply(rawText) {
   return text.trim();
 }
 
-async function executeAiChatRequest(message, systemPrompt, botObj, historyList, imgData) {
+async function executeAiChatRequest(message, systemPrompt, botObj, historyList, imgData, audioData) {
   const bId = (botObj && botObj.id) ? botObj.id : 'bot';
   const uName = userName || 'User';
   const botCfg = (botObj && (botObj.config || botObj.settings)) || {};
@@ -3973,6 +3973,7 @@ async function executeAiChatRequest(message, systemPrompt, botObj, historyList, 
       body: JSON.stringify({
         message: message,
         image_data: imgData,
+        audio_data: audioData,
         bot_id: bId,
         name: botName,
         user_name: uName,
@@ -5659,6 +5660,12 @@ function openWatchTogetherTheater() {
     try {
       if ('speechSynthesis' in window) window.speechSynthesis.resume();
     } catch(e) {}
+
+    // Auto-select a persona if none is active
+    if (!activePersona && typeof allBotsList !== 'undefined' && allBotsList.length > 0) {
+      activePersona = allBotsList[0];
+    }
+
     if (activePersona) {
       const botPfp = activePersona.pfp || (activePersona.config && activePersona.config.avatar_url) || null;
       const botInitial = (activePersona.name && activePersona.name[0].toUpperCase()) || '✦';
@@ -5667,9 +5674,15 @@ function openWatchTogetherTheater() {
       if ($('theaterBubbleAvatar')) $('theaterBubbleAvatar').innerHTML = avatarHtml;
       $('theaterBotBadge').innerText = `Co-Watching with ${activePersona.name}`;
       if (!watchTogetherCurrentVideo) {
-        typewriteText('theaterReactionText', `Ready to watch together! Paste a YouTube link, file, or share your screen above.`);
+        typewriteText('theaterReactionText', `Ready to watch together, ${userName || 'friend'}! Paste a YouTube link or choose a video above.`);
+      }
+    } else {
+      $('theaterBotBadge').innerText = `Co-Watching Cinema`;
+      if (!watchTogetherCurrentVideo) {
+        typewriteText('theaterReactionText', `Ready to watch together! Paste a YouTube link or choose a video above.`);
       }
     }
+
     updateTheaterFeedStatus();
     startTheaterClipBuffering();
     startTheaterClockTicker();
