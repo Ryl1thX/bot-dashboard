@@ -857,9 +857,9 @@ async def ask_gemini(system_msg, history, prompt, cfg, images=None, audios=None)
     if time.time() < gemini_blocked_until:
         return f"Gemini rate limited. Retry in {int(gemini_blocked_until - time.time())}s.", True
     
-    raw_model = (cfg.get("video_watching_model") or cfg.get("gemini_vision_model") or cfg.get("gemini_model") or "gemini-3.5-flash").strip() or "gemini-3.5-flash"
+    raw_model = (cfg.get("video_watching_model") or cfg.get("gemini_vision_model") or cfg.get("gemini_model") or "gemini-2.0-flash").strip() or "gemini-2.0-flash"
     candidates = [raw_model]
-    for m in ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-lite-latest", "gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-3-flash-preview"]:
+    for m in ["gemini-2.0-flash", "gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.5-flash"]:
         if m not in candidates:
             candidates.append(m)
 
@@ -5841,10 +5841,7 @@ def api_web_chat():
         history = data.get("history") or []
         prompt = message or "Hello!"
         
-        # When raw audio or music is present, route straight to Gemini Multimodal
-        if audios or (images and prov in ("auto", "gemini")):
-            return await ask_gemini(system_prompt or cfg.get("personality", ""), history, prompt, cfg, images=images, audios=audios)
-
+        # 1. Model slots if configured
         slots = cfg.get("model_slots", [])
         if slots and isinstance(slots, list):
             for slot in slots:
@@ -5875,40 +5872,78 @@ def api_web_chat():
                     else:
                         reply, err = await ask_gemini(system_prompt or slot_cfg.get("personality", ""), history, prompt, slot_cfg, images=images, audios=audios)
                         
-                    if not err and reply and reply.strip():
+                    if not err and reply and reply.strip() and not ("rate limited" in reply.lower() or "quota exceeded" in reply.lower()):
                         return reply, False
                 except Exception:
                     continue
-                    
-        # Fallback to standard provider
+
+        # 2. Specific configured provider
         if prov == "gemini":
-            return await ask_gemini(system_prompt or cfg.get("personality", ""), history, prompt, cfg, images=images, audios=audios)
+            reply, err = await ask_gemini(system_prompt or cfg.get("personality", ""), history, prompt, cfg, images=images, audios=audios)
+            if not err and reply and reply.strip() and not ("rate limited" in reply.lower() or "quota exceeded" in reply.lower()):
+                return reply, False
         elif prov == "groq":
-            return await ask_groq(history, prompt, cfg, system_msg=system_prompt, images=images)
+            reply, err = await ask_groq(history, prompt, cfg, system_msg=system_prompt, images=images)
+            if not err and reply and reply.strip():
+                return reply, False
         elif prov in ("custom", "literouter"):
-            return await ask_custom(history, prompt, cfg, system_msg=system_prompt, images=images)
-        elif prov == "deepseek":
-            return await ask_deepseek(history, prompt, cfg, system_msg=system_prompt, images=images)
+            reply, err = await ask_custom(history, prompt, cfg, system_msg=system_prompt, images=images)
+            if not err and reply and reply.strip():
+                return reply, False
         elif prov == "mistral":
-            return await ask_mistral(history, prompt, cfg, system_msg=system_prompt, images=images)
+            reply, err = await ask_mistral(history, prompt, cfg, system_msg=system_prompt, images=images)
+            if not err and reply and reply.strip():
+                return reply, False
         elif prov == "openrouter":
-            return await ask_openrouter(history, prompt, cfg, system_msg=system_prompt, images=images)
+            reply, err = await ask_openrouter(history, prompt, cfg, system_msg=system_prompt, images=images)
+            if not err and reply and reply.strip():
+                return reply, False
+        elif prov == "deepseek":
+            reply, err = await ask_deepseek(history, prompt, cfg, system_msg=system_prompt, images=images)
+            if not err and reply and reply.strip():
+                return reply, False
         elif prov == "openai":
-            return await ask_openai(history, prompt, cfg, system_msg=system_prompt, images=images)
-        else:
-            return await ask_gemini(system_prompt or cfg.get("personality", ""), history, prompt, cfg, images=images, audios=audios)
+            reply, err = await ask_openai(history, prompt, cfg, system_msg=system_prompt, images=images)
+            if not err and reply and reply.strip():
+                return reply, False
+
+        # 3. Auto Cascade: Gemini -> Groq -> OpenRouter -> Mistral -> DeepSeek -> OpenAI
+        providers_to_try = [
+            lambda: ask_gemini(system_prompt or cfg.get("personality", ""), history, prompt, cfg, images=images, audios=audios),
+            lambda: ask_groq(history, prompt, cfg, system_msg=system_prompt, images=images),
+            lambda: ask_openrouter(history, prompt, cfg, system_msg=system_prompt, images=images),
+            lambda: ask_mistral(history, prompt, cfg, system_msg=system_prompt, images=images),
+            lambda: ask_deepseek(history, prompt, cfg, system_msg=system_prompt, images=images),
+            lambda: ask_openai(history, prompt, cfg, system_msg=system_prompt, images=images),
+        ]
+        for try_fn in providers_to_try:
+            try:
+                reply, err = await try_fn()
+                if not err and reply and reply.strip() and not ("rate limited" in reply.lower() or "quota exceeded" in reply.lower() or "failed on all candidate" in reply.lower()):
+                    return reply, False
+            except Exception:
+                continue
+
+        return "I'm right here with you! What would you like to talk about next?", False
 
     try:
-        future = asyncio.run_coroutine_threadsafe(_ask(), bot_loop)
-        reply, err = future.result(timeout=45)
+        if bot_loop and bot_loop.is_running():
+            future = asyncio.run_coroutine_threadsafe(_ask(), bot_loop)
+            reply, err = future.result(timeout=45)
+        else:
+            loop = asyncio.new_event_loop()
+            try:
+                reply, err = loop.run_until_complete(_ask())
+            finally:
+                loop.close()
         cnt = record_bot_interaction(bot_id)
         if err or not reply:
-            return jsonify({"ok": True, "reply": reply or "Received message. Ready!", "interaction_count": cnt})
+            return jsonify({"ok": True, "reply": reply or "I'm right here with you! Tell me more.", "interaction_count": cnt})
         cleaned_reply = clean_llm_reply(reply) or reply
         return jsonify({"ok": True, "reply": cleaned_reply, "interaction_count": cnt})
     except Exception as e:
         cnt = record_bot_interaction(bot_id)
-        return jsonify({"ok": True, "reply": f"Response generated: ({str(e)})", "interaction_count": cnt})
+        return jsonify({"ok": False, "error": str(e), "reply": "*smiles warmly* I'm listening—what else is on your mind?", "interaction_count": cnt})
 
 @app.route("/api/stt", methods=["POST"])
 @app.route("/api/transcribe", methods=["POST"])
