@@ -121,7 +121,7 @@ export default async function handler(req, res) {
         }
       });
       if (!resp.ok) {
-        return sendJson(resp.status, { ok: false, error: 'Failed to fetch bots' });
+        return sendJson(resp.status, { ok: false, error: 'Failed to fetch bots: ' + resp.status + ' ' + (await resp.text()) });
       }
       const data = await resp.json();
       const bots = [];
