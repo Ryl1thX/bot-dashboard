@@ -775,7 +775,7 @@ async def download_image(url):
 DEFAULT_CONFIG = {
     "personality": "You are a helpful, friendly, and deeply engaging companion. Speak naturally, express opinions, and remember details about users.",
     "provider": "auto",
-    "gemini_model": "gemini-3-flash-preview",
+    "gemini_model": "gemini-1.5-pro",
     "groq_model": "openai/gpt-oss-120b",
     "mistral_model": "mistral-small-latest",
     "openai_chat_model": "gpt-4o-mini",
@@ -816,7 +816,7 @@ DEFAULT_CONFIG = {
     "vision_enabled": True,
     "vision_provider": "gemini",
     "vision_model": "meta-llama/llama-3.2-11b-vision-instruct",
-    "gemini_vision_model": "gemini-3-flash-preview",
+    "gemini_vision_model": "gemini-1.5-pro",
     "openai_vision_model": "gpt-4o-mini",
     # Auto & Memory
     "auto_search": True,
@@ -857,9 +857,9 @@ async def ask_gemini(system_msg, history, prompt, cfg, images=None, audios=None)
     if time.time() < gemini_blocked_until:
         return f"Gemini rate limited. Retry in {int(gemini_blocked_until - time.time())}s.", True
     
-    raw_model = (cfg.get("video_watching_model") or cfg.get("gemini_vision_model") or cfg.get("gemini_model") or "gemini-3.6-flash").strip() or "gemini-3.6-flash"
+    raw_model = (cfg.get("video_watching_model") or cfg.get("gemini_vision_model") or cfg.get("gemini_model") or "gemini-2.0-flash").strip() or "gemini-2.0-flash"
     candidates = [raw_model]
-    for m in ["gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest", "gemini-flash-lite-latest"]:
+    for m in ["gemini-2.0-flash", "gemini-1.5-flash-8b", "gemini-2.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest"]:
         if m not in candidates:
             candidates.append(m)
 
@@ -1553,9 +1553,9 @@ async def ask_gemini_vision(system_msg, prompt, image_bytes_or_list, mime_type, 
     if time.time() < gemini_blocked_until:
         return f"Gemini rate limited. Retry in {int(gemini_blocked_until - time.time())}s.", True
 
-    raw_model = (cfg.get("gemini_vision_model", "gemini-3.6-flash") or "").strip() or "gemini-3.6-flash"
+    raw_model = (cfg.get("gemini_vision_model", "gemini-2.0-flash") or "").strip() or "gemini-2.0-flash"
     candidates = [raw_model]
-    for m in ["gemini-3.6-flash", "gemini-3.1-flash-lite", "gemini-3.7-flash", "gemini-flash-latest", "gemini-flash-lite-latest"]:
+    for m in ["gemini-2.0-flash", "gemini-1.5-flash-8b", "gemini-2.5-flash", "gemini-flash-latest", "gemini-flash-lite-latest"]:
         if m not in candidates:
             candidates.append(m)
 
@@ -3521,7 +3521,7 @@ class UserBot:
         @self.tree.command(name="setmodel", description="Update the AI model or endpoint for any provider and auto-save (Owner only)")
         @app_commands.describe(
             provider="AI provider to configure (Gemini, Groq, Mistral, OpenAI, Custom/LiteRouter, DeepSeek, OpenRouter, HuggingFace)",
-            model="The exact model name (e.g. gpt-4o-mini, deepseek-chat, gemini-3.1-flash-lite, claude-3-7-sonnet)",
+            model="The exact model name (e.g. gpt-4o-mini, deepseek-chat, gemini-1.5-flash-8b, claude-3-7-sonnet)",
             base_url="Optional custom Base URL endpoint for LiteRouter / local tunnels (e.g. https://api.literouter.com/v1)",
             switch_provider="Whether to also set this provider as the active provider (Default: True)"
         )
@@ -4555,7 +4555,7 @@ class UserBot:
         is_mentioned = (self.client.user in message.mentions) if self.client.user else False
         is_dm = isinstance(message.channel, discord.DMChannel)
 
-        # Configuration commands via @mention, DM, or prefix: e.g. "@Yuna gemini: gemini-3.1-flash-lite"
+        # Configuration commands via @mention, DM, or prefix: e.g. "@Yuna gemini: gemini-1.5-flash-8b"
         content_raw = message.content.strip()
         clean_text = content_raw
         if self.client.user:
@@ -7239,7 +7239,7 @@ function getDefaultSettings() {
   return {
     personality: "You are a helpful, friendly, and deeply engaging companion. Speak naturally, express opinions, and remember details about users.",
     provider: "auto",
-    gemini_model: "gemini-3-flash-preview",
+    gemini_model: "gemini-1.5-pro",
     groq_model: "openai/gpt-oss-120b",
     mistral_model: "mistral-small-latest",
     openai_chat_model: "gpt-4o-mini",
@@ -7279,7 +7279,7 @@ function getDefaultSettings() {
     vision_enabled: true,
     vision_provider: "gemini",
     vision_model: "meta-llama/llama-3.2-11b-vision-instruct",
-    gemini_vision_model: "gemini-3-flash-preview",
+    gemini_vision_model: "gemini-1.5-pro",
     auto_search: true,
     user_memory_enabled: true,
     open_chat_enabled: false,
@@ -7368,7 +7368,7 @@ function renderSettings(bot) {
     '</div>' +
 
     '<div class="settings-group"><div class="settings-group-title">Standard Models</div>' +
-    mkRow("Gemini Model", mkInput("gemini_model","gemini-3-flash-preview")) +
+    mkRow("Gemini Model", mkInput("gemini_model","gemini-1.5-pro")) +
     mkRow("Groq Model", mkInput("groq_model","openai/gpt-oss-120b")) +
     mkRow("Mistral Model", mkInput("mistral_model","mistral-small-latest")) +
     mkRow("OpenAI Model", mkInput("openai_chat_model","gpt-4o-mini (custom model strings supported)")) +
@@ -7424,7 +7424,7 @@ function renderSettings(bot) {
       {v:"mistral",l:"Mistral Pixtral Vision"},
       {v:"openrouter",l:"OpenRouter Vision"}
     ])) +
-    mkRow("Gemini Vision Model", mkInput("gemini_vision_model","gemini-3-flash-preview")) +
+    mkRow("Gemini Vision Model", mkInput("gemini_vision_model","gemini-1.5-pro")) +
     mkRow("OpenAI Vision Model", mkInput("openai_vision_model","gpt-4o-mini")) +
     mkRow("OpenRouter Vision Model", mkInput("vision_model","meta-llama/llama-3.2-11b-vision-instruct")) +
     '</div>' +

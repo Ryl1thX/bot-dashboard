@@ -158,17 +158,17 @@ Stay strictly in character as ${botName} at all times. Speak directly, authentic
     if (isMultimodalRequest || provider === 'gemini') {
       const gKey = userGeminiKey || process.env.GEMINI_KEY || '';
       if (gKey) {
-        let gModel = (body.video_watching_model || requestedModel || 'gemini-3.5-flash').trim();
+        let gModel = (body.video_watching_model || requestedModel || 'gemini-1.5-flash').trim();
         const geminiCandidates = [
           gModel,
-          'gemini-3.5-flash',
-          'gemini-3.1-flash-lite',
+          'gemini-1.5-flash',
+          'gemini-1.5-flash-8b',
           'gemini-flash-latest',
-          'gemini-3.5-flash-lite',
+          'gemini-1.5-flash-lite',
           'gemini-flash-lite-latest',
-          'gemini-3.6-flash',
-          'gemini-3.7-flash',
-          'gemini-3-flash-preview',
+          'gemini-2.0-flash',
+          'gemini-2.5-flash',
+          'gemini-1.5-pro',
           'gemini-pro-latest'
         ];
         const seenGm = new Set();
@@ -334,7 +334,7 @@ Stay strictly in character as ${botName} at all times. Speak directly, authentic
     // =========================================================================
     if (!reply && (userGeminiKey || process.env.GEMINI_KEY)) {
       const gKey = userGeminiKey || process.env.GEMINI_KEY || '';
-      const geminiCandidates = ['gemini-3.6-flash', 'gemini-3.1-flash-lite', 'gemini-3.7-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest'];
+      const geminiCandidates = ['gemini-2.0-flash', 'gemini-1.5-flash-8b', 'gemini-2.5-flash', 'gemini-flash-latest', 'gemini-flash-lite-latest'];
       for (const gm of geminiCandidates) {
         try {
           const contents = [];
