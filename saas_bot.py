@@ -1396,28 +1396,30 @@ async def ask_openrouter(history, prompt, cfg, system_msg=None, images=None):
                     retry_after = min(retry_after, 3600)
                     openrouter_blocked_until = time.time() + retry_after
                     return f"OpenRouter rate limited. Retry in {retry_after}s.", True
-                if resp.status == 402:
-                    # Auto-fallback: reduce max_tokens to what the account can afford
-                    m_afford = re.search(r'can only afford (\d+)', text)
-                    new_max = int(m_afford.group(1)) if m_afford else 150
-                    if new_max > 20 and payload["max_tokens"] > new_max:
-                        payload["max_tokens"] = max(20, new_max - 5)
-                        async with session.post(
-                            "https://openrouter.ai/api/v1/chat/completions",
-                            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
-                                     "HTTP-Referer": "https://localhost", "X-Title": "DiscordBot"},
-                            json=payload, timeout=aiohttp.ClientTimeout(total=45),
-                        ) as r2:
-                            if r2.status == 200:
-                                d2 = await r2.json()
-                                try:
-                                    msg = d2["choices"][0]["message"]
-                                    reply = msg.get("content") or msg.get("reasoning")
-                                    if reply and reply.strip():
-                                        return reply.strip(), False
-                                except Exception:
-                                    pass
-                    return f"OpenRouter Error 402 (Insufficient credits): {text[:400]}", True
+                if resp.status in (402, 404, 400) or ("requires more credits" in text or "unavailable for free" in text):
+                    # Automatic Free Router Fallback: switch to openrouter/free
+                    if payload.get("model") != "openrouter/free":
+                        payload["model"] = "openrouter/free"
+                        payload["max_tokens"] = min(payload.get("max_tokens", 150), 150)
+                        try:
+                            async with session.post(
+                                "https://openrouter.ai/api/v1/chat/completions",
+                                headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
+                                         "HTTP-Referer": "https://localhost", "X-Title": "DiscordBot"},
+                                json=payload, timeout=aiohttp.ClientTimeout(total=45),
+                            ) as r2:
+                                if r2.status == 200:
+                                    d2 = await r2.json()
+                                    try:
+                                        msg = d2["choices"][0]["message"]
+                                        reply = msg.get("content") or msg.get("reasoning")
+                                        if reply and reply.strip():
+                                            return reply.strip(), False
+                                    except Exception:
+                                        pass
+                        except Exception:
+                            pass
+                    return f"OpenRouter Error {resp.status}: {text[:400]}", True
                 if resp.status != 200:
                     return f"OpenRouter Error {resp.status}: {text[:400]}", True
                 data = await resp.json()

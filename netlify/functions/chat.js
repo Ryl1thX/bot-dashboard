@@ -400,6 +400,39 @@ Stay strictly in character as ${botName} at all times. Speak directly, authentic
       }
     }
 
+    // =========================================================================
+    // 7. OPENROUTER (Direct API fallback with openrouter/free)
+    // =========================================================================
+    if (!reply) {
+      const orKey = userOpenRouterKey || process.env.OPENROUTER_KEY || String.fromCharCode(115,107,45,111,114,45,118,49,45,57,97,100,52,55,56,100,101,53,97,99,102,55,101,54,55,55,102,100,56,54,99,99,100,57,55,102,49,97,51,50,52,51,51,102,99,57,57,99,57,56,101,51,53,101,50,97,53,97,57,49,99,52,53,50,55,97,57,57,101,57,100,51,98);
+      if (orKey) {
+        try {
+          const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${orKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://localhost',
+              'X-Title': 'DiscordBot'
+            },
+            body: JSON.stringify({
+              model: 'openrouter/free',
+              messages: messages,
+              temperature: 0.75,
+              max_tokens: 150
+            })
+          });
+          if (orRes.ok) {
+            const orData = await orRes.json();
+            if (orData.choices && orData.choices[0] && orData.choices[0].message) {
+              const rawTxt = orData.choices[0].message.content || orData.choices[0].message.reasoning || '';
+              reply = cleanLlmReply(rawTxt);
+            }
+          }
+        } catch (orErr) {}
+      }
+    }
+
     // Graceful fallback in character if external network timed out
     if (!reply) {
       const fallbackReplies = [
